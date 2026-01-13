@@ -321,15 +321,17 @@ author: M.
 - 例如：如果报告目录是 `/Users/m/Documents/发票2024`，则压缩包名称为 `发票2024.zip`
 
 #### 9.2 创建压缩包
-- 在报告目录的**父目录**中创建 ZIP 文件（不在报告目录内）
+- 在报告目录**内部**创建 ZIP 文件（与invoices.md同级）
 - 使用 Bash 工具执行压缩命令：
   ```bash
-  cd "<report_dir_parent>" && zip -r "<folder_name>.zip" "<folder_name>" -x "*.DS_Store"
+  cd "<report_dir>" && zip -r "<folder_name>.zip" . -x "*.DS_Store" -x "<folder_name>.zip"
   ```
 - 参数说明：
   * `-r`: 递归压缩所有文件和子目录
+  * `.`: 压缩当前目录的所有内容
   * `-x "*.DS_Store"`: 排除 macOS 系统文件
-  * 压缩包包含报告目录本身作为根文件夹
+  * `-x "<folder_name>.zip"`: 排除zip文件自身，避免递归
+  * 压缩包内容为目录中的所有文件（不含目录本身作为根文件夹）
 
 #### 9.3 验证压缩包
 - 检查压缩包是否成功创建
@@ -344,7 +346,8 @@ author: M.
 **示例**：
 ```
 输入目录：/Users/m/Documents/发票2024
-生成的压缩包：/Users/m/Documents/发票2024.zip
+生成的压缩包：/Users/m/Documents/发票2024/发票2024.zip
+生成的报告：/Users/m/Documents/发票2024/invoices.md
 ```
 
 ## 注意事项
@@ -368,8 +371,8 @@ author: M.
 - **最终打包**：
   * 完成所有处理后，将报告目录中的所有文件打包成一个 ZIP 压缩包
   * 压缩包名称以文件夹名称命名（例如：`发票2024.zip`）
-  * 压缩包保存在报告目录的父目录中
-  * 排除 macOS 系统文件（.DS_Store）
+  * 压缩包保存在报告目录内部（与invoices.md同级）
+  * 排除 macOS 系统文件（.DS_Store）和zip文件自身
 - 报告文件名固定为 invoices.md
 - 完成后输出报告的完整路径和按分类的统计摘要
 - 完成后输出已处理的 ZIP 文件数量、清理的文件数量和最终压缩包路径
@@ -422,4 +425,5 @@ author: M.
 
 📦 已打包最终文件：/path/to/发票2024.zip
    压缩包大小：12.45 MB
+   位置：报告目录内部
 ```
