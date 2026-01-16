@@ -36,3 +36,17 @@ Claude Code Skills等集合
 [查看详情 →](./video-downloader/)
 
 源自：https://github.com/ComposioHQ/awesome-claude-skills
+
+---
+
+### 🎨 image-generator
+通用图片生成 Skill，支持多种 AI 模型（ModelScope、Gemini 等），可被其他 Skills 调用
+
+**特点**：
+- 🤖 支持多个 AI 模型（ModelScope、Gemini 等）
+- 🎯 灵活的提示词和参数配置
+- 📁 自动保存生成的图片
+- 🔌 可被其他 Skills 调用的模块化设计
+- ⚙️ 易于配置的模型切换
+
+[查看详情 →](./image-generator/)
