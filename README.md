@@ -34,3 +34,5 @@ Claude Code Skills等集合
 - 📊 视频信息显示
 
 [查看详情 →](./video-downloader/)
+
+源自：https://github.com/ComposioHQ/awesome-claude-skills
