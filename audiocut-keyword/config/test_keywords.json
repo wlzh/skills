@@ -1,0 +1,9 @@
+{
+  "keywords": [
+    "测试",
+    "关键字"
+  ],
+  "buffer_before": 0.3,
+  "buffer_after": 0.3,
+  "description": "测试用关键字配置"
+}

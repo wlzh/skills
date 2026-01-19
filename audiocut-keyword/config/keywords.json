@@ -1,0 +1,10 @@
+{
+  "keywords": [
+    "大飞",
+    "最佳拍档",
+    "本期视频"
+  ],
+  "buffer_before": 0.1,
+  "buffer_after": 0.1,
+  "description": "关键字配置文件 - 包含需要从音频中删除的关键字"
+}

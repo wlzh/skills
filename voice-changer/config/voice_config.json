@@ -1,0 +1,49 @@
+{
+  "description": "voice-changer 配置文件 - 定义不同的声音预设",
+  "method": "simple",
+  "voices": {
+    "female_1": {
+      "name": "女声 1（轻柔）",
+      "pitch_shift": 5,
+      "description": "音调提高 5 个半音，适合将男声转为女声"
+    },
+    "female_2": {
+      "name": "女声 2（明亮）",
+      "pitch_shift": 7,
+      "description": "音调提高 7 个半音，更高的女声"
+    },
+    "female_3": {
+      "name": "女声 3（甜美）",
+      "pitch_shift": 4,
+      "description": "音调提高 4 个半音，较自然的女声"
+    },
+    "male_deep": {
+      "name": "男声（低沉）",
+      "pitch_shift": -5,
+      "description": "音调降低 5 个半音，低沉的男声"
+    },
+    "male_normal": {
+      "name": "男声（正常）",
+      "pitch_shift": -3,
+      "description": "音调降低 3 个半音，自然的男声"
+    },
+    "child": {
+      "name": "童声",
+      "pitch_shift": 8,
+      "description": "音调提高 8 个半音，儿童声音效果"
+    },
+    "robot": {
+      "name": "机器人",
+      "pitch_shift": 0,
+      "description": "保持原音调，可配合其他效果"
+    }
+  },
+  "default_voice": "female_3",
+  "notes": [
+    "pitch_shift 范围建议: -12 到 +12 半音",
+    "正值提高音调（女声/童声效果）",
+    "负值降低音调（男声效果）",
+    "当前使用 simple 方法（FFmpeg 音高调整）",
+    "未来可扩展支持 RVC 等 AI 模型"
+  ]
+}
