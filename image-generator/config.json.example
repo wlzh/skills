@@ -2,13 +2,13 @@
   "default_api": "modelscope",
   "modelscope": {
     "base_url": "https://api-inference.modelscope.cn/",
-    "api_key": "",
+    "api_key": "your-modelscope-token-here",
     "model": "Tongyi-MAI/Z-Image-Turbo",
     "timeout": 300,
     "poll_interval": 5
   },
   "gemini": {
-    "api_key": "",
+    "api_key": "your-gemini-api-key-here",
     "model": "gemini-2.0-flash",
     "timeout": 60
   },

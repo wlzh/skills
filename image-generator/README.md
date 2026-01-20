@@ -42,23 +42,46 @@ print(f"图片已生成: {image_path}")
 
 ## 配置
 
-编辑 `~/.claude/skills/image-generator/config.json`：
+### 首次使用配置
+
+1. 复制配置模板文件：
+```bash
+cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-generator/config.json
+```
+
+2. 编辑 `~/.claude/skills/image-generator/config.json` 填入你的 API Key：
 
 ```json
 {
   "default_api": "modelscope",
   "modelscope": {
     "base_url": "https://api-inference.modelscope.cn/",
-    "api_key": "your-token-here",
+    "api_key": "your-modelscope-token-here",
     "model": "Tongyi-MAI/Z-Image-Turbo",
     "timeout": 300,
     "poll_interval": 5
+  },
+  "gemini": {
+    "api_key": "your-gemini-api-key-here",
+    "model": "gemini-2.0-flash",
+    "timeout": 60
   },
   "output_dir": "~/Downloads/shell/work/generated_images",
   "image_format": "jpg",
   "quality": 95
 }
 ```
+
+### 配置说明
+
+- `default_api`: 默认使用的 API（`modelscope` 或 `gemini`）
+- `modelscope.api_key`: ModelScope API Token（从 https://modelscope.cn 获取）
+- `gemini.api_key`: Google Gemini API Key（从 https://ai.google.dev 获取）
+- `output_dir`: 图片输出目录
+- `image_format`: 图片格式（`jpg`、`png`、`webp`）
+- `quality`: 图片质量（1-100）
+
+**注意**：`config.json` 包含敏感信息，已被 `.gitignore` 忽略，不会提交到版本库
 
 ## 支持的 API
 

@@ -62,6 +62,15 @@ print(f"图片已生成: {image_path}")
 
 ## 配置
 
+### 首次使用配置
+
+1. 复制配置模板文件：
+```bash
+cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-generator/config.json
+```
+
+2. 编辑配置文件填入你的 API Key：
+
 配置文件位于：`~/.claude/skills/image-generator/config.json`
 
 ```json
@@ -69,13 +78,13 @@ print(f"图片已生成: {image_path}")
   "default_api": "modelscope",
   "modelscope": {
     "base_url": "https://api-inference.modelscope.cn/",
-    "api_key": "your-modelscope-token",
+    "api_key": "your-modelscope-token-here",
     "model": "Tongyi-MAI/Z-Image-Turbo",
     "timeout": 300,
     "poll_interval": 5
   },
   "gemini": {
-    "api_key": "your-gemini-api-key",
+    "api_key": "your-gemini-api-key-here",
     "model": "gemini-2.0-flash",
     "timeout": 60
   },
@@ -84,6 +93,31 @@ print(f"图片已生成: {image_path}")
   "quality": 95
 }
 ```
+
+### 配置参数说明
+
+**通用配置**：
+- `default_api`: 默认使用的 API（`modelscope` 或 `gemini`）
+- `output_dir`: 图片输出目录
+- `image_format`: 图片格式（`jpg`、`png`、`webp`）
+- `quality`: 图片质量（1-100）
+
+**ModelScope 配置**：
+- `base_url`: ModelScope API 地址
+- `api_key`: ModelScope API Token（从 https://modelscope.cn 获取）
+- `model`: 使用的模型名称
+- `timeout`: 请求超时时间（秒）
+- `poll_interval`: 轮询间隔（秒）
+
+**Gemini 配置**：
+- `api_key`: Google Gemini API Key（从 https://ai.google.dev 获取）
+- `model`: 使用的模型名称
+- `timeout`: 请求超时时间（秒）
+
+**注意**：
+- `config.json` 包含敏感的 API Key，已被 `.gitignore` 忽略
+- 不要将包含真实 API Key 的配置文件提交到版本库
+- 使用 `config.json.example` 作为模板参考
 
 ## 支持的模型
 
