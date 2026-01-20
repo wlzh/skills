@@ -25,6 +25,19 @@ def get_audio_duration(audio_file):
     result = subprocess.run(cmd, capture_output=True, text=True)
     return float(result.stdout.strip())
 
+def get_audio_sample_rate(audio_file):
+    """获取音频采样率"""
+    cmd = [
+        'ffprobe',
+        '-v', 'error',
+        '-select_streams', 'a:0',
+        '-show_entries', 'stream=sample_rate',
+        '-of', 'default=noprint_wrappers=1:nokey=1',
+        audio_file
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return int(result.stdout.strip())
+
 def check_dependencies():
     """检查必要的依赖"""
     dependencies = {
@@ -70,16 +83,31 @@ def change_voice_simple(input_audio, output_audio, pitch_shift=5):
     print(f"🎵 使用 FFmpeg 进行音高调整...")
     print(f"   音高偏移: {pitch_shift:+d} 半音")
 
+    # 如果 pitch_shift 为 0，直接复制文件
+    if pitch_shift == 0:
+        print(f"   音高偏移为 0，直接复制文件（保持原样）")
+        import shutil
+        shutil.copy2(input_audio, output_audio)
+        return True
+
+    # 获取输入文件的采样率
+    try:
+        sample_rate = get_audio_sample_rate(input_audio)
+        print(f"   输入采样率: {sample_rate} Hz")
+    except Exception as e:
+        print(f"⚠️  无法获取采样率，使用默认值 44100 Hz: {e}")
+        sample_rate = 44100
+
     # 计算音高调整比率
     # 每个半音对应 2^(1/12) 的频率比
     pitch_ratio = 2 ** (pitch_shift / 12.0)
 
-    # 使用 rubberband 滤镜进行音高调整（保持时长）
-    # 如果没有 rubberband，使用 atempo + asetrate 组合
+    # 使用 asetrate + aresample + atempo 组合进行音高调整（保持时长）
+    # 关键：使用实际的采样率，而不是硬编码 44100
     cmd = [
         'ffmpeg',
         '-i', input_audio,
-        '-af', f'asetrate=44100*{pitch_ratio},aresample=44100,atempo={1/pitch_ratio}',
+        '-af', f'asetrate={sample_rate}*{pitch_ratio},aresample={sample_rate},atempo={1/pitch_ratio}',
         '-y',
         output_audio
     ]

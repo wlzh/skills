@@ -1,0 +1,66 @@
+{
+  "edge_tts": {
+    "voice": "zh-CN-YunyangNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "volume": "+0%"
+  },
+  "available_voices": {
+    "zh-CN-YunyangNeural": "男声（新闻播音，沉稳专业）",
+    "zh-CN-YunxiNeural": "男声（年轻活力）",
+    "zh-CN-YunjianNeural": "男声（成熟稳重）",
+    "zh-CN-XiaoxiaoNeural": "女声（温柔亲切）",
+    "zh-CN-XiaoyiNeural": "女声（活泼开朗）",
+    "zh-CN-XiaochenNeural": "女声（知性优雅）",
+    "zh-CN-XiaohanNeural": "女声（严肃正式）",
+    "zh-CN-XiaomengNeural": "女声（少女可爱）",
+    "zh-CN-XiaomoNeural": "女声（温暖治愈）",
+    "zh-CN-XiaoqiuNeural": "女声（叙事讲述）",
+    "zh-CN-XiaoruiNeural": "女声（平和自然）",
+    "zh-CN-XiaoshuangNeural": "女声（儿童声音）",
+    "zh-CN-XiaoxuanNeural": "女声（温柔细腻）",
+    "zh-CN-XiaoyanNeural": "女声（新闻播音）",
+    "zh-CN-XiaoyouNeural": "女声（儿童声音）",
+    "zh-CN-YunfengNeural": "男声（新闻播音）",
+    "zh-CN-YunhaoNeural": "男声（广告配音）",
+    "zh-CN-YunzeNeural": "男声（年轻阳光）"
+  },
+  "script_parsing": {
+    "enabled": true,
+    "remove_timestamps": true,
+    "remove_bgm_notes": true,
+    "remove_stage_directions": true,
+    "remove_markdown": true,
+    "patterns": {
+      "timestamps": "\\(\\d{2}:\\d{2}\\)",
+      "bgm_notes": "\\[BGM[^\\]]*\\]",
+      "stage_directions": "\\([^)]*(?:BGM|停顿|语速|语气|声音|强调|轻笑)[^)]*\\)",
+      "markdown_bold": "\\*\\*([^*]+)\\*\\*"
+    }
+  },
+  "emotion_processing": {
+    "enabled": true,
+    "use_ssml": true,
+    "emotion_mappings": {
+      "语速放慢": {"rate": "-20%"},
+      "语速加快": {"rate": "+20%"},
+      "加重语气": {"volume": "+20%"},
+      "轻声": {"volume": "-20%"},
+      "停顿": {"break": "500ms"}
+    }
+  },
+  "output": {
+    "format": "mp3",
+    "default_output_dir": "same_as_input",
+    "filename_suffix": "_tts"
+  },
+  "post_processing": {
+    "enabled": true,
+    "voice_changer": {
+      "enabled": true,
+      "voice_type": "female_3",
+      "pitch_shift": null
+    }
+  },
+  "description": "Text-to-Speech 配置文件"
+}

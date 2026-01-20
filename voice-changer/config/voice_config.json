@@ -4,7 +4,7 @@
   "voices": {
     "female_1": {
       "name": "女声 1（轻柔）",
-      "pitch_shift": 5,
+      "pitch_shift": 1,
       "description": "音调提高 5 个半音，适合将男声转为女声"
     },
     "female_2": {
@@ -14,7 +14,7 @@
     },
     "female_3": {
       "name": "女声 3（甜美）",
-      "pitch_shift": 4,
+      "pitch_shift": 1,
       "description": "音调提高 4 个半音，较自然的女声"
     },
     "male_deep": {
@@ -38,7 +38,7 @@
       "description": "保持原音调，可配合其他效果"
     }
   },
-  "default_voice": "female_3",
+  "default_voice": "female_1",
   "notes": [
     "pitch_shift 范围建议: -12 到 +12 半音",
     "正值提高音调（女声/童声效果）",
