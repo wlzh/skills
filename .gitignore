@@ -12,9 +12,25 @@ __pycache__/
 env/
 venv/
 ENV/
+env_*/
+*_env_*/
 *.egg-info/
 dist/
 build/
+
+# Skill specific virtual environments
+audiocut-keyword/funasr_env_310/
+voice-changer/models/rvc_env/
+voice-changer/models/rvc_env_310/
+voice-changer/models/Retrieval-based-Voice-Conversion-WebUI/
+
+# RVC model files (large binary files)
+voice-changer/models/rvc_models/*.pth
+voice-changer/models/rvc_models/*.index
+voice-changer/models/rvc_models/trained_models/*.pth
+voice-changer/models/rvc_models/trained_models/*.index
+voice-changer/models/rvc_models/*/
+voice-changer/models/rvc_models/.lock/
 
 # IDE
 .vscode/
