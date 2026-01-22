@@ -1,49 +1,137 @@
 {
   "description": "voice-changer 配置文件 - 定义不同的声音预设",
-  "method": "simple",
+  "method": "pedalboard",
   "voices": {
     "female_1": {
       "name": "女声 1（轻柔）",
-      "pitch_shift": 1,
-      "description": "音调提高 5 个半音，适合将男声转为女声"
+      "description": "使用 Pedalboard 进行高质量音高调整和音色变换",
+      "method": "pedalboard",
+      "pitch_shift": 4,
+      "voice_type": "female"
     },
     "female_2": {
       "name": "女声 2（明亮）",
-      "pitch_shift": 7,
-      "description": "音调提高 7 个半音，更高的女声"
+      "description": "使用 Pedalboard 转换成明亮女声",
+      "method": "pedalboard",
+      "pitch_shift": 6,
+      "voice_type": "female"
     },
     "female_3": {
       "name": "女声 3（甜美）",
-      "pitch_shift": 1,
-      "description": "音调提高 4 个半音，较自然的女声"
+      "description": "使用 Pedalboard 转换成甜美女声",
+      "method": "pedalboard",
+      "pitch_shift": 5,
+      "voice_type": "female"
     },
     "male_deep": {
       "name": "男声（低沉）",
-      "pitch_shift": -5,
-      "description": "音调降低 5 个半音，低沉的男声"
+      "description": "使用 Pedalboard 转换成低沉男声",
+      "method": "pedalboard",
+      "pitch_shift": -6,
+      "voice_type": "male"
     },
     "male_normal": {
       "name": "男声（正常）",
+      "description": "使用 Pedalboard 转换成正常男声",
+      "method": "pedalboard",
       "pitch_shift": -3,
-      "description": "音调降低 3 个半音，自然的男声"
+      "voice_type": "male"
     },
     "child": {
       "name": "童声",
+      "description": "使用 Pedalboard 转换成儿童声音",
+      "method": "pedalboard",
       "pitch_shift": 8,
-      "description": "音调提高 8 个半音，儿童声音效果"
+      "voice_type": "female"
     },
-    "robot": {
-      "name": "机器人",
-      "pitch_shift": 0,
-      "description": "保持原音调，可配合其他效果"
+    "chinese_yujie": {
+      "name": "中文御姐（成熟女声）",
+      "description": "使用 RVC AI 模型转换成中文成熟女性声音",
+      "method": "rvc",
+      "model_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/chinese_female/chinese_yujie.pth",
+      "f0up_key": 0,
+      "f0_method": "harvest",
+      "index_rate": 0.75,
+      "filter_radius": 3,
+      "resample_sr": 0,
+      "rms_mix_rate": 0.25,
+      "protect": 0.33
+    },
+    "chinese_qimei": {
+      "name": "中文七妹（可爱少女）",
+      "description": "使用 RVC AI 模型转换成中文可爱少女声音",
+      "method": "rvc",
+      "model_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/chinese_female/chinese_qimei.pth",
+      "f0up_key": 2,
+      "f0_method": "harvest",
+      "index_rate": 0.75,
+      "filter_radius": 3,
+      "resample_sr": 0,
+      "rms_mix_rate": 0.25,
+      "protect": 0.33
+    },
+    "chinese_susu": {
+      "name": "中文苏苏（温柔女声）",
+      "description": "使用 RVC AI 模型转换成中文温柔女性声音",
+      "method": "rvc",
+      "model_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/chinese_female/chinese_susu.pth",
+      "f0up_key": 0,
+      "f0_method": "harvest",
+      "index_rate": 0.75,
+      "filter_radius": 3,
+      "resample_sr": 0,
+      "rms_mix_rate": 0.25,
+      "protect": 0.33
+    },
+    "chinese_azi": {
+      "name": "中文AZI（女声）",
+      "description": "使用 RVC AI 模型转换成中文女性声音",
+      "method": "rvc",
+      "model_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/chinese_female/chinese_azi.pth",
+      "f0up_key": 0,
+      "f0_method": "harvest",
+      "index_rate": 0.75,
+      "filter_radius": 3,
+      "resample_sr": 0,
+      "rms_mix_rate": 0.25,
+      "protect": 0.33
+    },
+    "rvc_female": {
+      "name": "RVC 女声（高音高）",
+      "description": "使用 RVC AI 模型进行真实音色转换",
+      "method": "rvc",
+      "model_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/kohane.pth",
+      "index_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/added_IVF925_Flat_nprobe_1_kohane_v2.index",
+      "f0up_key": 4,
+      "f0_method": "harvest",
+      "index_rate": 0.75,
+      "filter_radius": 3,
+      "resample_sr": 0,
+      "rms_mix_rate": 0.25,
+      "protect": 0.33
+    },
+    "rvc_male": {
+      "name": "RVC 男声（低音高）",
+      "description": "使用 RVC AI 模型进行真实音色转换",
+      "method": "rvc",
+      "model_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/kohane.pth",
+      "index_path": "/Users/m/.claude/skills/voice-changer/models/rvc_models/trained_models/added_IVF925_Flat_nprobe_1_kohane_v2.index",
+      "f0up_key": -12,
+      "f0_method": "harvest",
+      "index_rate": 0.5,
+      "filter_radius": 3,
+      "resample_sr": 0,
+      "rms_mix_rate": 0.25,
+      "protect": 0.33
     }
   },
-  "default_voice": "female_1",
+  "default_voice": "female_3",
   "notes": [
-    "pitch_shift 范围建议: -12 到 +12 半音",
-    "正值提高音调（女声/童声效果）",
-    "负值降低音调（男声效果）",
-    "当前使用 simple 方法（FFmpeg 音高调整）",
-    "未来可扩展支持 RVC 等 AI 模型"
+    "默认方法: Pedalboard (高质量音频处理)",
+    "Pedalboard 方法: 使用 Spotify 的高质量音频处理库",
+    "处理快速，音质好，适合日常使用",
+    "RVC 方法: 真实音色转换，需要指定 method=rvc 的声音",
+    "中文 RVC 声音: chinese_yujie(御姐), chinese_qimei(七妹), chinese_susu(苏苏), chinese_azi(AZI)",
+    "如需真实音色转换，使用: voice_change input.mp3 -v chinese_yujie"
   ]
 }

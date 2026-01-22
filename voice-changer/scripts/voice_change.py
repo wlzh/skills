@@ -125,43 +125,366 @@ def change_voice_simple(input_audio, output_audio, pitch_shift=5):
         print(f"❌ 处理出错: {e}")
         return False
 
+def change_voice_pedalboard(input_audio, output_audio, pitch_shift=5, voice_type="female"):
+    """
+    使用 pedalboard 进行高质量音高调整和音色变换
+    pedalboard 是 Spotify 开发的专业音频处理库
+
+    pitch_shift: 音高调整（半音）
+        正值：音调升高（女声效果）
+        负值：音调降低（男声效果）
+        建议范围: -12 到 +12
+    voice_type: 声音类型，影响额外的音频处理效果
+    """
+    print(f"🎛️ 使用 Pedalboard 进行音高和音色调整...")
+    print(f"   音高偏移: {pitch_shift:+d} 半音")
+    print(f"   声音类型: {voice_type}")
+
+    # 如果 pitch_shift 为 0，直接复制文件
+    if pitch_shift == 0:
+        print(f"   音高偏移为 0，直接复制文件（保持原样）")
+        import shutil
+        shutil.copy2(input_audio, output_audio)
+        return True
+
+    # 检查是否安装了 pedalboard
+    try:
+        from pedalboard import Pedalboard, PitchShift, Reverb, Chorus, Phaser, Distortion, Compressor, HighpassFilter, LowpassFilter, Gain
+        from pedalboard.io import AudioFile
+    except ImportError:
+        print("❌ 未安装 pedalboard")
+        print("   请运行: pip install pedalboard")
+        return False
+
+    try:
+        # 根据声音类型创建不同的效果链
+        effects = [PitchShift(semitones=pitch_shift)]
+
+        # 添加额外的效果使声音更自然
+        if "female" in voice_type:
+            # 女声效果：添加轻微的混响和高通滤波
+            effects.extend([
+                HighpassFilter(cutoff_frequency_hz=150),  # 去除低频
+                Compressor(threshold_db=-20, ratio=2.5),  # 压缩动态范围
+                Gain(gain_db=2),  # 轻微提升音量
+            ])
+        elif "male" in voice_type:
+            # 男声效果：添加低通滤波
+            effects.extend([
+                LowpassFilter(cutoff_frequency_hz=4000),  # 去除高频
+                Compressor(threshold_db=-15, ratio=2),
+                Gain(gain_db=3),
+            ])
+        elif "child" in voice_type:
+            # 童声效果：更明亮
+            effects.extend([
+                HighpassFilter(cutoff_frequency_hz=200),
+                Compressor(threshold_db=-25, ratio=3),
+                Gain(gain_db=4),
+            ])
+
+        # 创建效果链
+        board = Pedalboard(effects)
+
+        # 读取输入音频
+        with AudioFile(input_audio) as f:
+            audio = f.read(f.frames)
+            samplerate = f.samplerate
+
+        print(f"   输入采样率: {samplerate} Hz")
+        print(f"   音频形状: {audio.shape}")
+        print(f"   效果链: {len(effects)} 个效果")
+
+        # 处理音频
+        print(f"   正在处理...")
+        effected = board(audio, samplerate)
+
+        # 保存输出音频
+        with AudioFile(output_audio, 'w', samplerate, effected.shape[0]) as f:
+            f.write(effected)
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Pedalboard 处理失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+def change_voice_pedalboard_enhanced(input_audio, output_audio, pitch_shift=5, voice_type="rvc"):
+    """
+    增强版 Pedalboard 变声 - 更多效果处理，用于 RVC 后备方案
+    """
+    print(f"🎛️ 使用增强版 Pedalboard 进行音高和音色调整...")
+    print(f"   音高偏移: {pitch_shift:+d} 半音")
+    print(f"   声音类型: {voice_type}")
+
+    if pitch_shift == 0:
+        print(f"   音高偏移为 0，直接复制文件（保持原样）")
+        import shutil
+        shutil.copy2(input_audio, output_audio)
+        return True
+
+    try:
+        from pedalboard import Pedalboard, PitchShift, Reverb, Chorus, Phaser, Distortion, Compressor, HighpassFilter, LowpassFilter, Gain, Limiter, Delay
+        from pedalboard.io import AudioFile
+
+        # 根据声音类型创建增强效果链
+        effects = [PitchShift(semitones=pitch_shift)]
+
+        if "female" in voice_type:
+            # 女声增强效果
+            effects.extend([
+                HighpassFilter(cutoff_frequency_hz=200),
+                Compressor(threshold_db=-18, ratio=3),
+                Chorus(rate_hz=1.5, depth=0.3, wet_level=0.2),
+                Gain(gain_db=3),
+                Limiter(threshold_db=-0.5),
+            ])
+        elif "male" in voice_type:
+            # 男声增强效果
+            effects.extend([
+                LowpassFilter(cutoff_frequency_hz=3500),
+                Compressor(threshold_db=-12, ratio=2.5),
+                Delay(delay_seconds=0.01, wet_level=0.1),
+                Gain(gain_db=4),
+                Limiter(threshold_db=-0.5),
+            ])
+        else:
+            # RVC 默认增强效果
+            effects.extend([
+                HighpassFilter(cutoff_frequency_hz=150),
+                Compressor(threshold_db=-20, ratio=2.5),
+                Reverb(room_size=0.2, wet_level=0.15),
+                Gain(gain_db=3),
+                Limiter(threshold_db=-1),
+            ])
+
+        board = Pedalboard(effects)
+
+        with AudioFile(input_audio) as f:
+            audio = f.read(f.frames)
+            samplerate = f.samplerate
+
+        print(f"   输入采样率: {samplerate} Hz")
+        print(f"   音频形状: {audio.shape}")
+        print(f"   效果链: {len(effects)} 个效果")
+        print(f"   正在处理...")
+
+        effected = board(audio, samplerate)
+
+        with AudioFile(output_audio, 'w', samplerate, effected.shape[0]) as f:
+            f.write(effected)
+
+        return True
+
+    except Exception as e:
+        print(f"❌ 增强版 Pedalboard 处理失败: {e}")
+        import traceback
+        traceback.print_exc()
+        # 降级到基本版 pedalboard
+        return change_voice_pedalboard(input_audio, output_audio, pitch_shift, voice_type)
+
 def change_voice_rvc(input_audio, output_audio, voice_config):
     """
     使用 RVC 模型进行高质量变声
-    需要预先安装 RVC 相关依赖和模型
+    调用独立的 RVC 推理脚本（真实版）
+    强制使用 RVC，不降级
     """
-    print(f"🎤 使用 RVC 模型进行变声...")
-    print(f"   模型: {voice_config.get('model_path', 'N/A')}")
+    print(f"🎤 使用 RVC AI 模型进行变声...")
 
-    # 检查是否安装了 RVC
-    try:
-        import torch
-        import librosa
-        import soundfile as sf
-    except ImportError as e:
-        print(f"❌ 缺少 RVC 依赖: {e}")
-        print("   请运行: pip install torch librosa soundfile")
+    model_path = voice_config.get('model_path')
+    if not model_path:
+        print("❌ 未配置 RVC 模型路径")
+        print("   请在配置文件中设置 model_path")
         return False
 
-    # TODO: 实现 RVC 变声逻辑
-    # 这里需要集成实际的 RVC 模型推理代码
-    print("⚠️  RVC 模型集成待实现，当前使用简单音高调整")
+    if not os.path.exists(os.path.expanduser(model_path)):
+        print(f"❌ 模型文件不存在: {model_path}")
+        print("   请先下载 RVC 模型")
+        return False
 
-    # 暂时使用简单方案
-    pitch_shift = voice_config.get('pitch_shift', 5)
-    return change_voice_simple(input_audio, output_audio, pitch_shift)
+    # 获取参数
+    f0up_key = voice_config.get('f0up_key', 0)
+    f0_method = voice_config.get('f0_method', 'harvest')
+
+    print(f"   模型: {os.path.basename(model_path)}")
+    print(f"   音高调整: {f0up_key:+d} 半音")
+
+    # 检查音频时长，长音频使用分块处理
+    try:
+        duration = get_audio_duration(input_audio)
+        print(f"   音频时长: {duration:.1f} 秒")
+
+        # 超过 60 秒使用分块处理
+        if duration > 60:
+            print(f"   检测到长音频，使用分块处理...")
+            script_dir = Path(__file__).parent
+            rvc_process_script = script_dir / 'rvc_process_long.py'
+
+            if not rvc_process_script.exists():
+                print(f"❌ 分块处理脚本未找到: {rvc_process_script}")
+                return False
+
+            # 构建 RVC 虚拟环境路径
+            skill_dir = Path(__file__).parent.parent
+            rvc_env_310 = skill_dir / 'models' / 'rvc_env_310' / 'bin' / 'python3'
+            rvc_env = skill_dir / 'models' / 'rvc_env' / 'bin' / 'python3'
+
+            if rvc_env_310.exists():
+                python_exe = str(rvc_env_310)
+            elif rvc_env.exists():
+                python_exe = str(rvc_env)
+            else:
+                python_exe = 'python3'
+
+            cmd = [
+                python_exe,
+                str(rvc_process_script),
+                input_audio,
+                '-o', output_audio,
+                '-m', os.path.expanduser(model_path),
+                '-p', str(f0up_key)
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+
+            # 输出结果
+            if result.stdout:
+                for line in result.stdout.strip().split('\n'):
+                    if line:
+                        print(f"   {line}")
+
+            if result.returncode == 0 and os.path.exists(output_audio) and os.path.getsize(output_audio) > 1000:
+                print(f"   ✅ RVC 分块处理成功！")
+                return True
+            else:
+                print(f"❌ RVC 分块处理失败")
+                if result.stderr:
+                    for line in result.stderr.strip().split('\n')[-5:]:  # 只显示最后几行
+                        if line and not line.startswith('Traceback'):
+                            print(f"   {line}")
+                return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ 处理超时（60分钟）")
+        return False
+    except Exception as e:
+        print(f"❌ 获取音频时长失败: {e}")
+        # 继续使用普通处理
+
+    # 普通处理（短音频或获取时长失败时）
+    # 获取 RVC 推理脚本路径（使用真实 RVC 版本）
+    script_dir = Path(__file__).parent
+    rvc_script = script_dir / 'rvc_infer_real.py'
+
+    if not rvc_script.exists():
+        print(f"❌ RVC 推理脚本未找到: {rvc_script}")
+        return False
+
+    # 获取其他参数
+    index_path = voice_config.get('index_path', '')
+    index_rate = voice_config.get('index_rate', 0.75)
+    filter_radius = voice_config.get('filter_radius', 3)
+    resample_sr = voice_config.get('resample_sr', 0)
+    rms_mix_rate = voice_config.get('rms_mix_rate', 0.25)
+    protect = voice_config.get('protect', 0.33)
+
+    if index_path:
+        print(f"   Index: {os.path.basename(index_path)}")
+
+    # 构建 RVC 虚拟环境路径（优先使用 Python 3.10 环境）
+    skill_dir = Path(__file__).parent.parent
+    rvc_env_310 = skill_dir / 'models' / 'rvc_env_310' / 'bin' / 'python3'
+    rvc_env = skill_dir / 'models' / 'rvc_env' / 'bin' / 'python3'
+
+    # 确定使用哪个 Python
+    if rvc_env_310.exists():
+        python_exe = str(rvc_env_310)
+        print(f"   使用 RVC 虚拟环境 (Python 3.10)")
+    elif rvc_env.exists():
+        python_exe = str(rvc_env)
+        print(f"   使用 RVC 虚拟环境")
+    else:
+        python_exe = 'python3'
+        print(f"   使用系统 Python")
+
+    # 构建命令
+    cmd = [
+        python_exe,
+        str(rvc_script),
+        input_audio,
+        '-o', output_audio,
+        '-m', os.path.expanduser(model_path),
+        '-p', str(f0up_key),
+        '-f', f0_method
+    ]
+
+    # 添加可选参数（先不使用 index 以减少内存）
+    # if index_path:
+    #     cmd.extend(['-i', os.path.expanduser(index_path)])
+    print(f"   注意: 暂时不使用 index 文件以节省内存")
+    if index_rate != 0.75:
+        cmd.extend(['--index-rate', "0"])  # 不使用 index
+    if filter_radius != 3:
+        cmd.extend(['--filter-radius', str(filter_radius)])
+    if resample_sr != 0:
+        cmd.extend(['--resample-sr', str(resample_sr)])
+    if rms_mix_rate != 0.25:
+        cmd.extend(['--rms-mix-rate', str(rms_mix_rate)])
+    if protect != 0.33:
+        cmd.extend(['--protect', str(protect)])
+
+    try:
+        print(f"   正在处理...")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+
+        # 始终输出完整的结果
+        if result.stdout:
+            for line in result.stdout.strip().split('\n'):
+                print(f"   {line}")
+
+        if result.returncode == 0:
+            # 检查输出文件是否真的创建了
+            if os.path.exists(output_audio) and os.path.getsize(output_audio) > 1000:
+                print(f"   ✅ RVC 转换成功！")
+                return True
+            else:
+                print(f"   ❌ RVC 返回成功但输出文件无效")
+                return False
+        else:
+            print(f"❌ RVC 处理失败 (退出码: {result.returncode})")
+            if result.stderr:
+                for line in result.stderr.strip().split('\n'):
+                    if line and not line.startswith('Traceback') and not line.startswith('  File'):
+                        print(f"   {line}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ 处理超时（30分钟）")
+        return False
+    except Exception as e:
+        print(f"❌ RVC 处理出错: {e}")
+        return False
 
 def main():
     parser = argparse.ArgumentParser(description='音频变声处理工具')
     parser.add_argument('input_audio', help='输入音频文件路径')
     parser.add_argument('-o', '--output', help='输出音频文件路径（默认: 输入文件名_voice_changed.mp3）')
-    parser.add_argument('-v', '--voice', default='female_1', help='目标声音类型（默认: female_1）')
+    parser.add_argument('-v', '--voice', default=None, help='目标声音类型（默认: 从配置文件读取）')
     parser.add_argument('-c', '--config', help='自定义配置文件路径')
-    parser.add_argument('-m', '--method', choices=['simple', 'rvc'], default='simple',
-                       help='变声方法: simple(快速音高调整) 或 rvc(AI模型，需额外安装)')
+    parser.add_argument('-m', '--method', choices=['simple', 'pedalboard', 'rvc'], default='pedalboard',
+                       help='变声方法: simple(FFmpeg), pedalboard(高质量), rvc(AI模型)')
     parser.add_argument('-p', '--pitch', type=int, help='音高调整（半音，覆盖配置文件）')
 
     args = parser.parse_args()
+
+    # 加载配置（早期加载以获取默认声音）
+    config = load_config(args.config)
+
+    # 确定使用的声音（命令行 > 配置文件默认值）
+    if args.voice is None:
+        args.voice = config.get('default_voice', 'female_1')
 
     # 检查输入文件
     if not os.path.exists(args.input_audio):
@@ -185,7 +508,6 @@ def main():
     print(f"输入文件: {args.input_audio}")
     print(f"输出文件: {output_audio}")
     print(f"目标声音: {args.voice}")
-    print(f"处理方法: {args.method}")
 
     # 获取音频时长
     try:
@@ -195,9 +517,6 @@ def main():
         print(f"⚠️  无法获取音频时长: {e}")
 
     print()
-
-    # 加载配置
-    config = load_config(args.config)
 
     # 获取声音配置
     if args.voice not in config.get('voices', {}):
@@ -214,11 +533,38 @@ def main():
         print(f"使用命令行指定的音高: {args.pitch:+d} 半音")
 
     # 执行变声
+    # 方法优先级: 命令行明确指定(-m) > 配置文件中声音的 method > 配置文件全局 method
+    # 检查命令行是否明确指定了 -m 参数
+    has_method_arg = any(arg in ['-m', '--method'] for arg in sys.argv)
+
+    if has_method_arg:
+        # 用户明确指定了方法，使用命令行参数
+        method = args.method
+        method_source = "命令行指定"
+    else:
+        # 用户没有指定，使用配置文件的方法
+        config_default_method = config.get('method', 'pedalboard')
+        method = voice_config.get('method', config_default_method)
+        method_source = "配置文件"
+
+    print(f"处理方法: {method} ({method_source})")
+
+    # 获取实际的 pitch_shift（RVC 用 f0up_key）
+    pitch_shift = voice_config.get('f0up_key') or voice_config.get('pitch_shift', 5)
+    if args.pitch is not None:
+        pitch_shift = args.pitch
+        # 更新 voice_config 以便 RVC 使用
+        voice_config['f0up_key'] = args.pitch
+
     success = False
-    if args.method == 'simple':
-        pitch_shift = voice_config.get('pitch_shift', 5)
+    if method == 'simple':
         success = change_voice_simple(args.input_audio, output_audio, pitch_shift)
-    elif args.method == 'rvc':
+    elif method == 'pedalboard':
+        success = change_voice_pedalboard(args.input_audio, output_audio, pitch_shift, args.voice)
+    elif method == 'rvc':
+        # 确保 f0up_key 存在
+        if 'f0up_key' not in voice_config:
+            voice_config['f0up_key'] = pitch_shift
         success = change_voice_rvc(args.input_audio, output_audio, voice_config)
 
     if success:

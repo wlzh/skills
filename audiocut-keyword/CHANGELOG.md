@@ -1,5 +1,49 @@
 # Changelog
 
+## v1.1.0 - 2026-01-22
+
+### 🐛 重要修复
+
+- ✅ **Python 3.10 FunASR 环境支持** - 解决 Python 3.11 兼容性问题
+  - 新增 `funasr_env_310/` Python 3.10 隔离环境
+  - 安装 torch 2.10.0 和 funasr 1.3.0
+  - 使用清华镜像源加速安装
+
+### 🔧 技术细节
+
+**FunASR 兼容性问题**：
+```
+错误: ValueError: mutable default for field override_dirname
+原因: FunASR 的 hydra 依赖与 Python 3.11 dataclass 不兼容
+解决: 创建 Python 3.10 隔离环境
+```
+
+**环境路径**：
+- FunASR 环境：`~/.claude/skills/audiocut-keyword/funasr_env_310/`
+- Python 解释器：`funasr_env_310/bin/python3`
+
+### 📝 集成更新
+
+**youtube-to-xiaoyuzhou 集成**：
+- 自动检测 FunASR Python 3.10 环境
+- 优先使用隔离环境运行关键字过滤
+- 向下兼容：环境不存在时使用系统 Python
+
+### ✨ 使用方式
+
+**直接使用（推荐）**：
+```bash
+# 使用 FunASR Python 3.10 环境
+~/.claude/skills/audiocut-keyword/funasr_env_310/bin/python3 \
+  ~/.claude/skills/audiocut-keyword/scripts/audiocut_keyword.py input.mp3
+```
+
+**youtube-to-xiaoyuzhou 集成**：
+```bash
+# 自动使用 FunASR 环境
+/youtube-to-xiaoyuzhou https://youtu.be/xxxxx --filter-keywords
+```
+
 ## v1.0.0 - 2026-01-19
 
 ### 🎉 首次发布

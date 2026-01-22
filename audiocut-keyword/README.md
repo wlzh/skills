@@ -1,6 +1,6 @@
 # 音频关键字过滤工具 (audiocut-keyword)
 
-> 版本: v1.0.0
+> 版本: v1.1.0
 
 根据关键字配置自动识别并删除音频中的指定内容
 
@@ -51,11 +51,40 @@ python3 ~/.claude/skills/audiocut-keyword/scripts/audiocut_keyword.py input.mp3 
 
 ## 依赖安装
 
-```bash
-# Python 依赖
-pip install funasr modelscope
+### FunASR 环境（推荐）
 
-# 系统依赖
+使用预配置的 Python 3.10 环境：
+
+```bash
+# FunASR 环境已预安装在 skill 目录
+~/.claude/skills/audiocut-keyword/funasr_env_310/
+```
+
+包含：
+- Python 3.10
+- torch 2.10.0
+- funasr 1.3.0
+
+### 手动安装
+
+如需手动安装 FunASR：
+
+```bash
+# 创建 Python 3.10 虚拟环境
+python3.10 -m venv ~/.claude/skills/audiocut-keyword/funasr_env_310
+
+# 激活环境
+source ~/.claude/skills/audiocut-keyword/funasr_env_310/bin/activate
+
+# 使用清华镜像安装
+pip install torch torchvision torchaudio -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install funasr -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+### 系统依赖
+
+```bash
+# FFmpeg
 brew install ffmpeg  # macOS
 ```
 
@@ -76,6 +105,11 @@ brew install ffmpeg  # macOS
 *测试环境: M1 Mac，CPU 推理*
 
 ## 更新记录
+
+### v1.1.0 (2026-01-22)
+- ✅ **Python 3.10 FunASR 环境支持** - 解决 Python 3.11 兼容性问题
+- ✅ **新增预配置环境** - `funasr_env_310/` 包含 torch 和 funasr
+- ✅ **youtube-to-xiaoyuzhou 集成** - 自动检测并使用 FunASR 环境
 
 ### v1.0.0 (2026-01-19)
 - 首次发布
