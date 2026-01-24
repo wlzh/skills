@@ -1,7 +1,7 @@
 ---
 name: audiocut-keyword
 description: 音频关键字过滤工具 - 根据关键字配置自动识别并删除音频中的指定内容
-version: 1.0.0
+version: 1.1.0
 author: M.
 ---
 
@@ -173,7 +173,21 @@ optional arguments:
 
 ## 依赖安装
 
-### Python 依赖
+### FunASR 环境（推荐）
+
+使用预配置的 Python 3.10 环境：
+
+```bash
+# FunASR 环境已预安装在 skill 目录
+~/.claude/skills/audiocut-keyword/funasr_env_310/
+```
+
+包含：
+- Python 3.10
+- torch 2.10.0
+- funasr 1.3.0
+
+### 手动安装 Python 依赖
 
 ```bash
 pip install funasr modelscope
