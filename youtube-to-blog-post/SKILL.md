@@ -17,6 +17,7 @@ description: Convert YouTube videos to SEO-optimized blog posts. Extract video t
 - ✅ **长尾词覆盖** - 自动添加同义词和相关词
 - ✅ **内部链接** - 自动添加相关推荐链接
 - ✅ **结构化内容** - H1-H3 层次清晰，利于 SEO
+- ✅ **自动去 AI 化** - 集成 humanizer，自动去除 AI 写作痕迹
 
 ### 📝 内容生成
 - 自动获取 YouTube 视频标题、描述和内容
@@ -25,6 +26,7 @@ description: Convert YouTube videos to SEO-optimized blog posts. Extract video t
 - 在文章开头嵌入 YouTube 视频播放器（首屏可见）
 - 提取视频章节作为 H3 标题
 - 自动添加 Emoji 提升可读性
+- **自动去除 AI 痕迹** - 使文章更自然、有人味
 
 ### ⚙️ 可配置
 - 支持自定义博客文章目录
@@ -229,6 +231,9 @@ hexo cl && hexo g && hexo d
 | `--config` | 配置文件路径 | `--config config.json` |
 | `--posts-dir` | 文章目录（覆盖配置） | `--posts-dir source/_posts` |
 | `--dry-run` | 预览模式，不保存 | `--dry-run` |
+| `--no-humanizer` | 跳过 AI 写作去除 | `--no-humanizer` |
+
+**注意**: 默认启用自动去 AI 化（humanizer），使用 `--no-humanizer` 可跳过此步骤。
 
 ## 🌐 支持的 URL 格式
 

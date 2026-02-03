@@ -11,6 +11,7 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
+import subprocess
 
 try:
     import yt_dlp
@@ -539,7 +540,101 @@ def generate_article_content(video_info):
     return content
 
 
-def save_post(content, filename, posts_dir):
+def humanize_article(content, video_title):
+    """
+    Apply humanizer to remove AI-generated writing patterns
+    Simplified implementation based on humanizer-zh skill guidelines
+    """
+    lines = content.split('\n')
+    humanized_lines = []
+    skip_frontmatter = False
+    frontmatter_end = False
+
+    for i, line in enumerate(lines):
+        # Skip front matter
+        if line.strip() == '---':
+            if not skip_frontmatter:
+                skip_frontmatter = True
+                humanized_lines.append(line)
+                continue
+            elif skip_frontmatter and not frontmatter_end:
+                frontmatter_end = True
+                humanized_lines.append(line)
+                continue
+
+        # Don't modify front matter
+        if skip_frontmatter and not frontmatter_end:
+            humanized_lines.append(line)
+            continue
+
+        # Skip video iframe
+        if '<iframe' in line:
+            humanized_lines.append(line)
+            continue
+
+        # Remove excessive emoji from headers
+        if line.startswith('##'):
+            # Remove multiple emojis from headings, keep at most one if relevant
+            line = re.sub(r'[🎯📹📺💡🎓📝📚🔍🔗]+', '', line)
+            # Remove trailing colon
+            line = re.sub(r':\s*$', '', line)
+            humanized_lines.append(line)
+            continue
+
+        # Remove or replace AI patterns
+        # Remove excessive emphasis
+        line = re.sub(r'\*\*(.*?)\*\*', r'\1', line)  # Remove bold markdown
+        line = re.sub(r'🚀\*\*', '', line)  # Remove rocket emoji
+
+        # Simplify overly promotional language
+        line = re.sub(r'真正[的]', '', line)
+        line = re.sub(r'终极[""]', '', line)
+        line = re.sub(r'"白嫖[""]', '免费', line)
+        line = re.sub(r'无限流量', '', line)
+        line = re.sub(r'无限生成', '', line)
+        line = re.sub(r'节点无限', '', line)
+        line = re.sub(r'4K秒开', '速度快', line)
+
+        # Remove AI vocabulary
+        line = re.sub(r'此外，', '', line)
+        line = re.sub(r'深入探讨', '介绍', line)
+        line = re.sub(r'核心知识', '内容', line)
+        line = re.sub(r'关键信息', '信息', line)
+        line = re.sub(r'重要', '', line)
+        line = re.sub(r'至关重要的', '', line)
+        line = re.sub(r'必不可少的', '', line)
+
+        # Simplify structure
+        line = re.sub(r'本视频适合以下观众观看：', '适合：', line)
+        line = re.sub(r'\*   ', '- ', line)  # Simplify bullet points
+
+        # Remove repetitive title mentions
+        if video_title in line and len(video_title) > 20:
+            # If title appears verbatim in content, shorten it
+            short_title = video_title[:30] + '...' if len(video_title) > 30 else video_title
+            line = line.replace(video_title, '这个教程')
+            line = line.replace(short_title, '这个教程')
+
+        # Remove generic filler phrases
+        line = re.sub(r'建议在观看视频时：', '观看时：', line)
+        line = re.sub(r'无论你是……都能从中获得有价值的信息。', '', line)
+
+        humanized_lines.append(line)
+
+    # Clean up excessive blank lines
+    result = []
+    prev_blank = False
+    for line in humanized_lines:
+        is_blank = line.strip() == ''
+        if is_blank and prev_blank:
+            continue
+        result.append(line)
+        prev_blank = is_blank
+
+    return '\n'.join(result)
+
+
+def save_post(content, filename, posts_dir, video_title, apply_humanizer=True):
     """Save blog post to file"""
     # Ensure directory exists
     posts_path = Path(posts_dir)
@@ -553,6 +648,12 @@ def save_post(content, filename, posts_dir):
         timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
         file_path = posts_path / f"{filename}-{timestamp}.md"
         print(f"File exists, creating with timestamp: {file_path.name}")
+
+    # Apply humanizer if enabled (default)
+    if apply_humanizer:
+        print("🔄 Applying AI writing removal...")
+        content = humanize_article(content, video_title)
+        print("✅ Content humanized")
 
     # Write content
     with open(file_path, 'w', encoding='utf-8') as f:
@@ -573,6 +674,7 @@ def main():
     parser.add_argument('--config', help='Path to config JSON file')
     parser.add_argument('--posts-dir', help='Override posts directory')
     parser.add_argument('--dry-run', action='store_true', help='Generate content but don\'t save')
+    parser.add_argument('--no-humanizer', action='store_true', help='Skip AI writing removal (humanizer)')
 
     args = parser.parse_args()
 
@@ -611,8 +713,9 @@ def main():
         print(content[:1500] + "..." if len(content) > 1500 else content)
         print(f"\nWould save to: {os.path.join(posts_dir, filename + '.md')}")
     else:
-        # Save post
-        file_path = save_post(content, filename, posts_dir)
+        # Save post (with humanizer by default)
+        apply_humanizer = not args.no_humanizer
+        file_path = save_post(content, filename, posts_dir, video_info['title'], apply_humanizer)
         print(f"\n🎉 Post saved to: {file_path}")
         print(f"\n📂 To deploy: cd {args.blog_dir or '.'} && hexo cl; hexo g; hexo d")
 
