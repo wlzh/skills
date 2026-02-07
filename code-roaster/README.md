@@ -1,5 +1,6 @@
 # 🔥 Code Roaster - 代码烤肉机
 
+> **版本**: v1.0.0
 > "If you can't stand the heat, get out of the kitchen!" - Gordon Ramsay
 
 ## 简介

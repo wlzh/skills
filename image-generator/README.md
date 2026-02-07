@@ -1,5 +1,7 @@
 # Image Generator Skill
 
+> **版本**: v1.0.0
+
 通用图片生成 Skill，支持多种 AI 模型，可被其他 Skills 直接调用。
 
 ## 快速开始
