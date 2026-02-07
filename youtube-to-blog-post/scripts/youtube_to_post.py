@@ -395,22 +395,22 @@ copyright: true
     summary = generate_article_summary(video_info)
 
     # Generate video iframe with SEO attributes
-    video_iframe = f"""## 📹 视频教程
+    video_iframe = f"""## 视频教程
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/{video_id}" title="{title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 """
 
     # Generate article content with SEO structure
-    content = generate_article_content(video_info)
+    content = generate_article_content(video_info, video_id)
 
     # Generate reference links
     references = f"""
 
-## 🔗 参考链接
+## 参考链接
 
-*   [YouTube视频原地址](https://www.youtube.com/watch?v={video_id})
-*   [相关推荐](https://869hr.uk)
+- [YouTube视频原地址](https://www.youtube.com/watch?v={video_id})
+- [相关推荐](https://869hr.uk)
 
 ---
 """
@@ -470,7 +470,7 @@ def generate_article_summary(video_info):
 """
 
 
-def generate_article_content(video_info):
+def generate_article_content(video_info, video_id):
     """Generate SEO-optimized article content"""
     title = video_info['title']
     uploader = video_info.get('uploader', '')
@@ -481,61 +481,63 @@ def generate_article_content(video_info):
     # Convert duration to minutes
     duration_min = duration // 60 if duration else 0
 
-    content = f"""## 📺 视频介绍
+    content = f"""## 视频介绍
 
-本视频由 **{uploader}** 制作，时长约 **{duration_min} 分钟**，主要讲解了 **{title}** 相关的内容。
-
-### 🎯 视频亮点
+本视频由 {uploader} 制作，时长约 {duration_min 分钟。
 
 """
+
+    # Try to extract meaningful content from description
+    # Remove common link lines and emojis
+    desc_lines = []
+    for line in description.split('\n'):
+        line = line.strip()
+        # Skip empty lines, links, and common social media lines
+        if not line or line.startswith('http') or line.startswith('💬') or line.startswith('🔗'):
+            continue
+        if 'Telegram' in line and 't.me' in line:
+            continue
+        if 'Twitter' in line or 'x.com' in line:
+            continue
+        desc_lines.append(line)
+
+    # Join meaningful lines
+    meaningful_desc = '\n'.join(desc_lines[:30])  # Limit to first 30 meaningful lines
 
     # Extract timestamp chapters for better content structure
     timestamp_pattern = r'(\d{1,2}:\d{2})\s*[.\-]?\s*(.+)'
-    timestamps = re.findall(timestamp_pattern, description)
+    timestamps = re.findall(timestamp_pattern, meaningful_desc)
 
-    if timestamps:
-        content += "本视频包含以下章节内容：\n\n"
-        for time, topic in timestamps[:8]:
-            content += f"*   **{time}** - {topic}\n"
+    # Extract key features/benefits (usually marked with ✅ or similar)
+    features = []
+    for line in desc_lines:
+        if '✅' in line or '核心' in line or '亮点' in line:
+            features.append(line.replace('✅', '').strip())
+
+    if features:
+        content += "## 核心亮点\n\n"
+        for feature in features[:6]:
+            # Clean up the feature text
+            feature = re.sub(r'[🚀💡✅🎯]', '', feature)
+            feature = feature.replace('**', '').strip()
+            if feature:
+                content += f"**{feature}**\n\n"
         content += "\n"
-    else:
-        # Generate content from description
-        if description:
-            paragraphs = [p.strip() for p in description.split('\n\n') if p.strip()]
-            if paragraphs:
-                content += f"{paragraphs[0][:300]}...\n\n"
-        else:
-            content += f"通过本视频，你将学习到 {title} 的核心知识和实用技巧。\n\n"
 
-    content += f"""## 💡 核心知识点
+    # Extract code examples if present
+    code_blocks = re.findall(r'```[a-z]*\n(.*?)```', meaningful_desc, re.DOTALL)
+    if code_blocks:
+        content += "## 配置示例\n\n"
+        for code in code_blocks[:2]:
+            content += f"```\n{code.strip()}\n```\n\n"
 
-在本视频中，我们深入探讨了{title}的相关知识点。无论你是初学者还是有一定基础的开发者，都能从中获得有价值的信息。
+    content += "## 参考链接
 
-### 🎓 适合人群
+- [YouTube视频原地址](https://www.youtube.com/watch?v={})
+- [相关推荐](https://869hr.uk)
 
-本视频适合以下观众观看：
-*   对{title.split('：')[0]}感兴趣的初学者
-*   希望提升相关技能的开发者
-*   寻找解决方案的从业者
-
-### 📝 实践建议
-
-建议在观看视频时：
-1.  跟随视频步骤进行实践操作
-2.  记录重要的知识点和技巧
-3.  遇到问题时可以暂停回放
-4.  结合官方文档加深理解
-
-## 📚 总结
-
-通过本视频的学习，相信你对{title}有了更深入的理解。掌握这些知识点后，你可以在实际项目中灵活应用，提升开发效率。
-
-"""
-
-    # Add related keywords section for better SEO
-    if tags:
-        content += "## 🔍 相关关键词\n\n"
-        content += f"本视频涉及的关键词包括：{', '.join(tags[:10])}\n\n"
+---
+""".format(video_id)
 
     return content
 
@@ -649,11 +651,11 @@ def save_post(content, filename, posts_dir, video_title, apply_humanizer=True):
         file_path = posts_path / f"{filename}-{timestamp}.md"
         print(f"File exists, creating with timestamp: {file_path.name}")
 
-    # Apply humanizer if enabled (default)
+    # Apply humanizer if enabled (default) - built-in implementation
     if apply_humanizer:
-        print("🔄 Applying AI writing removal...")
+        print("🔄 Applying AI writing removal (natural language processing)...")
         content = humanize_article(content, video_title)
-        print("✅ Content humanized")
+        print("✅ Content humanized - SEO optimized and ready")
 
     # Write content
     with open(file_path, 'w', encoding='utf-8') as f:

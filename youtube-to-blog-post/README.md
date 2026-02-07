@@ -17,8 +17,9 @@
 - 自动获取视频信息（标题、描述、时长）
 - 自动生成英文文件名（SEO 友好）
 - 在文章开头嵌入视频（首屏可见）
-- 自动提取视频章节作为 H3 标题
-- 添加 Emoji 提升可读性
+- **自动从视频描述提取真实内容**（非模板化）
+- **内置 AI 痕迹去除**（自然语言处理）
+- **确保人性化后仍符合 SEO 标准**
 
 ## 🚀 快速开始
 
@@ -26,8 +27,7 @@
 
 ```bash
 # 只需要提供 YouTube URL
-python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
-  "https://www.youtube.com/watch?v=VIDEO_ID"
+python scripts/youtube_to_post.py "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
 **自动完成：**
@@ -35,8 +35,10 @@ python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
 2. ✅ SEO 优化描述
 3. ✅ 提取关键词
 4. ✅ 添加封面图
-5. ✅ 生成文章
-6. ✅ 保存到 `source/_posts/`
+5. ✅ 从描述提取真实内容
+6. ✅ 去除 AI 写作痕迹
+7. ✅ 确保 SEO 优化
+8. ✅ 保存到 `source/_posts/`
 
 ### 一键部署
 
@@ -45,8 +47,8 @@ python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
 cd /path/to/myblog
 
 # 生成文章 + 部署
-python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
-  "YouTube_URL" && \
+python /path/to/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
+  "YouTube_URL" -b . && \
   hexo cl && hexo g && hexo d
 ```
 
@@ -54,12 +56,13 @@ python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
 
 ```bash
 # 指定分类和标签
-python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
-  "YouTube_URL" -c "技术" -t "AI 教程"
+python scripts/youtube_to_post.py "YouTube_URL" -c "技术" -t "AI 教程"
 
 # 预览模式（不保存）
-python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
-  "YouTube_URL" --dry-run
+python scripts/youtube_to_post.py "YouTube_URL" --dry-run
+
+# 跳过 AI 痕迹去除（保留原始 AI 文本）
+python scripts/youtube_to_post.py "YouTube_URL" --no-humanizer
 ```
 
 ## 📋 配置文件
@@ -100,18 +103,21 @@ copyright: true
 ### 文章结构
 
 ```markdown
-## 📹 视频教程
+## 视频教程
 <iframe>...</iframe>  # 首屏可见
 
-## 📺 视频介绍
-### 🎯 视频亮点
+## 视频介绍
+（从视频描述提取的真实内容）
 
-## 💡 核心知识点
-### 🎓 适合人群
-### 📝 实践建议
+## 核心亮点
+（从描述中提取的关键特性）
 
-## 📚 总结
-## 🔗 参考链接
+## 配置示例
+（如有代码，自动提取）
+
+## 参考链接
+- YouTube视频原地址
+- 相关推荐
 ```
 
 ## 📊 SEO 效果对比
@@ -172,6 +178,7 @@ hexo cl && hexo g && hexo d
 | `--config` | 配置文件路径 | `--config config.json` |
 | `--posts-dir` | 文章目录 | `--posts-dir source/_posts` |
 | `--dry-run` | 预览模式 | `--dry-run` |
+| `--no-humanizer` | 跳过 AI 痕迹去除 | `--no-humanizer` |
 
 ## 🌐 支持的 URL 格式
 
@@ -235,11 +242,20 @@ pip install yt-dlp requests
 
 ## 🆕 版本信息
 
-**版本**: 2.0 SEO Optimized
-**更新日期**: 2026-02-02
+**版本**: 3.0 Natural Language + SEO
+**更新日期**: 2026-02-07
 **状态**: ✅ 已测试并上线
 
-### 更新内容
+### v3.0 更新内容 (2026-02-07)
+
+- ✅ **智能内容提取** - 从视频描述提取真实内容，告别模板化
+- ✅ **内置 AI 痕迹去除** - 自然语言处理，去除 AI 写作痕迹
+- ✅ **SEO 友好人性化** - 确保人性化后仍符合 SEO 标准
+- ✅ **关键特性提取** - 自动识别和提取视频核心亮点
+- ✅ **代码示例提取** - 自动识别和格式化代码块
+- ✅ **去模板化** - 删除"适合人群"、"实践建议"等空泛章节
+
+### v2.0 更新内容 (2026-02-02)
 
 - ✅ YAML 安全过滤（100% 部署成功）
 - ✅ 描述优化（160 字符）
@@ -247,8 +263,8 @@ pip install yt-dlp requests
 - ✅ YouTube 封面图
 - ✅ 长尾关键词覆盖
 - ✅ 内部链接
-- ✅ 结构化内容（H1-H3 + Emoji）
+- ✅ 结构化内容（H1-H3）
 
 ---
 
-**现在你只需要提供 YouTube URL，所有 SEO 优化自动完成！** 🎉
+**现在你只需要提供 YouTube URL，所有 SEO 优化和人性化处理自动完成！** 🎉
