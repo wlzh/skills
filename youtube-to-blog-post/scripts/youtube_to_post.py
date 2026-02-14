@@ -56,13 +56,24 @@ def load_config(config_path=None, blog_dir=None):
         "default_category": "技术",
         "default_tags": ["视频教程"],
         "author": "M.",
-        "image_cdn": "https://img.869hr.uk"
+        "image_cdn": "https://img.869hr.uk",
+        "auto_deploy": False,
+        "deploy_branch": "main"
     }
 
+    # Priority 1: User's home directory config (for personal settings)
+    home_config = os.path.expanduser("~/.youtube-blog-config.json")
+    if os.path.exists(home_config):
+        with open(home_config, 'r', encoding='utf-8') as f:
+            user_config = json.load(f)
+            config.update(user_config)
+
+    # Priority 2: Explicit config path
     if config_path and os.path.exists(config_path):
         with open(config_path, 'r', encoding='utf-8') as f:
             user_config = json.load(f)
             config.update(user_config)
+    # Priority 3: Blog directory config
     elif blog_dir:
         config_path = os.path.join(blog_dir, "youtube-blog-config.json")
         if os.path.exists(config_path):
@@ -163,15 +174,18 @@ def extract_video_id(url):
 
 
 def generate_english_filename(title, video_id=None):
-    """Generate SEO-friendly English filename from video title"""
+    """Generate SEO-friendly English filename from video title (kebab-case)"""
+
     # Enhanced keyword mapping for better SEO
     keyword_map = {
-        # Common words
+        # Common words - using kebab-case
         '教程': 'tutorial',
         '指南': 'guide',
         '工具': 'tools',
         '技术': 'tech',
         '免费': 'free',
+        '零成本': 'free',
+        '0成本': 'free',
         '域名': 'domain',
         '服务器': 'server',
         '支付': 'payment',
@@ -201,10 +215,15 @@ def generate_english_filename(title, video_id=None):
         '推荐': 'recommend',
         '对比': 'compare',
         '评测': 'review',
+        # Chinese particles to remove
         '的': '',
+        '了': '',
+        '在': '',
+        '是': '',
         '和': 'and',
         '与': 'and',
         '或': 'or',
+        # Special chars to handle
         '（': '-',
         '）': '',
         '(': '-',
@@ -225,6 +244,8 @@ def generate_english_filename(title, video_id=None):
         '】': '',
         '《': '',
         '》': '',
+        '🔥': '',
+        '🚀': '',
         # Tech terms
         '科学上网': 'vpn',
         'vps': 'vps',
@@ -239,26 +260,57 @@ def generate_english_filename(title, video_id=None):
         '前端': 'frontend',
         '后端': 'backend',
         '全栈': 'fullstack',
+        '教育邮箱': 'edu-email',
+        'edu': 'edu',
+        '美国': 'usa',
+        '中国': 'china',
+        '白嫖': 'free',
+        '神器': 'tool',
+        '最新': 'latest',
     }
 
+    # First, remove emojis and special symbols
+    filename = re.sub(r'[🔥🚀💡✅🎯📌]', '', title)
+
     # Replace Chinese and special characters
-    filename = title.lower()
+    filename = filename.lower()
     for cn, en in keyword_map.items():
         filename = filename.replace(cn, en)
 
     # Remove any remaining non-ASCII characters
     filename = re.sub(r'[^\x00-\x7f]', '', filename)
     filename = re.sub(r'[^\w\s-]', '', filename)
-    filename = re.sub(r'[\s]+', '-', filename)
+
+    # Split by common separators and rejoin with dashes
+    # First replace multiple separators with single dash
+    filename = re.sub(r'[-_/\\]+', '-', filename)
+
+    # Replace spaces with dashes
+    filename = re.sub(r'\s+', '-', filename)
+
+    # Remove leading/trailing dashes
     filename = filename.strip('-')
+
+    # Remove multiple consecutive dashes
+    filename = re.sub(r'-+', '-', filename)
 
     # If filename is too short or empty, use video ID
     if len(filename) < 5 or not filename:
-        filename = f"youtube-{video_id}" if video_id else "video-post"
+        filename = f"video-{video_id}" if video_id else "video-post"
 
-    # Limit length for SEO (shorter URLs are better)
+    # Limit length for SEO (shorter URLs are better), but keep it meaningful
     if len(filename) > 50:
-        filename = filename[:50].rstrip('-')
+        # Try to keep meaningful parts - split by dashes and take first few
+        parts = filename.split('-')
+        result = []
+        current_length = 0
+        for part in parts:
+            if current_length + len(part) + 1 <= 50:
+                result.append(part)
+                current_length += len(part) + 1
+            else:
+                break
+        filename = '-'.join(result) if result else filename[:50]
 
     return filename
 
@@ -483,7 +535,7 @@ def generate_article_content(video_info, video_id):
 
     content = f"""## 视频介绍
 
-本视频由 {uploader} 制作，时长约 {duration_min 分钟。
+本视频由 {uploader} 制作，时长约 {duration_min} 分钟。
 
 """
 
@@ -531,7 +583,7 @@ def generate_article_content(video_info, video_id):
         for code in code_blocks[:2]:
             content += f"```\n{code.strip()}\n```\n\n"
 
-    content += "## 参考链接
+    content += """## 参考链接
 
 - [YouTube视频原地址](https://www.youtube.com/watch?v={})
 - [相关推荐](https://869hr.uk)
@@ -665,6 +717,101 @@ def save_post(content, filename, posts_dir, video_title, apply_humanizer=True):
     return file_path
 
 
+def hexo_deploy(blog_dir):
+    """Run hexo deploy to generate and push static files to GitHub Pages"""
+    import subprocess
+
+    if not blog_dir or not os.path.exists(blog_dir):
+        print("⚠️ Blog directory not found, skipping hexo deployment")
+        return False
+
+    original_dir = os.getcwd()
+    try:
+        os.chdir(blog_dir)
+
+        # Check if hexo is available
+        result = subprocess.run(['which', 'hexo'], capture_output=True)
+        if result.returncode != 0:
+            print("⚠️ Hexo not found, skipping hexo deployment")
+            return False
+
+        print("🧹 Running hexo clean...")
+        subprocess.run(['hexo', 'clean'], check=True, capture_output=True)
+
+        print("📦 Running hexo generate...")
+        subprocess.run(['hexo', 'generate'], check=True, capture_output=True)
+
+        print("🚀 Running hexo deploy...")
+        result = subprocess.run(['hexo', 'deploy'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"⚠️ Hexo deploy warning: {result.stderr}")
+            # Continue anyway - might just be a warning
+
+        print("✅ Hexo deployment completed")
+        return True
+
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Hexo deployment failed: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Hexo deployment error: {e}")
+        return False
+    finally:
+        os.chdir(original_dir)
+
+
+def deploy_to_git(blog_dir, branch='main'):
+    """Deploy changes to git repository"""
+    import subprocess
+
+    if not blog_dir or not os.path.exists(blog_dir):
+        print("⚠️ Blog directory not found, skipping git deployment")
+        return False
+
+    original_dir = os.getcwd()
+    try:
+        os.chdir(blog_dir)
+
+        # Check if it's a git repository
+        result = subprocess.run(['git', 'rev-parse', '--git-dir'],
+                              capture_output=True)
+        if result.returncode != 0:
+            print("⚠️ Not a git repository, skipping git deployment")
+            return False
+
+        # Add changes
+        print("📤 Adding changes to git...")
+        subprocess.run(['git', 'add', '.'], check=True)
+
+        # Check if there are changes to commit
+        result = subprocess.run(['git', 'diff', '--cached', '--quiet'],
+                              capture_output=True)
+        needs_commit = result.returncode != 0
+
+        if needs_commit:
+            # Commit changes
+            print("💾 Committing changes...")
+            commit_msg = f"docs: add new blog post - {datetime.now().strftime('%Y-%m-%d')}"
+            subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
+
+            # Push to remote
+            print("🚀 Pushing to remote...")
+            subprocess.run(['git', 'push', 'origin', branch], check=True)
+            print("✅ Successfully pushed to git repository")
+        else:
+            print("ℹ️ No changes to commit")
+
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Git operation failed: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Deployment error: {e}")
+        return False
+    finally:
+        os.chdir(original_dir)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Convert YouTube video to SEO-optimized Hexo blog post'
@@ -677,17 +824,21 @@ def main():
     parser.add_argument('--posts-dir', help='Override posts directory')
     parser.add_argument('--dry-run', action='store_true', help='Generate content but don\'t save')
     parser.add_argument('--no-humanizer', action='store_true', help='Skip AI writing removal (humanizer)')
+    parser.add_argument('--deploy', action='store_true', help='Auto deploy to git after saving post')
 
     args = parser.parse_args()
 
-    # Load configuration
+    # Load configuration (with home directory priority)
     config = load_config(args.config, args.blog_dir)
+
+    # Determine blog directory (priority: CLI arg > config > current dir)
+    blog_dir = args.blog_dir or config.get('blog_dir', '')
 
     # Determine posts directory
     if args.posts_dir:
         posts_dir = args.posts_dir
-    elif args.blog_dir:
-        posts_dir = os.path.join(args.blog_dir, config['posts_dir'])
+    elif blog_dir:
+        posts_dir = os.path.join(blog_dir, config['posts_dir'])
     else:
         posts_dir = config['posts_dir']
 
@@ -699,6 +850,8 @@ def main():
 
     print(f"📹 Video: {video_info['title']}")
     print(f"👤 Uploader: {video_info.get('uploader', 'N/A')}")
+    if blog_dir:
+        print(f"📂 Blog: {blog_dir}")
 
     # Generate filename
     video_id = extract_video_id(args.url) or video_info['id']
@@ -719,7 +872,28 @@ def main():
         apply_humanizer = not args.no_humanizer
         file_path = save_post(content, filename, posts_dir, video_info['title'], apply_humanizer)
         print(f"\n🎉 Post saved to: {file_path}")
-        print(f"\n📂 To deploy: cd {args.blog_dir or '.'} && hexo cl; hexo g; hexo d")
+
+        # Auto deploy if enabled (full pipeline: hexo deploy + git push)
+        if args.deploy or config.get('auto_deploy', False):
+            print("\n🚀 Starting full deployment pipeline...")
+
+            # Step 1: Hexo deploy (generates static files and pushes to GitHub Pages)
+            print("\n📦 Step 1: Running hexo deploy...")
+            hexo_deploy(blog_dir)
+
+            # Step 2: Git push (push source code to repository)
+            print("\n📤 Step 2: Pushing source to git...")
+            deploy_branch = config.get('deploy_branch', 'main')
+            deploy_to_git(blog_dir, deploy_branch)
+
+            print("\n✅ Full deployment completed!")
+            print(f"   - Static files deployed to: https://wlzh.github.io/")
+            print(f"   - Source code pushed to: https://github.com/wlzh/myblog")
+        else:
+            print(f"\n📂 To deploy manually:")
+            print(f"   cd {blog_dir or '.'}")
+            print(f"   hexo clean && hexo generate && hexo deploy")
+            print(f"   git add . && git commit -m 'docs: add new post' && git push")
 
     return 0
 
