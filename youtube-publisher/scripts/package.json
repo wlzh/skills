@@ -1,0 +1,19 @@
+{
+  "name": "youtube-publisher",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Upload and publish videos to YouTube with thumbnails and subtitles",
+  "scripts": {
+    "upload": "ts-node youtube-upload.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "googleapis": "^129.0.0",
+    "open": "^8.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.2"
+  }
+}

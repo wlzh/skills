@@ -135,6 +135,25 @@ YouTube 视频自动下载并发布到小宇宙播客
 
 ---
 
+### 📤 youtube-publisher
+YouTube 视频发布工具 - 上传视频并自动设置封面和字幕
+
+**特点**：
+- 📤 视频上传 - 支持 MP4, MOV, AVI, WMV, FLV, 3GP, MPEG（最大 256GB）
+- 🖼️ 封面图 - 支持本地路径或 URL
+- 📝 字幕上传 - 支持 SRT/VTT 格式，自动设置语言
+- 🏷️ 完整元数据 - 标题、描述、标签、分类
+- 🔒 隐私设置 - public / unlisted / private
+- 📋 播放列表 - 自动添加到指定播放列表
+- ⚡ YouTube Short - 支持短视频标记
+- 👁️ Dry-run 预览 - 不实际上传，预览设置
+
+**版本**: v1.0.0
+
+[查看详情 →](./youtube-publisher/)
+
+---
+
 ### 📋 invoice-scanner
 扫描目录识别所有类型发票（交通、住宿、餐饮等），提取关键信息并生成分类统计报告
 
