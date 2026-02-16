@@ -1,7 +1,7 @@
 ---
 name: image-generator
 description: 通用图片生成 Skill，支持多种 AI 模型（ModelScope、Gemini 等），可被其他 Skills 调用
-version: 1.0.0
+version: 1.1.0
 author: M.
 ---
 
@@ -14,17 +14,21 @@ author: M.
 - 🎨 支持多种 AI 模型（ModelScope、Gemini 等）
 - 📦 可作为库被其他 Skills 导入调用
 - ⚙️ 灵活的配置系统
-- 🔄 异步任务支持
+- 🔄 异步任务支持（ModelScope）
 - 💾 自动保存生成的图片
 - 🛡️ 错误处理和重试机制
+- 🧪 测试模式支持（无需 API Key）
 
 ## 使用方式
 
 ### 方式 1：直接命令行调用
 
 ```bash
-# 基本用法
+# 基本用法（默认使用 gemini）
 python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat"
+
+# 指定 API 类型
+python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --api-type modelscope
 
 # 指定输出路径
 python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --output /path/to/image.jpg
@@ -32,8 +36,8 @@ python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --outp
 # 指定模型
 python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --model "Tongyi-MAI/Z-Image-Turbo"
 
-# 指定 API 类型
-python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --api-type modelscope
+# 测试模式（无需 API Key）
+python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --test
 ```
 
 ### 方式 2：在其他 Skills 中导入调用
@@ -75,7 +79,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 
 ```json
 {
-  "default_api": "modelscope",
+  "default_api": "gemini",
   "modelscope": {
     "base_url": "https://api-inference.modelscope.cn/",
     "api_key": "your-modelscope-token-here",
@@ -85,8 +89,11 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
   },
   "gemini": {
     "api_key": "your-gemini-api-key-here",
-    "model": "gemini-2.0-flash",
-    "timeout": 60
+    "model": "gemini-3-pro-image-preview",
+    "api_url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
+    "timeout": 120,
+    "size": "1024x1024",
+    "quality": "standard"
   },
   "output_dir": "~/Downloads/shell/work/generated_images",
   "image_format": "jpg",
@@ -111,8 +118,11 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 
 **Gemini 配置**：
 - `api_key`: Google Gemini API Key（从 https://ai.google.dev 获取）
-- `model`: 使用的模型名称
+- `model`: 使用的模型名称（如 `gemini-3-pro-image-preview`）
+- `api_url`: API 端点地址
 - `timeout`: 请求超时时间（秒）
+- `size`: 图片尺寸（如 `1024x1024`）
+- `quality`: 生成质量（`standard` 或 `high`）
 
 **注意**：
 - `config.json` 包含敏感的 API Key，已被 `.gitignore` 忽略
@@ -127,7 +137,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 - 其他 ModelScope 支持的模型
 
 ### Gemini
-- `gemini-2.0-flash` - Google Gemini 2.0 Flash
+- `gemini-3-pro-image-preview` - Gemini 3 Pro 图片生成
 - 其他 Gemini 支持的模型
 
 ## API 参数
@@ -137,13 +147,15 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 ```python
 generator.generate(
     prompt: str,                    # 图片描述（必需）
-    output_path: str = None,        # 输出路径（可选）
-    model: str = None,              # 指定模型（可选）
-    size: str = "1024x1024",        # 图片尺寸
-    quality: str = "standard",      # 生成质量
-    style: str = None,              # 风格（可选）
-    timeout: int = 300              # 超时时间（秒）
-) -> str                            # 返回图片路径
+    output_path: str = None,         # 输出路径（可选）
+    model: str = None,               # 指定模型（可选）
+    size: str = "1024x1024",         # 图片尺寸
+    quality: str = "standard",       # 生成质量
+    style: str = None,               # 风格（可选）
+    timeout: int = 300,              # 超时时间（秒）
+    max_retries: int = 3,            # 最大重试次数
+    test_mode: bool = False          # 测试模式
+) -> str                             # 返回图片路径
 ```
 
 ## 错误处理
@@ -151,6 +163,26 @@ generator.generate(
 - 自动重试失败的请求（最多 3 次）
 - 详细的错误日志
 - 优雅的降级处理
+
+## 测试模式
+
+支持测试模式，无需配置 API Key 即可快速测试图片生成流程：
+
+```bash
+# 命令行使用测试模式
+python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --test
+```
+
+```python
+# Python 代码中使用测试模式
+generator = ImageGenerator(api_type="gemini")
+image_path = generator.generate(
+    prompt="A beautiful landscape",
+    test_mode=True  # 启用测试模式
+)
+```
+
+测试模式会生成一张包含提示词内容的示例图片，适合在开发调试或无网络环境时使用。
 
 ## 示例
 
@@ -160,7 +192,13 @@ generator.generate(
 python3 ~/.claude/skills/image-generator/generate_image.py "A futuristic city"
 ```
 
-### 示例 2：在 Python 中使用
+### 示例 2：测试模式（无需 API Key）
+
+```bash
+python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --test
+```
+
+### 示例 3：在 Python 中使用
 
 ```python
 from generate_image import ImageGenerator
@@ -170,7 +208,7 @@ image = gen.generate("A beautiful sunset over the ocean")
 print(f"Generated: {image}")
 ```
 
-### 示例 3：在其他 Skill 中集成
+### 示例 4：在其他 Skill 中集成
 
 ```python
 # 在 write-article skill 中

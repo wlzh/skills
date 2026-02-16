@@ -1,22 +1,35 @@
 # Image Generator Skill
 
-> **版本**: v1.0.0
+> **版本**: v1.1.0
 
 通用图片生成 Skill，支持多种 AI 模型，可被其他 Skills 直接调用。
+
+## 功能特性
+
+- 🎨 支持多种 AI 模型（ModelScope、Gemini 等）
+- 📦 可作为库被其他 Skills 导入调用
+- ⚙️ 灵活的配置系统
+- 🔄 异步任务支持（ModelScope）
+- 💾 自动保存生成的图片
+- 🛡️ 错误处理和重试机制
+- 🧪 测试模式支持（无需 API Key）
 
 ## 快速开始
 
 ### 1. 命令行使用
 
 ```bash
-# 基本用法
+# 基本用法（默认使用 gemini）
 python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat"
+
+# 指定 API 类型
+python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --api-type modelscope
 
 # 自定义输出路径
 python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --output ~/my_image.jpg
 
-# 指定 API 类型
-python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --api-type modelscope
+# 测试模式（无需 API Key）
+python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --test
 ```
 
 ### 2. 在其他 Skills 中导入使用
@@ -55,7 +68,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 
 ```json
 {
-  "default_api": "modelscope",
+  "default_api": "gemini",
   "modelscope": {
     "base_url": "https://api-inference.modelscope.cn/",
     "api_key": "your-modelscope-token-here",
@@ -65,8 +78,11 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
   },
   "gemini": {
     "api_key": "your-gemini-api-key-here",
-    "model": "gemini-2.0-flash",
-    "timeout": 60
+    "model": "gemini-3-pro-image-preview",
+    "api_url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
+    "timeout": 120,
+    "size": "1024x1024",
+    "quality": "standard"
   },
   "output_dir": "~/Downloads/shell/work/generated_images",
   "image_format": "jpg",
@@ -79,6 +95,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 - `default_api`: 默认使用的 API（`modelscope` 或 `gemini`）
 - `modelscope.api_key`: ModelScope API Token（从 https://modelscope.cn 获取）
 - `gemini.api_key`: Google Gemini API Key（从 https://ai.google.dev 获取）
+- `gemini.model`: Gemini 模型名称（如 `gemini-3-pro-image-preview`）
 - `output_dir`: 图片输出目录
 - `image_format`: 图片格式（`jpg`、`png`、`webp`）
 - `quality`: 图片质量（1-100）
@@ -93,8 +110,22 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 - 需要 API Token
 
 ### Gemini
-- Google Gemini 2.0 Flash
+- Google Gemini 3 Pro 图片生成
 - 需要 API Key
+
+## 测试模式
+
+无需配置 API Key 即可快速测试：
+
+```bash
+python3 ~/.claude/skills/image-generator/generate_image.py "A test image" --test
+```
+
+```python
+# Python 中使用
+generator = ImageGenerator()
+image = generator.generate("A test image", test_mode=True)
+```
 
 ## 在其他 Skills 中集成
 
@@ -153,15 +184,16 @@ class ImageGenerator:
 
     def generate(
         self,
-        prompt: str,                    # 图片描述
-        output_path: Optional[str] = None,  # 输出路径
-        model: Optional[str] = None,    # 指定模型
-        size: str = "1024x1024",        # 图片尺寸
-        quality: str = "standard",      # 生成质量
-        style: Optional[str] = None,    # 风格
-        timeout: Optional[int] = None,  # 超时时间
-        max_retries: int = 3            # 最大重试次数
-    ) -> str:                           # 返回图片路径
+        prompt: str,                         # 图片描述
+        output_path: Optional[str] = None,   # 输出路径
+        model: Optional[str] = None,         # 指定模型
+        size: str = "1024x1024",             # 图片尺寸
+        quality: str = "standard",           # 生成质量
+        style: Optional[str] = None,         # 风格
+        timeout: Optional[int] = None,        # 超时时间
+        max_retries: int = 3,                # 最大重试次数
+        test_mode: bool = False               # 测试模式
+    ) -> str:                                # 返回图片路径
 ```
 
 ## 文件结构
