@@ -1,0 +1,21 @@
+{
+  "default_api": "gemini",
+  "modelscope": {
+    "base_url": "https://api-inference.modelscope.cn/",
+    "api_key": "your-modelscope-token-here",
+    "model": "Tongyi-MAI/Z-Image-Turbo",
+    "timeout": 300,
+    "poll_interval": 5
+  },
+  "gemini": {
+    "api_key": "your-gemini-api-key-here",
+    "model": "gemini-3-pro-image-preview",
+    "api_url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
+    "timeout": 120,
+    "size": "1024x1024",
+    "quality": "standard"
+  },
+  "output_dir": "~/Downloads/shell/work/generated_images",
+  "image_format": "jpg",
+  "quality": 95
+}
