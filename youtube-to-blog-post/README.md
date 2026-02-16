@@ -67,6 +67,27 @@ python scripts/youtube_to_post.py "YouTube_URL" --no-humanizer
 
 ## 📋 配置文件
 
+### 推荐方式：本地用户配置
+
+在用户主目录创建 `~/.youtube-blog-config.json`（不会被提交到 git）：
+
+```bash
+cat > ~/.youtube-blog-config.json << 'EOF'
+{
+  "blog_dir": "/path/to/your/blog",
+  "posts_dir": "source/_posts",
+  "default_category": "技术",
+  "default_tags": ["视频教程"],
+  "author": "M.",
+  "image_cdn": "https://img.869hr.uk",
+  "auto_deploy": true,
+  "deploy_branch": "main"
+}
+EOF
+```
+
+### 博客目录配置（可选）
+
 在博客根目录创建 `youtube-blog-config.json`：
 
 ```json
@@ -179,6 +200,9 @@ hexo cl && hexo g && hexo d
 | `--posts-dir` | 文章目录 | `--posts-dir source/_posts` |
 | `--dry-run` | 预览模式 | `--dry-run` |
 | `--no-humanizer` | 跳过 AI 痕迹去除 | `--no-humanizer` |
+| `--deploy` | 自动部署到 git | `--deploy` |
+
+**注意**: 可在配置文件中设置 `auto_deploy: true` 启用自动部署
 
 ## 🌐 支持的 URL 格式
 
@@ -242,9 +266,16 @@ pip install yt-dlp requests
 
 ## 🆕 版本信息
 
-**版本**: 3.0 Natural Language + SEO
-**更新日期**: 2026-02-07
+**版本**: 3.1 Local Config + Auto Deploy
+**更新日期**: 2026-02-13
 **状态**: ✅ 已测试并上线
+
+### v3.1 更新内容 (2026-02-13)
+
+- ✅ **本地配置文件** - 支持 `~/.youtube-blog-config.json`，不提交到 git
+- ✅ **自动 Git 部署** - 新增 `--deploy` 参数，自动提交推送代码
+- ✅ **博客路径自动识别** - 一次配置，永久生效
+- ✅ **自动部署选项** - 配置文件支持 `auto_deploy` 和 `deploy_branch`
 
 ### v3.0 更新内容 (2026-02-07)
 

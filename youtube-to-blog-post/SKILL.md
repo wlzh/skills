@@ -99,6 +99,32 @@ python scripts/youtube_to_post.py "URL" --dry-run
 
 ## 📋 配置文件
 
+### 方式 1: 本地用户配置（推荐）
+
+在用户主目录创建 `~/.youtube-blog-config.json`：
+
+```bash
+cat > ~/.youtube-blog-config.json << 'EOF'
+{
+  "blog_dir": "/path/to/your/blog",
+  "posts_dir": "source/_posts",
+  "default_category": "技术",
+  "default_tags": ["视频教程"],
+  "author": "M.",
+  "image_cdn": "https://img.869hr.uk",
+  "auto_deploy": true,
+  "deploy_branch": "main"
+}
+EOF
+```
+
+**优势：**
+- ✅ 配置文件不会被提交到 Skills 的 git 仓库
+- ✅ 一次配置，永久生效
+- ✅ 优先级最高，覆盖其他配置
+
+### 方式 2: 博客目录配置
+
 在博客根目录创建 `youtube-blog-config.json`：
 
 ```json
@@ -107,9 +133,16 @@ python scripts/youtube_to_post.py "URL" --dry-run
   "default_category": "技术",
   "default_tags": ["视频教程"],
   "author": "M.",
-  "image_cdn": "https://img.869hr.uk"
+  "image_cdn": "https://img.869hr.uk",
+  "auto_deploy": false
 }
 ```
+
+### 配置优先级
+
+1. `~/.youtube-blog-config.json` (本地用户配置)
+2. `--config` 指定的配置文件
+3. 博客目录下的 `youtube-blog-config.json`
 
 ## 📄 文章格式
 
@@ -241,8 +274,11 @@ hexo cl && hexo g && hexo d
 | `--posts-dir` | 文章目录（覆盖配置） | `--posts-dir source/_posts` |
 | `--dry-run` | 预览模式，不保存 | `--dry-run` |
 | `--no-humanizer` | 跳过 AI 写作去除 | `--no-humanizer` |
+| `--deploy` | 自动部署到 git | `--deploy` |
 
-**注意**: 默认启用自动去 AI 化（humanizer），使用 `--no-humanizer` 可跳过此步骤。
+**注意**:
+- 默认启用自动去 AI 化（humanizer），使用 `--no-humanizer` 可跳过此步骤
+- 可在配置文件中设置 `auto_deploy: true` 启用自动部署
 
 ## 🌐 支持的 URL 格式
 
@@ -364,6 +400,14 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ## 🆕 更新日志
 
+### v3.1 - 本地配置 + 自动部署版 (2026-02-13)
+
+- ✅ **本地配置文件** - 支持 `~/.youtube-blog-config.json`，不提交到 git
+- ✅ **自动 Git 部署** - 新增 `--deploy` 参数，自动提交推送代码
+- ✅ **配置优先级** - 本地配置 > 命令行配置 > 博客目录配置
+- ✅ **博客路径自动识别** - 一次配置，永久生效
+- ✅ **自动部署选项** - 配置文件支持 `auto_deploy` 和 `deploy_branch`
+
 ### v3.0 - 自然语言 + SEO 版 (2026-02-07)
 
 - ✅ **智能内容提取** - 从视频描述提取真实内容，告别模板化
@@ -394,6 +438,6 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ---
 
-**版本**: 3.0 Natural Language + SEO
-**更新日期**: 2026-02-07
+**版本**: 3.1 Local Config + Auto Deploy
+**更新日期**: 2026-02-13
 **状态**: ✅ 已测试并上线
