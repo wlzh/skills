@@ -1,0 +1,21 @@
+X Fetcher Skill - 项目信息
+==========================
+
+项目位置: /Users/m/document/QNSZ/project/skills/x-fetcher-skill
+
+快速开始:
+1. pip3 install -r scripts/requirements.txt
+2. bash scripts/quick-start.sh
+3. python3 scripts/main.py "https://x.com/username/status/123456789"
+
+测试: python3 scripts/test_skill.py
+配置: ~/.x-fetcher/EXTEND.md
+
+文档:
+- README.md    - 项目说明
+- USAGE.md     - 使用指南
+- QUICKREF.md  - 快速参考
+- PROJECT.md   - 项目总结
+- COMPLETION.md - 完成报告
+
+基于: https://github.com/Jane-xiaoer/x-fetcher

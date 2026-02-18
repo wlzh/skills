@@ -1,0 +1,100 @@
+# X Fetcher 配置示例
+
+---
+default_output_dir: ~/Documents/x-posts
+auto_save: true
+download_media: ask
+---
+
+## 配置说明
+
+此文件是 X Fetcher Skill 的配置文件示例。
+
+### 配置选项
+
+1. **default_output_dir** (可选)
+   - 类型: 字符串
+   - 默认值: `./x-fetcher/`
+   - 说明: 推文保存的默认目录
+   - 示例:
+     - `~/Documents/x-posts` - 用户主目录下的 Documents/x-posts
+     - `./x-fetcher` - 当前工作目录下的 x-fetcher
+     - `/path/to/custom/dir` - 自定义绝对路径
+
+2. **auto_save** (可选)
+   - 类型: 布尔值
+   - 默认值: `true`
+   - 说明: 是否自动保存 Markdown 文件
+   - 可选值: `true`, `false`
+
+3. **download_media** (可选)
+   - 类型: 字符串或布尔值
+   - 默认值: `ask`
+   - 说明: 如何处理推文中的媒体文件（图片/视频）
+   - 可选值:
+     - `ask` - 每次询问（默认）
+     - `true` 或 `1` - 总是下载媒体文件到本地的 imgs/ 和 videos/ 目录
+     - `false` 或 `0` - 从不下载，保留原始远程 URL
+
+## 配置文件位置
+
+配置文件可以放在以下位置（按优先级排序）：
+
+1. **项目级**: `.x-fetcher/EXTEND.md`（当前工作目录）
+2. **用户级**: `~/.x-fetcher/EXTEND.md`（用户主目录）
+
+## 如何使用
+
+1. 复制此文件到配置目录：
+   ```bash
+   # 用户级配置
+   mkdir -p ~/.x-fetcher
+   cp EXTEND.md.example ~/.x-fetcher/EXTEND.md
+
+   # 项目级配置
+   mkdir -p .x-fetcher
+   cp EXTEND.md.example .x-fetcher/EXTEND.md
+   ```
+
+2. 根据需要修改配置选项
+
+3. 运行 x-fetcher，配置将自动生效
+
+## 示例配置
+
+### 配置 1: 保存到用户主目录
+
+```yaml
+---
+default_output_dir: ~/x-posts
+auto_save: true
+download_media: ask
+---
+```
+
+### 配置 2: 保存到项目目录
+
+```yaml
+---
+default_output_dir: ./x-fetcher
+auto_save: true
+download_media: false
+---
+```
+
+### 配置 3: 自定义路径
+
+```yaml
+---
+default_output_dir: /Users/username/Documents/Twitter/Posts
+auto_save: true
+download_media: true
+---
+```
+
+## 注意事项
+
+- 配置文件使用 YAML 格式
+- 必须包含 `---` 分隔符
+- 路径支持 `~` 展开为用户主目录
+- 路径支持相对路径和绝对路径
