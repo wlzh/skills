@@ -181,8 +181,6 @@ async function authenticate(): Promise<any> {
     process.env.YOUTUBE_REDIRECT_URI || "http://localhost:3333/oauth2callback"
   );
 
-  console.log("OAuth2 Client configured with redirect URI:", process.env.YOUTUBE_REDIRECT_URI || "http://localhost:3333/oauth2callback");
-
   // Check for existing token
   if (fs.existsSync(TOKEN_PATH)) {
     const tokenData: TokenData = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"));
@@ -223,62 +221,37 @@ async function authenticate(): Promise<any> {
       try {
         const urlObj = new URL(req.url || "", "http://localhost:3333");
         if (urlObj.pathname === "/oauth2callback") {
-          console.log("Received callback, exchanging code for tokens...");
           const code = urlObj.searchParams.get("code");
 
           if (code) {
-            console.log("Exchanging code for tokens (this may take a moment)...");
-            console.log("提示：如果长时间无响应，请检查网络或配置代理");
+            const { tokens } = await oauth2Client.getToken(code);
+            oauth2Client.setCredentials(tokens);
 
-            // Add timeout for token exchange (15 seconds)
-            const timeoutMs = 15000;
+            // Save token
+            fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
 
-            try {
-              const tokenPromise = oauth2Client.getToken(code);
+            res.writeHead(200, { "Content-Type": "text/html" });
+            res.end(`
+              <html>
+                <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                  <h1>Authentication Successful!</h1>
+                  <p>You can close this window and return to the terminal.</p>
+                </body>
+              </html>
+            `);
 
-              const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Token exchange timeout (15s). Check network/proxy.")), timeoutMs)
-              );
-
-              const tokens: any = await Promise.race([tokenPromise, timeoutPromise]);
-
-              console.log("Token obtained successfully");
-              console.log("Tokens:", JSON.stringify(tokens, null, 2));
-              oauth2Client.setCredentials(tokens);
-
-              // Save token
-              fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
-
-              res.writeHead(200, { "Content-Type": "text/html" });
-              res.end(`
-                <html>
-                  <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-                    <h1>Authentication Successful!</h1>
-                    <p>You can close this window and return to the terminal.</p>
-                  </body>
-                </html>
-              `);
-
-              server.close();
-              console.log("Authentication successful! Token saved.");
-              resolve(oauth2Client);
-            } catch (tokenErr: any) {
-              console.error("Token exchange error:", tokenErr.message);
-              res.writeHead(500);
-              res.end(`Token exchange failed: ${tokenErr.message}`);
-              reject(tokenErr);
-            }
+            server.close();
+            console.log("Authentication successful! Token saved.");
+            resolve(oauth2Client);
           } else {
             res.writeHead(400);
             res.end("No code received");
             reject(new Error("No code received"));
           }
         }
-      } catch (err: any) {
-        console.error("Authentication error:", err.message);
-        console.error("Error details:", err);
+      } catch (err) {
         res.writeHead(500);
-        res.end(`Authentication failed: ${err.message}`);
+        res.end("Authentication failed");
         reject(err);
       }
     });
