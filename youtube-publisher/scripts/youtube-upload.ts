@@ -230,22 +230,28 @@ async function authenticate(): Promise<any> {
               console.log("Token obtained successfully");
               oauth2Client.setCredentials(tokens);
 
-            // Save token
-            fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
+              // Save token
+              fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
 
-            res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(`
-              <html>
-                <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-                  <h1>Authentication Successful!</h1>
-                  <p>You can close this window and return to the terminal.</p>
-                </body>
-              </html>
-            `);
+              res.writeHead(200, { "Content-Type": "text/html" });
+              res.end(`
+                <html>
+                  <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                    <h1>Authentication Successful!</h1>
+                    <p>You can close this window and return to the terminal.</p>
+                  </body>
+                </html>
+              `);
 
-            server.close();
-            console.log("Authentication successful! Token saved.");
-            resolve(oauth2Client);
+              server.close();
+              console.log("Authentication successful! Token saved.");
+              resolve(oauth2Client);
+            } catch (tokenErr: any) {
+              console.error("Token exchange error:", tokenErr.message);
+              res.writeHead(500);
+              res.end(`Token exchange failed: ${tokenErr.message}`);
+              reject(tokenErr);
+            }
           } else {
             res.writeHead(400);
             res.end("No code received");
