@@ -181,6 +181,8 @@ async function authenticate(): Promise<any> {
     process.env.YOUTUBE_REDIRECT_URI || "http://localhost:3333/oauth2callback"
   );
 
+  console.log("OAuth2 Client configured with redirect URI:", process.env.YOUTUBE_REDIRECT_URI || "http://localhost:3333/oauth2callback");
+
   // Check for existing token
   if (fs.existsSync(TOKEN_PATH)) {
     const tokenData: TokenData = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"));
@@ -225,6 +227,7 @@ async function authenticate(): Promise<any> {
           const code = urlObj.searchParams.get("code");
 
           if (code) {
+            console.log("Exchanging code for tokens (this may take a moment)...");
             try {
               const { tokens } = await oauth2Client.getToken(code);
               console.log("Token obtained successfully");
