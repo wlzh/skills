@@ -230,19 +230,20 @@ async function authenticate(): Promise<any> {
             console.log("Exchanging code for tokens (this may take a moment)...");
             console.log("提示：如果长时间无响应，请检查网络或配置代理");
 
-            // Add timeout for token exchange
-            const timeoutMs = 30000; // 30 seconds
-            const timeoutPromise = new Promise((_, reject) =>
-              setTimeout(() => reject(new Error("Token exchange timeout (30s). Check network/proxy.")), timeoutMs)
-            );
+            // Add timeout for token exchange (15 seconds)
+            const timeoutMs = 15000;
 
             try {
-              const { tokens } = await Promise.race([
-                oauth2Client.getToken(code),
-                timeoutPromise
-              ]) as any;
+              const tokenPromise = oauth2Client.getToken(code);
+
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Token exchange timeout (15s). Check network/proxy.")), timeoutMs)
+              );
+
+              const tokens: any = await Promise.race([tokenPromise, timeoutPromise]);
 
               console.log("Token obtained successfully");
+              console.log("Tokens:", JSON.stringify(tokens, null, 2));
               oauth2Client.setCredentials(tokens);
 
               // Save token
