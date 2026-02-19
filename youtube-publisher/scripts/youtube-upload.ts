@@ -221,11 +221,14 @@ async function authenticate(): Promise<any> {
       try {
         const urlObj = new URL(req.url || "", "http://localhost:3333");
         if (urlObj.pathname === "/oauth2callback") {
+          console.log("Received callback, exchanging code for tokens...");
           const code = urlObj.searchParams.get("code");
 
           if (code) {
-            const { tokens } = await oauth2Client.getToken(code);
-            oauth2Client.setCredentials(tokens);
+            try {
+              const { tokens } = await oauth2Client.getToken(code);
+              console.log("Token obtained successfully");
+              oauth2Client.setCredentials(tokens);
 
             // Save token
             fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
@@ -249,9 +252,11 @@ async function authenticate(): Promise<any> {
             reject(new Error("No code received"));
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        console.error("Authentication error:", err.message);
+        console.error("Error details:", err);
         res.writeHead(500);
-        res.end("Authentication failed");
+        res.end(`Authentication failed: ${err.message}`);
         reject(err);
       }
     });
