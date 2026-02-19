@@ -231,7 +231,7 @@ text-to-speech script.txt --voice female_3
 
 ## 📝 License
 
-MIT License
+MIT License - 查看 [LICENSE](./LICENSE) 文件了解详情。
 
 ## 🤝 贡献
 

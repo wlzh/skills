@@ -2,7 +2,6 @@ import { google, youtube_v3 } from "googleapis";
 import * as fs from "fs";
 import * as path from "path";
 import * as http from "http";
-import * as url from "url";
 import open from "open";
 import dotenv from "dotenv";
 
@@ -179,7 +178,7 @@ async function authenticate(): Promise<any> {
   const oauth2Client = new google.auth.OAuth2(
     clientId,
     clientSecret,
-    "http://localhost:3333/callback"
+    process.env.YOUTUBE_REDIRECT_URI || "http://localhost:3333/oauth2callback"
   );
 
   // Check for existing token
@@ -220,9 +219,9 @@ async function authenticate(): Promise<any> {
     // Create local server to receive callback
     const server = http.createServer(async (req, res) => {
       try {
-        const parsedUrl = url.parse(req.url!, true);
-        if (parsedUrl.pathname === "/callback") {
-          const code = parsedUrl.query.code as string;
+        const urlObj = new URL(req.url || "", "http://localhost:3333");
+        if (urlObj.pathname === "/callback") {
+          const code = urlObj.searchParams.get("code");
 
           if (code) {
             const { tokens } = await oauth2Client.getToken(code);

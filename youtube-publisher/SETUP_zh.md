@@ -1,5 +1,7 @@
 # YouTube 发布工具 - 设置指南
 
+> 仓库地址：[https://github.com/wlzh/skills](https://github.com/wlzh/skills)
+
 ## 准备工作
 
 - 已安装 Node.js
@@ -27,6 +29,27 @@
 3. **应用类型选择：Desktop app（桌面应用）** ⚠️ 不是 Web application
 4. Desktop app 不需要填写 redirect URI
 5. 下载 JSON 或复制 Client ID 和 Secret
+
+## 2.1 添加测试用户（新项目必做）
+
+新创建的 Google Cloud 项目需要添加测试用户才能正常使用 API：
+
+1. 在 OAuth 客户端页面，点击左侧菜单 **目标对象 (Audience)**
+2. 找到 **测试用户 (Test users)** 区域
+3. 点击 **添加用户**
+4. 输入你的 Google 邮箱地址（如 xxx@gmail.com）
+5. 点击保存
+
+这可以解决新项目的 "403 Access Denied" 错误。
+
+## 2.2 添加 API 权限（字幕上传需要）
+
+要启用字幕上传功能，需要添加对应的权限范围：
+
+1. 在 OAuth 客户端页面，点击左侧菜单 **数据访问 (Data access)**
+2. 点击 **添加或移除范围**
+3. 搜索并添加：`https://www.googleapis.com/auth/youtube.force-ssl`
+4. 点击保存
 
 ## 3. 配置环境变量
 
@@ -70,8 +93,9 @@ setup_complete: true
 
 | 问题 | 解决方案 |
 |------|----------|
+| 403 Access Denied | 在"目标对象"设置中添加你的邮箱为测试用户 |
 | Redirect URI 不匹配 | Desktop app 不需要 redirect URI |
 | API 未启用 | 启用 YouTube Data API v3 |
-| 字幕上传失败 | 重新运行 `--auth` 重新授权获取完整权限 |
+| 字幕上传失败 | 在"数据访问"中添加 `youtube.force-ssl` 权限范围，重新运行 `--auth` |
 | 配额超限 | 在 Cloud Console 查看配额 |
 | 访问被拒绝 | 重新授权：`npx ts-node youtube-upload.ts --auth` |
