@@ -1,5 +1,6 @@
 # Image Generator Skill
 
+> 仓库地址: https://github.com/wlzh/skills
 > **版本**: v1.1.0
 
 通用图片生成 Skill，支持多种 AI 模型，可被其他 Skills 直接调用。

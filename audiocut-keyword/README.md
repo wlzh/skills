@@ -1,5 +1,6 @@
 # 音频关键字过滤工具 (audiocut-keyword)
 
+> 仓库地址: https://github.com/wlzh/skills
 > 版本: v1.1.0
 
 根据关键字配置自动识别并删除音频中的指定内容

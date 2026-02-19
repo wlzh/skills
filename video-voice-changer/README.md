@@ -1,6 +1,7 @@
 # video-voice-changer
 
-> 版本: v1.0.0
+> 仓库地址: https://github.com/wlzh/skills
+> 版本: v1.1.0
 
 视频变声处理工具 - 对视频中的音频进行变声处理
 

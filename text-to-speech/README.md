@@ -1,5 +1,6 @@
 # text-to-speech
 
+> 仓库地址: https://github.com/wlzh/skills
 > 版本: v1.0.0
 
 文本转语音工具 - 支持播客脚本解析、情绪标记和后处理

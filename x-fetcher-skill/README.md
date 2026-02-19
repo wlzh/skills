@@ -1,5 +1,8 @@
 # X Fetcher Skill
 
+> 仓库地址: https://github.com/wlzh/skills
+> 版本: v1.1.0
+
 抓取 X (Twitter) 推文和长文章的命令行工具，支持自动保存为 Markdown 格式。
 
 **工程化来源**: 本 Skill 基于 [Jane-xiaoer/x-fetcher](https://github.com/Jane-xiaoer/x-fetcher) 项目。
