@@ -1,5 +1,8 @@
 # YouTube 转 Blog Post - 使用指南
 
+> 仓库地址: https://github.com/wlzh/skills
+> 版本: v3.1
+
 一键将 YouTube 视频转换为 **SEO 优化的 Hexo 博客文章**，所有优化自动完成！
 
 ## ✨ 核心特性
