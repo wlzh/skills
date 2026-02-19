@@ -220,7 +220,7 @@ async function authenticate(): Promise<any> {
     const server = http.createServer(async (req, res) => {
       try {
         const urlObj = new URL(req.url || "", "http://localhost:3333");
-        if (urlObj.pathname === "/callback") {
+        if (urlObj.pathname === "/oauth2callback") {
           const code = urlObj.searchParams.get("code");
 
           if (code) {
