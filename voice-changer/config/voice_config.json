@@ -125,7 +125,7 @@
       "protect": 0.33
     }
   },
-  "default_voice": "female_3",
+  "default_voice": "male_normal",
   "notes": [
     "默认方法: Pedalboard (高质量音频处理)",
     "Pedalboard 方法: 使用 Spotify 的高质量音频处理库",
