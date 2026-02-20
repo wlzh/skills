@@ -523,65 +523,121 @@ def generate_article_summary(video_info):
 
 
 def generate_article_content(video_info, video_id):
-    """Generate SEO-optimized article content"""
+    """Generate detailed article content - 使用完整描述"""
     title = video_info['title']
     uploader = video_info.get('uploader', '')
     description = video_info.get('description', '')
     duration = video_info.get('duration', 0)
     tags = video_info.get('tags', [])
 
-    # Convert duration to minutes
+    # Convert duration to minutes and seconds
     duration_min = duration // 60 if duration else 0
+    duration_sec = duration % 60 if duration else 0
 
     content = f"""## 视频介绍
 
-本视频由 {uploader} 制作，时长约 {duration_min} 分钟。
+本视频由 {uploader} 制作，时长约 {duration_min} 分 {duration_sec} 秒。
 
 """
 
-    # Try to extract meaningful content from description
-    # Remove common link lines and emojis
+    # 清理描述，提取有意义的行
     desc_lines = []
     for line in description.split('\n'):
         line = line.strip()
-        # Skip empty lines, links, and common social media lines
-        if not line or line.startswith('http') or line.startswith('💬') or line.startswith('🔗'):
+        if not line:
             continue
+        # 跳过链接
+        if line.startswith('http'):
+            continue
+        # 跳过社交媒体
         if 'Telegram' in line and 't.me' in line:
             continue
         if 'Twitter' in line or 'x.com' in line:
             continue
+        if '微信' in line and 'qr.' in line:
+            continue
+        # 跳过 emoji 开头的行
+        if line.startswith('💬') or line.startswith('🔗'):
+            continue
+        # 跳过纯符号行
+        if len(set(line.replace(' ', ''))) < 3:
+            continue
         desc_lines.append(line)
 
-    # Join meaningful lines
-    meaningful_desc = '\n'.join(desc_lines[:30])  # Limit to first 30 meaningful lines
-
-    # Extract timestamp chapters for better content structure
+    # 提取时间戳章节
     timestamp_pattern = r'(\d{1,2}:\d{2})\s*[.\-]?\s*(.+)'
-    timestamps = re.findall(timestamp_pattern, meaningful_desc)
+    timestamps = re.findall(timestamp_pattern, '\n'.join(desc_lines))
 
-    # Extract key features/benefits (usually marked with ✅ or similar)
-    features = []
-    for line in desc_lines:
-        if '✅' in line or '核心' in line or '亮点' in line:
-            features.append(line.replace('✅', '').strip())
-
-    if features:
-        content += "## 核心亮点\n\n"
-        for feature in features[:6]:
-            # Clean up the feature text
-            feature = re.sub(r'[🚀💡✅🎯]', '', feature)
-            feature = feature.replace('**', '').strip()
-            if feature:
-                content += f"**{feature}**\n\n"
+    if timestamps:
+        content += "## 视频章节\n\n"
+        for ts, chapter in timestamps[:10]:
+            content += f"- **{ts}** {chapter}\n"
         content += "\n"
 
-    # Extract code examples if present
-    code_blocks = re.findall(r'```[a-z]*\n(.*?)```', meaningful_desc, re.DOTALL)
+    # 提取核心亮点（通常标记为 ✅）
+    features = []
+    for line in desc_lines:
+        if '✅' in line:
+            feature = line.replace('✅', '').strip()
+            feature = re.sub(r'[🚀💡✅🎯\*]+', '', feature).strip()
+            if feature and len(feature) > 5:
+                features.append(feature)
+
+    if features:
+        content += "## 核心内容\n\n"
+        for feature in features[:8]:
+            content += f"- {feature}\n"
+        content += "\n"
+
+    # 提取代码块
+    code_blocks = re.findall(r'```[a-z]*\n(.*?)```', description, re.DOTALL)
     if code_blocks:
-        content += "## 配置示例\n\n"
-        for code in code_blocks[:2]:
-            content += f"```\n{code.strip()}\n```\n\n"
+        content += "## 脚本命令\n\n"
+        for code in code_blocks[:3]:
+            content += f"```bash\n{code.strip()}\n```\n\n"
+
+    # 添加完整的描述内容作为正文
+    if desc_lines:
+        content += "## 详细内容\n\n"
+        for line in desc_lines[:20]:
+            # 清理行
+            line = re.sub(r'[🚀💡✅🎯🔗💬]+', '', line)
+            line = line.replace('**', '').strip()
+            if line and len(line) > 5:
+                content += f"{line}\n\n"
+
+    # 提取链接作为参考
+    urls = re.findall(r'https?://[^\s]+', description)
+    if urls:
+        content += "## 参考链接\n\n"
+        seen = set()
+        for url in urls[:5]:
+            if url not in seen and 'http' in url:
+                seen.add(url)
+                # 提取域名作为链接描述
+                domain = re.search(r'https?://([^/]+)', url)
+                if domain:
+                    domain_name = domain.group(1)
+                    if 'github' in domain_name:
+                        content += f"- [GitHub]({url})\n"
+                    elif 't.me' in domain_name:
+                        content += f"- [Telegram]({url})\n"
+                    elif 'x.com' in domain_name:
+                        content += f"- [X (Twitter)]({url})\n"
+                    else:
+                        content += f"- [{domain_name}]({url})\n"
+
+    content += f"""
+---
+
+## 视频信息
+
+- **视频标题**: {title}
+- **UP主**: {uploader}
+- **视频时长**: {duration_min}分{duration_sec}秒
+- **视频ID**: {video_id}
+
+"""
 
     content += """## 参考链接
 
