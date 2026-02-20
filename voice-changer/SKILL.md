@@ -1,7 +1,7 @@
 ---
 name: voice-changer
-description: 音频变声处理工具 - 使用 RVC AI 模型进行真实的声音转换
-version: 1.5.0
+description: 音频变声处理工具 - 使用 RVC AI 模型进行真实的声音转换，支持视频直接输入
+version: 1.6.0
 author: M.
 ---
 
@@ -9,11 +9,12 @@ author: M.
 
 ## 概述
 
-voice-changer 是一个音频变声处理 skill，使用 RVC AI 模型进行真实的音色转换（不只是音高调整）。
+voice-changer 是一个音频/视频变声处理 skill，支持直接处理视频文件或音频文件进行变声处理。
 
 ## 功能特性
 
 - 🎙️ **RVC AI 模型** - 真实的音色转换
+- 🎬 **支持视频输入** - 直接处理 .mp4 等视频文件，自动提取音频、变声、合成回视频
 - ⚡ **自动分块处理** - 长音频自动分块，避免内存问题
 - 🔧 **灵活配置** - 支持多种声音预设和自定义参数
 - 🎯 **简单易用**: 命令行一键调用
@@ -114,6 +115,9 @@ voice-changer/
 # 基本用法（使用默认女声）
 python3 ~/.claude/skills/voice-changer/scripts/voice_change.py input.mp3
 
+# 直接处理视频文件（自动提取音频→变声→合成视频）
+python3 ~/.claude/skills/voice-changer/scripts/voice_change.py input.mp4 -o output.mp4
+
 # 指定声音类型
 python3 ~/.claude/skills/voice-changer/scripts/voice_change.py input.mp3 -v female_2
 
@@ -126,6 +130,15 @@ python3 ~/.claude/skills/voice-changer/scripts/voice_change.py input.mp3 -p 7
 # 查看帮助
 python3 ~/.claude/skills/voice-changer/scripts/voice_change.py --help
 ```
+
+### 2. 支持的视频格式
+
+- .mp4, .mov, .avi, .mkv, .flv, .wmv, .webm
+
+处理视频时会自动：
+1. 提取视频中的音频
+2. 对音频进行变声处理
+3. 将变声后的音频合成回视频
 
 ### 2. 在其他 Skills 中调用
 

@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.6.0 - 2026-02-20
+
+### ✨ 新功能
+- **支持视频直接输入** - 现在可以直接处理 .mp4 等视频文件，无需手动提取音频
+- **自动提取和合成视频音频** - 输入视频时自动提取音频 → 变声处理 → 合成回视频
+
+### 🐛 Bug 修复
+- **修复 pedalboard 不支持 .mp4 输出** - 自动转换为 WAV 格式处理后再合成视频
+- **修复 video-voice-changer 兼容性问题** - voice-changer 现在支持视频处理
+
+### 🔧 技术改进
+- 新增 `is_video_file()` 函数检测视频文件
+- 新增 `extract_audio_from_video()` 提取视频音频
+- 新增 `combine_audio_with_video()` 合成音频回视频
+
+### 📝 使用方式
+
+```bash
+# 直接处理视频
+python3 voice_change.py input.mp4 -v female_3 -o output.mp4
+
+# 处理音频（原有功能）
+python3 voice_change.py input.wav -v male_normal -o output.wav
+```
+
+---
+
 ## v1.5.0 - 2026-01-22
 
 ### 🐛 Bug 修复

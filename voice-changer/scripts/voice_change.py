@@ -502,6 +502,29 @@ def main():
         input_path = Path(args.input_audio)
         output_audio = str(input_path.parent / f"{input_path.stem}_voice_changed{input_path.suffix}")
 
+    # 检测输入是否为视频，如果是则提取音频进行处理
+    input_is_video = is_video_file(args.input_audio)
+    original_video = None
+    temp_wav = None
+
+    # 用于变声处理的实际输出路径（必须是音频格式）
+    process_output = output_audio
+
+    if input_is_video:
+        print(f"检测到输入为视频文件，将自动处理...")
+        original_video = args.input_audio
+        # 创建临时 wav 文件
+        import tempfile
+        temp_dir = tempfile.mkdtemp(prefix='vc_')
+        temp_wav = os.path.join(temp_dir, 'temp_audio.wav')
+        extract_audio_from_video(args.input_audio, temp_wav)
+        args.input_audio = temp_wav
+        # 变声处理输出到临时 wav 文件
+        process_output = os.path.join(temp_dir, 'changed_audio.wav')
+        if not args.output:
+            output_audio = str(Path(original_video).with_suffix('').parent / f"{Path(original_video).stem}_voice_changed.mp4")
+        print(f"输出文件: {output_audio}")
+
     print("=" * 50)
     print("🎙️  音频变声处理")
     print("=" * 50)
@@ -558,16 +581,31 @@ def main():
 
     success = False
     if method == 'simple':
-        success = change_voice_simple(args.input_audio, output_audio, pitch_shift)
+        success = change_voice_simple(args.input_audio, process_output, pitch_shift)
     elif method == 'pedalboard':
-        success = change_voice_pedalboard(args.input_audio, output_audio, pitch_shift, args.voice)
+        success = change_voice_pedalboard(args.input_audio, process_output, pitch_shift, args.voice)
     elif method == 'rvc':
         # 确保 f0up_key 存在
         if 'f0up_key' not in voice_config:
             voice_config['f0up_key'] = pitch_shift
-        success = change_voice_rvc(args.input_audio, output_audio, voice_config)
+        success = change_voice_rvc(args.input_audio, process_output, voice_config)
 
     if success:
+        # 如果输入是视频，将变声后的音频合成回视频
+        if input_is_video and original_video:
+            print(f"\n正在合成变声后的音频与视频...")
+            final_output = output_audio
+            # 如果输出文件已存在，先删除
+            if os.path.exists(final_output):
+                os.remove(final_output)
+            combine_audio_with_video(original_video, process_output, final_output)
+            output_audio = final_output
+            # 清理临时文件
+            if temp_wav and os.path.exists(temp_wav):
+                os.remove(temp_wav)
+                import shutil
+                shutil.rmtree(os.path.dirname(temp_wav))
+
         print()
         print("=" * 50)
         print("✅ 变声处理完成！")
@@ -581,6 +619,45 @@ def main():
         print()
         print("❌ 变声处理失败")
         sys.exit(1)
+
+def is_video_file(file_path):
+    """检查文件是否为视频"""
+    video_extensions = ['.mp4', '.mov', '.avi', '.mkv', '.flv', '.wmv', '.webm']
+    return Path(file_path).suffix.lower() in video_extensions
+
+def extract_audio_from_video(video_file, audio_file):
+    """从视频中提取音频"""
+    print(f"   从视频中提取音频...")
+    cmd = [
+        'ffmpeg', '-y', '-i', video_file,
+        '-vn', '-acodec', 'pcm_s16le', '-ar', '48000', '-ac', '2',
+        audio_file
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise Exception(f"提取音频失败: {result.stderr}")
+    return audio_file
+
+def combine_audio_with_video(video_file, audio_file, output_video_file):
+    """将音频合成回视频"""
+    print(f"   将音频合成回视频...")
+    cmd = [
+        'ffmpeg', '-y', '-i', video_file, '-i', audio_file,
+        '-c:v', 'copy', '-c:a', 'aac', '-map', '0:v:0', '-map', '1:a:0', '-shortest',
+        output_video_file
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise Exception(f"合成视频失败: {result.stderr}")
+    return output_video_file
+
+def get_supported_format(output_path):
+    """获取支持的音频格式，不支持时返回 .wav"""
+    unsupported = ['.mp4', '.mov', '.avi', '.mkv']
+    ext = Path(output_path).suffix.lower()
+    if ext in unsupported:
+        return str(Path(output_path).with_suffix('.wav'))
+    return output_path
 
 if __name__ == '__main__':
     main()
