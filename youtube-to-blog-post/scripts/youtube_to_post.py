@@ -294,9 +294,20 @@ def generate_english_filename(title, video_id=None):
     # Remove multiple consecutive dashes
     filename = re.sub(r'-+', '-', filename)
 
-    # If filename is too short or empty, use video ID
+    # 如果文件名太短或为空，使用视频 ID
     if len(filename) < 5 or not filename:
         filename = f"video-{video_id}" if video_id else "video-post"
+
+    # 确保文件名有意义，包含核心关键词
+    # 如果只是 "video-xxx" 这种格式，尝试从标题提取关键词
+    if filename.startswith('video-') and video_id:
+        # 从标题提取前两个有意义的词
+        meaningful_words = re.findall(r'[\u4e00-\u9fffA-Za-z]+', title)
+        if meaningful_words:
+            # 取前两个有意义的词
+            words = meaningful_words[:2]
+            filename = '-'.join(words).lower() + '-tutorial'
+            filename = re.sub(r'[^\w-]', '', filename)
 
     # Limit length for SEO (shorter URLs are better), but keep it meaningful
     if len(filename) > 50:
