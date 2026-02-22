@@ -215,37 +215,29 @@ def generate_english_filename(title, video_id=None):
         '推荐': 'recommend',
         '对比': 'compare',
         '评测': 'review',
-        # Chinese particles to remove
-        '的': '',
-        '了': '',
-        '在': '',
-        '是': '',
-        '和': 'and',
-        '与': 'and',
-        '或': 'or',
         # Special chars to handle
-        '（': '-',
-        '）': '',
-        '(': '-',
-        ')': '',
-        '：': '-',
-        ':': '-',
-        '！': '',
-        '!': '',
-        '？': '',
-        '?': '',
-        '，': '-',
-        ',': '-',
-        '。': '',
-        '.': '',
-        ' ': '-',
-        '--': '-',
-        '【': '',
-        '】': '',
-        '《': '',
-        '》': '',
-        '🔥': '',
-        '🚀': '',
+        '（': ' ',
+        '）': ' ',
+        '(': ' ',
+        ')': ' ',
+        '：': ' ',
+        ':': ' ',
+        '！': ' ',
+        '!': ' ',
+        '？': ' ',
+        '?': ' ',
+        '，': ' ',
+        ',': ' ',
+        '。': ' ',
+        '.': ' ',
+        ' ': ' ',
+        '--': ' ',
+        '【': ' ',
+        '】': ' ',
+        '《': ' ',
+        '》': ' ',
+        '🔥': ' ',
+        '🚀': ' ',
         # Tech terms
         '科学上网': 'vpn',
         'vps': 'vps',
@@ -267,32 +259,45 @@ def generate_english_filename(title, video_id=None):
         '白嫖': 'free',
         '神器': 'tool',
         '最新': 'latest',
+        'gcp': 'gcp',
+        'google cloud': 'gcp',
     }
 
     # First, remove emojis and special symbols
-    filename = re.sub(r'[🔥🚀💡✅🎯📌]', '', title)
+    filename = re.sub(r'[🔥🚀💡✅🎯📌]', ' ', title)
 
-    # Replace Chinese and special characters
+    # Convert to lowercase
     filename = filename.lower()
+
+    # Replace Chinese words with English + space separator
     for cn, en in keyword_map.items():
-        filename = filename.replace(cn, en)
+        if en:  # Skip empty replacements
+            filename = filename.replace(cn, f' {en} ')
+        else:
+            filename = filename.replace(cn, ' ')
 
     # Remove any remaining non-ASCII characters
-    filename = re.sub(r'[^\x00-\x7f]', '', filename)
-    filename = re.sub(r'[^\w\s-]', '', filename)
+    filename = re.sub(r'[^\x00-\x7f]', ' ', filename)
 
-    # Split by common separators and rejoin with dashes
-    # First replace multiple separators with single dash
-    filename = re.sub(r'[-_/\\]+', '-', filename)
+    # Remove special characters except spaces and dashes
+    filename = re.sub(r'[^\w\s-]', ' ', filename)
 
-    # Replace spaces with dashes
-    filename = re.sub(r'\s+', '-', filename)
+    # Replace multiple spaces with single space
+    filename = re.sub(r'\s+', ' ', filename).strip()
 
-    # Remove leading/trailing dashes
-    filename = filename.strip('-')
+    # Split into words
+    words = filename.split()
 
-    # Remove multiple consecutive dashes
-    filename = re.sub(r'-+', '-', filename)
+    # Remove duplicate words while preserving order
+    seen = set()
+    unique_words = []
+    for word in words:
+        if word and word not in seen:
+            seen.add(word)
+            unique_words.append(word)
+
+    # Rejoin with dashes
+    filename = '-'.join(unique_words)
 
     # 如果文件名太短或为空，使用视频 ID
     if len(filename) < 5 or not filename:
@@ -310,18 +315,19 @@ def generate_english_filename(title, video_id=None):
             filename = re.sub(r'[^\w-]', '', filename)
 
     # Limit length for SEO (shorter URLs are better), but keep it meaningful
-    if len(filename) > 50:
+    # Reduce max length from 50 to 40 for better readability
+    if len(filename) > 40:
         # Try to keep meaningful parts - split by dashes and take first few
         parts = filename.split('-')
         result = []
         current_length = 0
         for part in parts:
-            if current_length + len(part) + 1 <= 50:
+            if current_length + len(part) + 1 <= 40:
                 result.append(part)
                 current_length += len(part) + 1
             else:
                 break
-        filename = '-'.join(result) if result else filename[:50]
+        filename = '-'.join(result) if result else filename[:40]
 
     return filename
 
@@ -764,11 +770,9 @@ def save_post(content, filename, posts_dir, video_title, apply_humanizer=True):
     # Full file path
     file_path = posts_path / f"{filename}.md"
 
-    # If file exists, add timestamp
+    # Check if file exists for notification
     if file_path.exists():
-        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        file_path = posts_path / f"{filename}-{timestamp}.md"
-        print(f"File exists, creating with timestamp: {file_path.name}")
+        print(f"⚠️  File exists, will overwrite: {file_path.name}")
 
     # Apply humanizer if enabled (default) - built-in implementation
     if apply_humanizer:
