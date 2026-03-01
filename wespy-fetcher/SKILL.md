@@ -18,7 +18,7 @@ description: 获取并转换微信公众号/网页文章为 Markdown 的封装 S
 ## 依赖来源
 
 - 上游项目：`https://github.com/tianchangNorth/WeSpy`
-- 本地约定克隆目录：`~/Documents/QNSN/project/WeSpy`
+- 本地约定克隆目录：`~/Documents/QNSZ/project/WeSpy`
 
 ## 使用
 
@@ -62,6 +62,6 @@ python3 scripts/wespy_cli.py "https://mp.weixin.qq.com/mp/appmsgalbum?..." --max
 
 ## 实现说明
 
-- 优先使用本地源码路径 `~/Documents/QNSN/project/WeSpy`
+- 优先使用本地源码路径 `~/Documents/QNSZ/project/WeSpy`
 - 若本地不存在则自动执行 `git clone` 到该目录
 - 通过导入 `wespy.main.main` 直接调用上游 CLI，保持行为一致

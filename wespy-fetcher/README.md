@@ -1,11 +1,11 @@
 # WeSpy Fetcher Skill
 
 > 仓库地址: https://github.com/wlzh/skills
-> 版本: v1.0.0
+> 版本: v1.1.0
 
 把 [tianchangNorth/WeSpy](https://github.com/tianchangNorth/WeSpy) 封装成可直接调用的 Skill，支持微信公众号文章抓取、专辑批量下载、URL 转 Markdown 等完整能力。
 
-## 工程化来源
+## 依赖上游封装来源
 
 - 上游项目：`https://github.com/tianchangNorth/WeSpy`
 - 本 Skill 依赖上游项目的能力，并保持参数和行为尽量一致。
@@ -25,11 +25,11 @@
 
 统一克隆目录：
 
-- `~/Documents/QNSN/project`
+- `~/Documents/QNSZ/project`
 
 当前上游仓库实际路径：
 
-- `~/Documents/QNSN/project/WeSpy`
+- `~/Documents/QNSZ/project/WeSpy`
 
 后续其他 topic 需要 `git clone` 的项目，也统一放在这个目录下。
 
@@ -63,7 +63,7 @@ pip3 install -r scripts/requirements.txt
 
 - `scripts/wespy_cli.py`
   - 自动检查上游源码是否存在
-  - 缺失时自动 clone 到 `~/Documents/QNSN/project/WeSpy`
+  - 缺失时自动 clone 到 `~/Documents/QNSZ/project/WeSpy`
   - 直接调用上游 `wespy.main.main`，确保能力齐全
 
 ## 致谢
