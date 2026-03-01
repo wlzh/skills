@@ -210,11 +210,11 @@ YouTube 视频发布工具 - 上传视频并自动设置封面和字幕
 - 🔄 缺失上游仓库时自动 clone 到统一目录
 - 📁 统一克隆目录规范：`~/Documents/QNSZ/project`
 
-**版本**: v1.1.0
+**版本**: v1.1.1
 
 **基于**: [tianchangNorth/WeSpy](https://github.com/tianchangNorth/WeSpy)
 
-[查看详情 →](./wespy-fetcher/)
+[查看详情（含能力对照表）→](./wespy-fetcher/)
 
 ---
 
