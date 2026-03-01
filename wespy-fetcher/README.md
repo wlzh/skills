@@ -1,7 +1,7 @@
 # WeSpy Fetcher Skill
 
 > 仓库地址: https://github.com/wlzh/skills
-> 版本: v1.1.0
+> 版本: v1.1.1
 
 把 [tianchangNorth/WeSpy](https://github.com/tianchangNorth/WeSpy) 封装成可直接调用的 Skill，支持微信公众号文章抓取、专辑批量下载、URL 转 Markdown 等完整能力。
 
@@ -45,6 +45,23 @@ python3 scripts/wespy_cli.py "https://mp.weixin.qq.com/s/xxxxx"
 # 专辑批量下载
 python3 scripts/wespy_cli.py "https://mp.weixin.qq.com/mp/appmsgalbum?__biz=...&album_id=..." --max-articles 10 --all
 ```
+
+
+## 能力对照表（WeSpy 原生命令 vs Skill 调用）
+
+> 说明：`wespy-fetcher` 通过 `scripts/wespy_cli.py` 直接委托上游 `wespy.main.main`，参数行为保持一致。
+
+| 能力 | 上游 WeSpy 命令 | Skill 命令 |
+|---|---|---|
+| 查看帮助 | `wespy --help` | `python3 scripts/wespy_cli.py --help` |
+| 单篇抓取（默认 Markdown） | `wespy "<url>"` | `python3 scripts/wespy_cli.py "<url>"` |
+| 指定输出目录 | `wespy "<url>" -o articles` | `python3 scripts/wespy_cli.py "<url>" -o articles` |
+| 输出 HTML | `wespy "<url>" --html` | `python3 scripts/wespy_cli.py "<url>" --html` |
+| 输出 JSON | `wespy "<url>" --json` | `python3 scripts/wespy_cli.py "<url>" --json` |
+| 输出全部格式 | `wespy "<url>" --all` | `python3 scripts/wespy_cli.py "<url>" --all` |
+| 专辑仅列表 | `wespy "<album_url>" --album-only` | `python3 scripts/wespy_cli.py "<album_url>" --album-only` |
+| 专辑批量下载 | `wespy "<album_url>" --max-articles 10 --all` | `python3 scripts/wespy_cli.py "<album_url>" --max-articles 10 --all` |
+| 交互模式（不传 URL） | `wespy` | `python3 scripts/wespy_cli.py` |
 
 ## 依赖
 
