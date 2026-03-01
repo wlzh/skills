@@ -199,6 +199,25 @@ YouTube 视频发布工具 - 上传视频并自动设置封面和字幕
 
 ---
 
+### 📰 wespy-fetcher
+微信公众号/通用网页文章抓取并转换为 Markdown，支持微信专辑批量下载
+
+**特点**：
+- 🧾 单篇文章抓取（公众号 / 通用网页 / 掘金）
+- 🎵 微信专辑列表获取（`--album-only`）
+- 📦 微信专辑批量下载（`--max-articles`）
+- 📝 默认 Markdown 输出，支持 HTML / JSON / ALL
+- 🔄 缺失上游仓库时自动 clone 到统一目录
+- 📁 统一克隆目录规范：`~/Documents/QNSN/project`
+
+**版本**: v1.0.0
+
+**基于**: [tianchangNorth/WeSpy](https://github.com/tianchangNorth/WeSpy)
+
+[查看详情 →](./wespy-fetcher/)
+
+---
+
 ## 🔧 安装使用
 
 每个 skill 都是独立的，可以单独使用或组合使用。
