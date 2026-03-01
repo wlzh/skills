@@ -208,9 +208,9 @@ YouTube 视频发布工具 - 上传视频并自动设置封面和字幕
 - 📦 微信专辑批量下载（`--max-articles`）
 - 📝 默认 Markdown 输出，支持 HTML / JSON / ALL
 - 🔄 缺失上游仓库时自动 clone 到统一目录
-- 📁 统一克隆目录规范：`~/Documents/QNSN/project`
+- 📁 统一克隆目录规范：`~/Documents/QNSZ/project`
 
-**版本**: v1.0.0
+**版本**: v1.1.0
 
 **基于**: [tianchangNorth/WeSpy](https://github.com/tianchangNorth/WeSpy)
 

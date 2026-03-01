@@ -3,7 +3,7 @@
 """
 WeSpy skill wrapper.
 
-- Ensures upstream WeSpy source exists at ~/Documents/QNSN/project/WeSpy
+- Ensures upstream WeSpy source exists at ~/Documents/QNSZ/project/WeSpy
 - Clones upstream repository automatically if missing
 - Delegates CLI behavior to upstream wespy.main.main
 """
@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 
 UPSTREAM_REPO = "https://github.com/tianchangNorth/WeSpy.git"
-BASE_DIR = Path.home() / "Documents" / "QNSN" / "project"
+BASE_DIR = Path.home() / "Documents" / "QNSZ" / "project"
 WESPY_DIR = BASE_DIR / "WeSpy"
 
 
