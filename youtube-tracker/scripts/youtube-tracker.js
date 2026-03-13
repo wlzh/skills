@@ -304,6 +304,19 @@ async function main() {
       const vids = await fetchLatestVideos(c.channelId, cfg.apiKey, 5);
       for (const v of vids) {
         if (seenSet.has(v.videoId)) continue;
+
+        // Baseline filter: do not announce videos published before/at the time the channel was added.
+        // Still mark them as seen so the first run doesn't spam old items.
+        if (c.addedAt && v.publishedAt) {
+          const added = Date.parse(c.addedAt);
+          const pub = Date.parse(v.publishedAt);
+          if (!Number.isNaN(added) && !Number.isNaN(pub) && pub <= added) {
+            seenSet.add(v.videoId);
+            newlySeen.push(v.videoId);
+            continue;
+          }
+        }
+
         seenSet.add(v.videoId);
         newlySeen.push(v.videoId);
 
