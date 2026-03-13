@@ -3,10 +3,10 @@
  * youtube-tracker skill script
  *
  * Commands:
- *   set-key <apiKey>
+ *   set-key [apiKey]             (or env YOUTUBE_API_KEY, or stdin)
  *   validate-key
  *   add <channelInput>
- *   remove <channelId>
+ *   remove <channelInput|channelId>
  *   list
  *   check
  *
@@ -98,6 +98,12 @@ function normalizeChannelInput(input) {
     // https://www.youtube.com/@handle
     const m2 = p.match(/^\/@([^\/]+)/);
     if (m2) return { kind: 'handle', value: m2[1] };
+    // https://www.youtube.com/c/CustomName
+    const m3 = p.match(/^\/c\/([^\/]+)/);
+    if (m3) return { kind: 'query', value: m3[1] };
+    // https://www.youtube.com/user/LegacyName
+    const m4 = p.match(/^\/user\/([^\/]+)/);
+    if (m4) return { kind: 'query', value: m4[1] };
   } catch {}
 
   return { kind: 'unknown', value: s };
@@ -113,7 +119,6 @@ async function ytGetJson(url) {
   try {
     json = JSON.parse(text);
   } catch {
-    // non-json response
     throw new Error(`YouTube API non-JSON response (status ${res.status}): ${text.slice(0, 200)}`);
   }
   if (!res.ok) {
@@ -139,8 +144,6 @@ async function resolveChannel(input, apiKey) {
   }
 
   if (parsed.kind === 'handle') {
-    // Use search to resolve handle -> channelId
-    // Note: search query with @handle is generally reliable.
     const q = `@${parsed.value}`;
     const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=5&q=${encodeURIComponent(q)}&key=${encodeURIComponent(apiKey)}`;
     const j = await ytGetJson(url);
@@ -150,6 +153,19 @@ async function resolveChannel(input, apiKey) {
       channelId: item.id.channelId,
       title: item.snippet?.channelTitle || item.snippet?.title || item.id.channelId,
       handle: `@${parsed.value}`,
+    };
+  }
+
+  if (parsed.kind === 'query') {
+    const q = parsed.value;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&maxResults=5&q=${encodeURIComponent(q)}&key=${encodeURIComponent(apiKey)}`;
+    const j = await ytGetJson(url);
+    const item = j.items?.find(it => it.id?.channelId);
+    if (!item) throw new Error(`Channel not found for query: ${q}`);
+    return {
+      channelId: item.id.channelId,
+      title: item.snippet?.channelTitle || item.snippet?.title || item.id.channelId,
+      handle: item.snippet?.customUrl || null,
     };
   }
 
@@ -163,7 +179,6 @@ async function validateKey(apiKey) {
 }
 
 async function fetchLatestVideos(channelId, apiKey, maxResults = 5) {
-  // Search for most recent videos on a channel.
   const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(channelId)}&order=date&type=video&maxResults=${maxResults}&key=${encodeURIComponent(apiKey)}`;
   const j = await ytGetJson(url);
   const items = j.items || [];
@@ -188,6 +203,16 @@ function videoUrl(videoId) {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
+async function readStdin() {
+  return new Promise(resolve => {
+    let data = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', chunk => (data += chunk));
+    process.stdin.on('end', () => resolve(data));
+    process.stdin.resume();
+  });
+}
+
 async function main() {
   const { cmd, rest } = parseArgs();
   if (!cmd) {
@@ -197,23 +222,27 @@ async function main() {
   const cfg = getConfig();
 
   if (cmd === 'set-key') {
-    const key = rest[0];
-    if (!key) die('Missing apiKey');
-    cfg.apiKey = key.trim();
+    let key = rest[0] || process.env.YOUTUBE_API_KEY;
+    if (!key) {
+      const stdin = (await readStdin()).trim();
+      if (stdin) key = stdin;
+    }
+    if (!key) die('Missing apiKey (arg, env YOUTUBE_API_KEY, or stdin)');
+    cfg.apiKey = String(key).trim();
     saveConfig(cfg);
     console.log('OK: apiKey saved');
     return;
   }
 
   if (cmd === 'validate-key') {
-    if (!cfg.apiKey) die('API key not set. Run: set-key <apiKey>');
+    if (!cfg.apiKey) die('API key not set. Run: set-key');
     await validateKey(cfg.apiKey);
     console.log('OK: apiKey valid');
     return;
   }
 
   if (cmd === 'add') {
-    if (!cfg.apiKey) die('API key not set. Run: set-key <apiKey>');
+    if (!cfg.apiKey) die('API key not set. Run: set-key');
     const input = rest.join(' ').trim();
     if (!input) die('Missing channel input');
 
@@ -227,28 +256,22 @@ async function main() {
         addedAt: nowIso(),
       });
       saveConfig(cfg);
-
-      // Baseline: mark current latest videos as seen to avoid "old videos" being announced as new.
-      try {
-        const baseline = await fetchLatestVideos(ch.channelId, cfg.apiKey, 5);
-        if (baseline.length) {
-          const seen = getSeen();
-          const merged = (seen.seenVideoIds || []).concat(baseline.map(v => v.videoId));
-          const unique = Array.from(new Set(merged));
-          const trimmed = unique.slice(Math.max(0, unique.length - 500));
-          saveSeen({ seenVideoIds: trimmed, updatedAt: nowIso() });
-        }
-      } catch {
-        // ignore baseline errors; add still succeeds
-      }
     }
     console.log(`OK: added ${ch.title} (${ch.channelId})`);
     return;
   }
 
   if (cmd === 'remove') {
-    const channelId = rest[0];
-    if (!channelId) die('Missing channelId');
+    // If apiKey missing, allow remove by exact channelId.
+    const input = rest.join(' ').trim();
+    if (!input) die('Missing channel input/channelId');
+
+    let channelId = input;
+    if (cfg.apiKey && !/^UC[\w-]{20,}$/.test(input)) {
+      const ch = await resolveChannel(input, cfg.apiKey);
+      channelId = ch.channelId;
+    }
+
     const before = cfg.channels.length;
     cfg.channels = cfg.channels.filter(c => c.channelId !== channelId);
     saveConfig(cfg);
@@ -268,7 +291,7 @@ async function main() {
   }
 
   if (cmd === 'check') {
-    if (!cfg.apiKey) die('API key not set. Run: set-key <apiKey>');
+    if (!cfg.apiKey) die('API key not set. Run: set-key');
     if (!cfg.channels.length) return; // silent
 
     const seen = getSeen();
@@ -281,7 +304,6 @@ async function main() {
       const vids = await fetchLatestVideos(c.channelId, cfg.apiKey, 5);
       for (const v of vids) {
         if (seenSet.has(v.videoId)) continue;
-        // Mark as new
         seenSet.add(v.videoId);
         newlySeen.push(v.videoId);
 
@@ -297,17 +319,13 @@ async function main() {
     }
 
     if (newlySeen.length) {
-      // keep seen list bounded
       const merged = (seen.seenVideoIds || []).concat(newlySeen);
       const unique = Array.from(new Set(merged));
-      // Keep last 500
       const trimmed = unique.slice(Math.max(0, unique.length - 500));
       saveSeen({ seenVideoIds: trimmed, updatedAt: nowIso() });
     }
 
     if (!newLines.length) return; // silent
-
-    // separate items by blank line
     process.stdout.write(newLines.join('\n\n') + '\n');
     return;
   }
