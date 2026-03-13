@@ -151,8 +151,17 @@ YouTube 视频自动下载并发布到小宇宙播客
 
 ---
 
-### 📤 youtube-publisher
-YouTube 视频发布工具 - 上传视频并自动设置封面和字幕
+### 📺 youtube-tracker
+定时追踪一组 YouTube 频道是否有新视频上传；只在发现“新增视频”时输出（适合接 OpenClaw cron 推送到群）。
+
+**输出字段**：频道名 / 标题 / 简短简介 / 视频 URL
+
+**特点**：
+- 支持用 `@handle` / 频道 URL / channelId 添加
+- 支持 API Key 配置与验证（YouTube Data API v3）
+- 首次加入频道会自动做 baseline，避免把历史视频当成“新视频”刷屏
+
+[查看详情 →](./youtube-tracker/)
 
 **特点**：
 - 📤 视频上传 - 支持 MP4, MOV, AVI, WMV, FLV, 3GP, MPEG（最大 256GB）
