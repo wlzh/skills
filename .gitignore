@@ -50,3 +50,6 @@ voice-changer/models/rvc_models/.lock/
 
 # Local cookies (do not commit)
 video-downloader/cookies.txt
+
+# youtube-tracker local state
+**/seen.json
