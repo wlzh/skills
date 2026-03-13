@@ -227,6 +227,20 @@ async function main() {
         addedAt: nowIso(),
       });
       saveConfig(cfg);
+
+      // Baseline: mark current latest videos as seen to avoid "old videos" being announced as new.
+      try {
+        const baseline = await fetchLatestVideos(ch.channelId, cfg.apiKey, 5);
+        if (baseline.length) {
+          const seen = getSeen();
+          const merged = (seen.seenVideoIds || []).concat(baseline.map(v => v.videoId));
+          const unique = Array.from(new Set(merged));
+          const trimmed = unique.slice(Math.max(0, unique.length - 500));
+          saveSeen({ seenVideoIds: trimmed, updatedAt: nowIso() });
+        }
+      } catch {
+        // ignore baseline errors; add still succeeds
+      }
     }
     console.log(`OK: added ${ch.title} (${ch.channelId})`);
     return;

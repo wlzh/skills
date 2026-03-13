@@ -11,6 +11,7 @@ A small, script-backed Skill to maintain a list of tracked YouTube channels and 
 
 - Set / validate **YouTube Data API v3 key**
 - Add / remove / list tracked channels (input can be URL / @handle / channelId)
+- On `add`, it will **baseline** (mark the channel’s current latest videos as seen) to avoid announcing old videos as new.
 - On `check`, prints only **new videos since last run** with:
   - channel name
   - title
