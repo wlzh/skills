@@ -39,6 +39,32 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 - **不要**在聊天中粘贴或回显 Token
 - **优先**使用 GitHub SSH 方式（`git@github.com:...`）
 - 如需 GitHub API，通过环境变量 `GITHUB_TOKEN` 传入，**不要写入文件**
+- **Telegram Token 必须通过环境变量配置**（见下方）
+
+## 环境变量配置
+
+在运行脚本前，需要设置以下环境变量：
+
+```bash
+# Telegram Bot Token（必须）
+export TELEGRAM_BOT_TOKEN="你的Bot Token"
+
+# Telegram 群组配置（可选，用于发送通知）
+export TG_GROUP_1_ID="-1002573762160"      # 群组 1 ID
+export TG_GROUP_1_THREAD="5"               # 群组 1 话题 ID
+export TG_GROUP_2_ID="-1003365897434"      # 群组 2 ID
+export TG_GROUP_2_THREAD="2"               # 群组 2 话题 ID
+
+# Telegram 频道 ID（可选）
+export TELEGRAM_CHANNEL_ID="@dabaziyuan"
+
+# GitHub Token（可选，用于 API 调用）
+export GITHUB_TOKEN="ghp_xxx"
+```
+
+⚠️ **安全提示**：
+- 永远不要将 Token 硬编码在脚本中
+- 永远不要将 Token 提交到 Git 仓库
 
 ## 完整工作流
 

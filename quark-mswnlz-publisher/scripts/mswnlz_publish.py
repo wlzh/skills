@@ -29,12 +29,15 @@ MSWNLZ_ROOT = PROJECT_ROOT / "mswnlz"
 
 SITE_SUFFIX = "-超过100T资料总站网站-doc.869hr.uk"
 
-# Telegram 配置
-TELEGRAM_BOT_TOKEN = "os.environ.get("TELEGRAM_BOT_TOKEN", "")"
+# Telegram 配置 - 从环境变量读取，不要硬编码！
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_GROUPS = [
-    {"chat_id": "os.environ.get("TG_GROUP_1_ID", "")", "thread_id": "5"},  # tgmShare 话题 5
-    {"chat_id": "os.environ.get("TG_GROUP_2_ID", "")", "thread_id": "2"},  # tgmShareAI 话题 2
+    {"chat_id": os.environ.get("TG_GROUP_1_ID", ""), "thread_id": os.environ.get("TG_GROUP_1_THREAD", "5")},
+    {"chat_id": os.environ.get("TG_GROUP_2_ID", ""), "thread_id": os.environ.get("TG_GROUP_2_THREAD", "2")},
 ]
+
+# 频道 ID
+TELEGRAM_CHANNEL_ID = os.environ.get("TELEGRAM_CHANNEL_ID", "@dabaziyuan")
 
 
 def sh(cmd: List[str], cwd: Path) -> str:
