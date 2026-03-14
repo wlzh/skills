@@ -108,6 +108,33 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 - Actions 运行 URL
 - 站点 URL（https://doc.869hr.uk）
 
+### 7) 生成夸克群组消息 🆕
+
+在 `mswnlz_publish.py` 执行后：
+1. 自动生成格式化的消息
+2. 保存到 `quark_group_message.txt`
+3. 控制台输出，方便复制
+
+**消息格式**：
+```
+📦 资源更新通知
+
+📚 书籍资料
+------------------------------
+• 2026.3.3小说合集推荐
+  🔗 https://pan.quark.cn/s/xxx?pwd=xxx
+
+========================================
+🌐 资料总站：https://doc.869hr.uk
+📂 批次文件夹：2026-03-14_1700_短裤哥批次
+📊 共 1 项资源
+```
+
+**使用方式**：
+1. 脚本运行完成后，复制消息内容
+2. 打开夸克 APP → 群组（2122364648、2026346189）
+3. 粘贴发送
+
 ## Telegram 通知机制
 
 ### 频道通知（@dabaziyuan）
@@ -119,6 +146,12 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 - **批量更新只发一条汇总消息**
 - 包含：已更新仓库列表 + 资源数量 + 频道链接
 - 由 Skills 脚本统一发送，避免刷屏
+
+### 夸克群组消息 🆕
+- **手动复制发送**（夸克无公开 API）
+- 群号：2122364648、2026346189
+- 格式：资源名称 + 链接 + 资料总站
+- 自动生成并保存到 `quark_group_message.txt`
 
 ## 脚本说明
 
