@@ -8,6 +8,7 @@ Behavior:
 - Classify items into repos (book/movies default; extensible).
 - Append to YYYYMM.md and update README.md month index.
 - Commit + push via SSH.
+- Send unified notification to Telegram groups (one message for all repos).
 
 Token handling:
 - GitHub API calls do not require auth for small usage; if rate-limited, set GITHUB_TOKEN env var.
@@ -18,16 +19,22 @@ import json
 import os
 import re
 import subprocess
+import urllib.request
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Tuple
-
-import urllib.request
 
 PROJECT_ROOT = Path("/Users/m./Documents/QNSZ/project")
 MSWNLZ_ROOT = PROJECT_ROOT / "mswnlz"
 
 SITE_SUFFIX = "-超过100T资料总站网站-doc.869hr.uk"
+
+# Telegram 配置
+TELEGRAM_BOT_TOKEN = "os.environ.get("TELEGRAM_BOT_TOKEN", "")"
+TELEGRAM_GROUPS = [
+    {"chat_id": "os.environ.get("TG_GROUP_1_ID", "")", "thread_id": "5"},  # tgmShare 话题 5
+    {"chat_id": "os.environ.get("TG_GROUP_2_ID", "")", "thread_id": "2"},  # tgmShareAI 话题 2
+]
 
 
 def sh(cmd: List[str], cwd: Path) -> str:
@@ -127,6 +134,40 @@ def make_commit_message(items: List[str]) -> str:
     return "\n".join(lines)
 
 
+def send_telegram_group_notification(updated_repos: List[str], total_items: int):
+    """发送统一的群组通知（只发一条）"""
+    import urllib.parse
+    
+    if not updated_repos:
+        return
+    
+    repos_str = "、".join(updated_repos)
+    text = f"📝 资源更新\n\n已更新仓库：{repos_str}\n共 {total_items} 项资源\n\n📦 https://t.me/dabaziyuan"
+    
+    for group in TELEGRAM_GROUPS:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {
+            "chat_id": group["chat_id"],
+            "message_thread_id": group["thread_id"],
+            "text": text
+        }
+        
+        try:
+            req = urllib.request.Request(
+                url,
+                data=urllib.parse.urlencode(data).encode("utf-8"),
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
+                if result.get("ok"):
+                    print(f"[TG] 发送到群组 {group['chat_id']} 话题 {group['thread_id']} ✅")
+                else:
+                    print(f"[TG] 发送失败: {result.get('description')}")
+        except Exception as e:
+            print(f"[TG] 发送异常: {e}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--month", required=True)
@@ -147,6 +188,9 @@ def main():
         repo = classify_item(name, repo_desc)
         by_repo[repo].append((name, url))
 
+    updated_repos = []
+    total_items = 0
+    
     for repo, items in by_repo.items():
         ensure_clone(repo)
         repo_dir = MSWNLZ_ROOT / repo
@@ -164,7 +208,14 @@ def main():
         sh(["git", "commit", "-m", msg], cwd=repo_dir)
         sh(["git", "push", "origin", "main"], cwd=repo_dir)
 
+        updated_repos.append(repo)
+        total_items += len(items)
         print(f"[OK] pushed {repo}: {len(items)} items")
+
+    # 统一发送群组通知（只发一条）
+    if updated_repos:
+        print(f"\n[TG] 发送群组汇总通知...")
+        send_telegram_group_notification(updated_repos, total_items)
 
 
 if __name__ == "__main__":
