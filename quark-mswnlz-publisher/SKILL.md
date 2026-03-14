@@ -1,11 +1,11 @@
 ---
 name: quark-mswnlz-publisher
-description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Use when the user provides Quark share URLs and wants: (1) create a batch folder in Quark Drive, (2) save/copy resources into that folder, (3) copy promotional files from template folder to each shared folder, (4) generate permanent encrypted share links with random passcodes, (5) auto-classify items into mswnlz repos (book/movies/etc.) by repo descriptions, (6) append/update the target repo's YYYYMM.md and README month index, (7) git commit+push, (8) send unified Telegram notifications, and (9) force-trigger mswnlz.github.io site rebuild and return the final site URLs."
+description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Use when the user provides Quark share URLs and wants: (1) create a batch folder in Quark Drive, (2) save/copy resources into that folder, (3) copy promotional files INTO each shared resource folder, (4) generate permanent encrypted share links with random passcodes, (5) auto-classify items into mswnlz repos (book/movies/etc.) by repo descriptions, (6) append/update the target repo's YYYYMM.md and README month index, (7) git commit+push, (8) send unified Telegram notifications, and (9) force-trigger mswnlz.github.io site rebuild and return the final site URLs."
 ---
 
 # quark-mswnlz-publisher
 
-**版本**: v1.2.0
+**版本**: v1.3.0
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -59,11 +59,13 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
    - 随机提取码
 5. 输出 JSON：`batch_share_results.json`
 
-### 3) 复制推广文件到每个文件夹 🆕
+### 3) 复制推广文件到每个资源文件夹内部 🆕
 
-使用 `scripts/quark_copy.py`：
-- 从夸克网盘的 `temp/要共享的文件` 文件夹复制推广文件
-- 自动复制到每个转存的文件夹
+使用 `scripts/copy_promo_to_folders.py`：
+- 从夸克网盘的 `temp/要共享的文件` 文件夹读取推广文件
+- **复制到每个转存的资源文件夹内部**（不是批次文件夹）
+
+**重要**：推广文件会被复制到每个资源文件夹里面，这样分享出去的每个文件夹都包含推广文件。
 
 **前提条件**：
 - 需要提前在夸克网盘创建 `temp/要共享的文件` 文件夹
@@ -171,20 +173,25 @@ python scripts/quark_batch_run.py \
 - QuarkPanTool 环境（`.venv`）
 - 夸克 Cookie（`config/cookies.txt`）
 
-### scripts/quark_copy.py 🆕
+### scripts/copy_promo_to_folders.py 🆕
 
-从模板文件夹复制推广文件到目标文件夹。
+复制推广文件到每个资源文件夹内部。
 
-```python
-from quark_copy import add_promo_files_to_folder
-
-# 复制推广文件到指定文件夹
-await add_promo_files_to_folder(cookies, headers, target_folder_fid)
+```bash
+python scripts/copy_promo_to_folders.py \
+  --batch-json batch_share_results.json
 ```
 
-**前提条件**：
-- 夸克网盘中存在 `temp/要共享的文件` 文件夹
-- 该文件夹中包含推广文件
+**工作原理**：
+1. 读取 `batch_share_results.json` 中的 `share_results`
+2. 对于每个分享结果，检查其 `fid` 是否是文件夹
+3. 如果是文件夹，复制推广文件**到文件夹内部**
+
+**注意**：推广文件会被复制到每个资源文件夹里面，这样每个分享的文件夹都包含推广文件。
+
+### scripts/quark_copy.py (已废弃)
+
+此脚本已被 `copy_promo_to_folders.py` 替代。
 
 ### scripts/mswnlz_publish.py
 
