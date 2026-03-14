@@ -1,11 +1,11 @@
 ---
 name: quark-mswnlz-publisher
-description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Use when the user provides Quark share URLs and wants: (1) create a batch folder in Quark Drive, (2) save/copy resources into that folder, (3) add promotional files to each folder, (4) generate permanent encrypted share links with random passcodes, (5) auto-classify items into mswnlz repos (book/movies/etc.) by repo descriptions, (6) append/update the target repo's YYYYMM.md and README month index, (7) git commit+push, (8) send unified Telegram notifications, and (9) force-trigger mswnlz.github.io site rebuild and return the final site URLs."
+description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Use when the user provides Quark share URLs and wants: (1) create a batch folder in Quark Drive, (2) save/copy resources into that folder, (3) copy promotional files from template folder to each shared folder, (4) generate permanent encrypted share links with random passcodes, (5) auto-classify items into mswnlz repos (book/movies/etc.) by repo descriptions, (6) append/update the target repo's YYYYMM.md and README month index, (7) git commit+push, (8) send unified Telegram notifications, and (9) force-trigger mswnlz.github.io site rebuild and return the final site URLs."
 ---
 
 # quark-mswnlz-publisher
 
-**版本**: v1.1.0
+**版本**: v1.2.0
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -59,15 +59,21 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
    - 随机提取码
 5. 输出 JSON：`batch_share_results.json`
 
-### 3) 添加推广文件到每个文件夹 🆕
+### 3) 复制推广文件到每个文件夹 🆕
 
-使用 `scripts/quark_upload.py`：
-- 自动上传推广文件到每个转存的文件夹
-- 推广文件位于 `promo_files/` 目录：
-  - `必看免责声明_及加入资源分享群_及_副业_0_成本赚钱教程_资源网站doc_869hr_uk.txt`
-  - `1_解压密码869hr_uk_移动端双击这里.html`
-  - `0_双击获取解压密码_Mac系统双击这里.webloc`
-  - `0_双击获取解压密码_windows系统双击这里.url`
+使用 `scripts/quark_copy.py`：
+- 从夸克网盘的 `temp/要共享的文件` 文件夹复制推广文件
+- 自动复制到每个转存的文件夹
+
+**前提条件**：
+- 需要提前在夸克网盘创建 `temp/要共享的文件` 文件夹
+- 上传推广文件到该文件夹
+
+**推广文件清单**：
+- `必看免责声明_及加入资源分享群_及_副业_0_成本赚钱教程_资源网站doc_869hr_uk.txt`
+- `1_解压密码869hr_uk_移动端双击这里.html`
+- `0_双击获取解压密码_Mac系统双击这里.webloc`
+- `0_双击获取解压密码_windows系统双击这里.url`
 
 ### 4) 自动归类到 mswnlz 仓库
 
@@ -102,7 +108,7 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 - Actions 运行 URL
 - 站点 URL（https://doc.869hr.uk）
 
-## Telegram 通知机制 🆕
+## Telegram 通知机制
 
 ### 频道通知（@dabaziyuan）
 - **每条资源单独发送**
@@ -132,17 +138,20 @@ python scripts/quark_batch_run.py \
 - QuarkPanTool 环境（`.venv`）
 - 夸克 Cookie（`config/cookies.txt`）
 
-### scripts/quark_upload.py 🆕
+### scripts/quark_copy.py 🆕
 
-上传推广文件到夸克网盘文件夹。
+从模板文件夹复制推广文件到目标文件夹。
 
-```bash
-python scripts/quark_upload.py --folder-fid <folder_id>
+```python
+from quark_copy import add_promo_files_to_folder
+
+# 复制推广文件到指定文件夹
+await add_promo_files_to_folder(cookies, headers, target_folder_fid)
 ```
 
-**依赖**：
-- 夸克 Cookie
-- `promo_files/` 目录中的推广文件
+**前提条件**：
+- 夸克网盘中存在 `temp/要共享的文件` 文件夹
+- 该文件夹中包含推广文件
 
 ### scripts/mswnlz_publish.py
 
@@ -170,9 +179,13 @@ bash scripts/trigger_site_rebuild.sh
 - Git SSH 配置
 - `mswnlz.github.io` 仓库写权限
 
-## 推广文件 🆕
+## 推广文件
 
-位于 `promo_files/` 目录，会自动添加到每个转存的文件夹：
+### 模板文件夹位置
+
+夸克网盘：`temp/要共享的文件`
+
+### 文件清单
 
 | 文件名 | 用途 |
 |--------|------|
@@ -180,6 +193,10 @@ bash scripts/trigger_site_rebuild.sh
 | `1_解压密码869hr_uk_移动端双击这里.html` | 移动端解压密码获取页面 |
 | `0_双击获取解压密码_Mac系统双击这里.webloc` | Mac 快捷方式 |
 | `0_双击获取解压密码_windows系统双击这里.url` | Windows 快捷方式 |
+
+### 本地备份
+
+`promo_files/` 目录保存了推广文件的本地备份，用于参考和恢复。
 
 ## 详细文档
 
