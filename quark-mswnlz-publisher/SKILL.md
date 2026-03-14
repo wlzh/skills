@@ -1,11 +1,11 @@
 ---
 name: quark-mswnlz-publisher
-description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Use when the user provides Quark share URLs and wants: (1) create a batch folder in Quark Drive, (2) save/copy resources into that folder, (3) generate permanent encrypted share links with random passcodes, (4) auto-classify items into mswnlz repos (book/movies/etc.) by repo descriptions, (5) append/update the target repo's YYYYMM.md and README month index, (6) git commit+push, and (7) force-trigger mswnlz.github.io site rebuild and return the final site URLs."
+description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Use when the user provides Quark share URLs and wants: (1) create a batch folder in Quark Drive, (2) save/copy resources into that folder, (3) add promotional files to each folder, (4) generate permanent encrypted share links with random passcodes, (5) auto-classify items into mswnlz repos (book/movies/etc.) by repo descriptions, (6) append/update the target repo's YYYYMM.md and README month index, (7) git commit+push, (8) send unified Telegram notifications, and (9) force-trigger mswnlz.github.io site rebuild and return the final site URLs."
 ---
 
 # quark-mswnlz-publisher
 
-**版本**: v1.0.0
+**版本**: v1.1.0
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -59,7 +59,17 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
    - 随机提取码
 5. 输出 JSON：`batch_share_results.json`
 
-### 3) 自动归类到 mswnlz 仓库
+### 3) 添加推广文件到每个文件夹 🆕
+
+使用 `scripts/quark_upload.py`：
+- 自动上传推广文件到每个转存的文件夹
+- 推广文件位于 `promo_files/` 目录：
+  - `必看免责声明_及加入资源分享群_及_副业_0_成本赚钱教程_资源网站doc_869hr_uk.txt`
+  - `1_解压密码869hr_uk_移动端双击这里.html`
+  - `0_双击获取解压密码_Mac系统双击这里.webloc`
+  - `0_双击获取解压密码_windows系统双击这里.url`
+
+### 4) 自动归类到 mswnlz 仓库
 
 使用 `scripts/mswnlz_publish.py`：
 1. 调用 GitHub API 获取 mswnlz 组织仓库列表
@@ -74,15 +84,16 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
    ```
 5. 更新 `README.md` 月份索引（保持倒序）
 6. Git commit + push
+7. **发送统一的 Telegram 群组通知**（多仓库更新只发一条汇总消息）
 
-### 4) 触发站点重建
+### 5) 触发站点重建
 
 使用 `scripts/trigger_site_rebuild.sh`：
 1. 在 `mswnlz.github.io` 仓库创建空提交
 2. Push 到 main 分支
 3. 触发 GitHub Actions 构建
 
-### 5) 返回结果
+### 6) 返回结果
 
 返回给用户：
 - 批次文件夹名称
@@ -90,6 +101,18 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 - 每个项目的目标仓库 + 文件路径
 - Actions 运行 URL
 - 站点 URL（https://doc.869hr.uk）
+
+## Telegram 通知机制 🆕
+
+### 频道通知（@dabaziyuan）
+- **每条资源单独发送**
+- 包含：资源名称 + GitHub 链接
+- 由 GitHub Workflow 自动触发
+
+### 群组通知（tgmShare 话题5、tgmShareAI 话题2）
+- **批量更新只发一条汇总消息**
+- 包含：已更新仓库列表 + 资源数量 + 频道链接
+- 由 Skills 脚本统一发送，避免刷屏
 
 ## 脚本说明
 
@@ -109,9 +132,21 @@ python scripts/quark_batch_run.py \
 - QuarkPanTool 环境（`.venv`）
 - 夸克 Cookie（`config/cookies.txt`）
 
+### scripts/quark_upload.py 🆕
+
+上传推广文件到夸克网盘文件夹。
+
+```bash
+python scripts/quark_upload.py --folder-fid <folder_id>
+```
+
+**依赖**：
+- 夸克 Cookie
+- `promo_files/` 目录中的推广文件
+
 ### scripts/mswnlz_publish.py
 
-发布到 GitHub 仓库。
+发布到 GitHub 仓库 + 发送 Telegram 群组通知。
 
 ```bash
 python scripts/mswnlz_publish.py \
@@ -134,6 +169,17 @@ bash scripts/trigger_site_rebuild.sh
 **依赖**：
 - Git SSH 配置
 - `mswnlz.github.io` 仓库写权限
+
+## 推广文件 🆕
+
+位于 `promo_files/` 目录，会自动添加到每个转存的文件夹：
+
+| 文件名 | 用途 |
+|--------|------|
+| `必看免责声明_及加入资源分享群_及_副业_0_成本赚钱教程_资源网站doc_869hr_uk.txt` | 免责声明 + 联系方式 + 赚钱教程 |
+| `1_解压密码869hr_uk_移动端双击这里.html` | 移动端解压密码获取页面 |
+| `0_双击获取解压密码_Mac系统双击这里.webloc` | Mac 快捷方式 |
+| `0_双击获取解压密码_windows系统双击这里.url` | Windows 快捷方式 |
 
 ## 详细文档
 
