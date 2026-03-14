@@ -1,6 +1,6 @@
 # quark-mswnlz-publisher
 
-**版本**: v1.4.0
+**版本**: v1.4.1
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -321,6 +321,10 @@ quark-mswnlz-publisher/
 ---
 
 ## 更新日志
+
+### v1.4.1 (2026-03-14)
+- 修复：推广文件复制判断逻辑（空文件夹也被正确识别为文件夹）
+- 修复：`list_folder_files` 返回 `tuple(is_folder, items)`
 
 ### v1.4.0 (2026-03-14)
 - 修复：发布后自动触发网站更新（调用 `trigger_site_rebuild.sh`）
