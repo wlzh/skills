@@ -194,7 +194,7 @@ export TG_GROUP_2_ID="-100YYYYYYYYYY"
 export TG_GROUP_2_THREAD="2"
 
 # Telegram 频道 ID（可选）
-export TELEGRAM_CHANNEL_ID="@dabaziyuan"
+export TELEGRAM_CHANNEL_ID="@your_channel"
 
 # GitHub Token（可选，用于 API 调用）
 export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"

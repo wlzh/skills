@@ -50,16 +50,16 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 export TELEGRAM_BOT_TOKEN="你的Bot Token"
 
 # Telegram 群组配置（可选，用于发送通知）
-export TG_GROUP_1_ID="-1002573762160"      # 群组 1 ID
+export TG_GROUP_1_ID="-100XXXXXXXXXX"      # 群组 1 ID
 export TG_GROUP_1_THREAD="5"               # 群组 1 话题 ID
-export TG_GROUP_2_ID="-1003365897434"      # 群组 2 ID
+export TG_GROUP_2_ID="-100YYYYYYYYYY"      # 群组 2 ID
 export TG_GROUP_2_THREAD="2"               # 群组 2 话题 ID
 
 # Telegram 频道 ID（可选）
-export TELEGRAM_CHANNEL_ID="@dabaziyuan"
+export TELEGRAM_CHANNEL_ID="@your_channel"
 
 # GitHub Token（可选，用于 API 调用）
-export GITHUB_TOKEN="ghp_xxx"
+export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
 ```
 
 ⚠️ **安全提示**：
