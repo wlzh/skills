@@ -40,8 +40,12 @@ class QuarkPromoCopier:
             'cookie': cookies,
         }
 
-    async def list_folder_files(self, client: httpx.AsyncClient, folder_fid: str) -> List[dict]:
-        """列出文件夹中的所有项目"""
+    async def list_folder_files(self, client: httpx.AsyncClient, folder_fid: str) -> tuple:
+        """列出文件夹中的所有项目
+        
+        Returns:
+            tuple: (is_folder: bool, items: list or None)
+        """
         api = "https://drive-pc.quark.cn/1/clouddrive/file/sort"
         params = {
             'pr': 'ucpro',
@@ -55,9 +59,13 @@ class QuarkPromoCopier:
         data = resp.json()
 
         if data.get('status') != 200:
-            return []
-
-        return data.get('data', {}).get('list', [])
+            return (False, None)
+        
+        # 如果返回了 data 字段，说明是文件夹
+        if 'data' in data:
+            return (True, data.get('data', {}).get('list', []))
+        
+        return (False, None)
 
     async def copy_files(self, client: httpx.AsyncClient, file_fids: List[str], to_folder_fid: str) -> bool:
         """复制文件到目标文件夹"""
@@ -82,13 +90,13 @@ class QuarkPromoCopier:
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             # 1. 获取推广文件列表
-            promo_files = await self.list_folder_files(client, self.PROMO_FOLDER_FID)
-            if not promo_files:
+            is_folder, promo_items = await self.list_folder_files(client, self.PROMO_FOLDER_FID)
+            if not is_folder or not promo_items:
                 print("[ERROR] 推广文件模板文件夹为空或无法访问")
                 print(f"[INFO] 请确保夸克网盘中存在 'temp/要共享的文件' 文件夹")
                 return results
 
-            promo_fids = [f['fid'] for f in promo_files]
+            promo_fids = [f['fid'] for f in promo_items]
             print(f"[INFO] 找到 {len(promo_fids)} 个推广文件")
 
             # 2. 遍历每个分享结果
@@ -101,9 +109,9 @@ class QuarkPromoCopier:
                     continue
 
                 # 检查这个 fid 是否是文件夹
-                folder_items = await self.list_folder_files(client, fid)
+                is_folder, folder_items = await self.list_folder_files(client, fid)
 
-                if folder_items is not None:
+                if is_folder:
                     # 是文件夹，复制推广文件进去
                     print(f"\n[处理] {name}")
                     success = await self.copy_files(client, promo_fids, fid)
@@ -117,6 +125,9 @@ class QuarkPromoCopier:
                 else:
                     # 是文件，跳过
                     print(f"\n[跳过] {name} (不是文件夹)")
+                    results["skipped"].append(name)
+
+        return results
                     results["skipped"].append(name)
 
         return results
