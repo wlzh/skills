@@ -265,6 +265,37 @@ def main():
         print(f"\n[TG] 发送群组汇总通知...")
         send_telegram_group_notification(updated_repos, total_items)
 
+    # 触发网站更新
+    if updated_repos:
+        print(f"\n[网站] 触发站点重建...")
+        trigger_site_rebuild()
+
+
+def trigger_site_rebuild():
+    """触发 mswnlz.github.io 站点重建"""
+    script_dir = Path(__file__).parent
+    trigger_script = script_dir / "trigger_site_rebuild.sh"
+    
+    if trigger_script.exists():
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["bash", str(trigger_script)],
+                cwd=str(script_dir),
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            if result.returncode == 0:
+                print(f"[OK] 网站更新已触发")
+                print(result.stdout)
+            else:
+                print(f"[WARN] 网站更新触发失败: {result.stderr}")
+        except Exception as e:
+            print(f"[WARN] 网站更新触发异常: {e}")
+    else:
+        print(f"[WARN] trigger_site_rebuild.sh 不存在，跳过网站更新")
+
 
 if __name__ == "__main__":
     main()
