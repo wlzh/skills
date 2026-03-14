@@ -151,6 +151,23 @@ YouTube 视频自动下载并发布到小宇宙播客
 
 ---
 
+### 📦 quark-mswnlz-publisher
+夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+
+**版本**: v1.0.0
+
+**功能**：
+- 夸克批量转存：新建批次文件夹 → 批量转存 URL
+- 自动生成：永久 + 加密 + 随机提取码分享链接
+- 自动归类：根据 mswnlz 仓库 description 判断写入 book/movies 等仓库
+- 自动落盘：追加/新建 `YYYYMM.md` + 更新 README 月份索引
+- 自动提交：commit（无链接，一条一行）+ push
+- 强制触发：`mswnlz.github.io` 站点构建（push 触发）并返回 Actions 链接/站点 URL
+
+[查看详情 →](./quark-mswnlz-publisher/)
+
+---
+
 ### 📺 youtube-tracker
 定时追踪一组 YouTube 频道是否有新视频上传；只在发现“新增视频”时输出（适合接 OpenClaw cron 推送到群）。
 
