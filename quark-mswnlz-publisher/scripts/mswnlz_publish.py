@@ -168,6 +168,41 @@ def send_telegram_group_notification(updated_repos: List[str], total_items: int)
             print(f"[TG] 发送异常: {e}")
 
 
+def generate_quark_group_message(by_repo: Dict[str, List[Tuple[str, str]]], batch_folder: str) -> str:
+    """生成夸克群组消息（格式化，方便复制）"""
+    lines = ["📦 资源更新通知", ""]
+    
+    total = 0
+    for repo, items in by_repo.items():
+        repo_names = {
+            "book": "📚 书籍资料",
+            "movies": "🎬 影视资源",
+            "AIknowledge": "🤖 AI知识",
+            "curriculum": "🎓 课程教程",
+            "edu-knowlege": "📖 教育知识",
+            "healthy": "💪 健康养生",
+            "self-media": "📱 自媒体",
+            "cross-border": "🌍 跨境电商",
+            "chinese-traditional": "🏮 传统文化",
+            "tools": "🔧 工具软件",
+        }
+        lines.append(f"\n{repo_names.get(repo, '📁')} {repo}")
+        lines.append("-" * 30)
+        
+        for name, url in items:
+            lines.append(f"• {name}")
+            lines.append(f"  🔗 {url}")
+            total += 1
+    
+    lines.append("")
+    lines.append("=" * 40)
+    lines.append(f"🌐 资料总站：https://doc.869hr.uk")
+    lines.append(f"📂 批次文件夹：{batch_folder}")
+    lines.append(f"📊 共 {total} 项资源")
+    
+    return "\n".join(lines)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--month", required=True)
@@ -176,6 +211,7 @@ def main():
 
     batch = json.loads(Path(args.batch_json).read_text(encoding="utf-8"))
     share_results = batch.get("share_results") or []
+    batch_folder = batch.get("batch_folder_name", "")
 
     repo_desc = fetch_mswnlz_repo_descriptions()
 
@@ -211,6 +247,15 @@ def main():
         updated_repos.append(repo)
         total_items += len(items)
         print(f"[OK] pushed {repo}: {len(items)} items")
+
+    # 生成夸克群组消息并保存
+    quark_msg = generate_quark_group_message(by_repo, batch_folder)
+    quark_msg_file = Path(args.batch_json).parent / "quark_group_message.txt"
+    quark_msg_file.write_text(quark_msg, encoding="utf-8")
+    print(f"\n[夸克群组消息] 已保存到: {quark_msg_file}")
+    print("-" * 40)
+    print(quark_msg)
+    print("-" * 40)
 
     # 统一发送群组通知（只发一条）
     if updated_repos:
