@@ -188,9 +188,9 @@ ssh -T git@github.com
 export TELEGRAM_BOT_TOKEN="你的Bot Token"
 
 # Telegram 群组配置（可选）
-export TG_GROUP_1_ID="-1002573762160"
+export TG_GROUP_1_ID="-100XXXXXXXXXX"
 export TG_GROUP_1_THREAD="5"
-export TG_GROUP_2_ID="-1003365897434"
+export TG_GROUP_2_ID="-100YYYYYYYYYY"
 export TG_GROUP_2_THREAD="2"
 
 # Telegram 频道 ID（可选）
