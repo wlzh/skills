@@ -9,6 +9,14 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
+## 📺 视频教程
+
+[【资源运营神器Skills】完全开源，夸克网盘+GitHub一条龙全自动发布工具！转存、归类、TG通知、站点更新一键搞定！](https://youtu.be/s1RhLDOGOfQ)
+
+## 📝 文字教程
+
+[Twitter/X 教程帖子](https://x.com/gxjdian/status/2032766709711712491)
+
 ## 触发条件
 
 当用户提供夸克分享链接并需要执行以下任一操作时：
