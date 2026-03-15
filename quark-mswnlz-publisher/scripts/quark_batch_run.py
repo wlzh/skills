@@ -22,8 +22,20 @@ Notes:
 import argparse
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
+
+# 自动加载 secrets.env（如果存在）
+SECRETS_ENV = Path(__file__).parent.parent.parent / "QuarkPanTool/config/secrets.env"
+if SECRETS_ENV.exists():
+    for line in SECRETS_ENV.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if '=' in line:
+            key, _, value = line.partition('=')
+            os.environ.setdefault(key.strip(), value.strip())
 
 from quark import QuarkPanFileManager
 from utils import read_config
