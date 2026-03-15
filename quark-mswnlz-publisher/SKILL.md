@@ -5,9 +5,18 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.4.1
+**版本**: v1.4.2
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+
+## 更新日志
+
+### v1.4.2 (2026-03-15)
+- 🐛 修复：脚本启动时自动加载 `secrets.env` 环境变量，无需手动 export
+- 📝 影响脚本：`quark_batch_run.py`、`mswnlz_publish.py`
+
+### v1.4.1
+- 初始稳定版本
 
 ## 📺 视频教程
 
