@@ -71,7 +71,10 @@ fi
 # SSH command prefix - use environment variable for password (more reliable)
 SSHPASS_BIN=$(which sshpass 2>/dev/null || echo "/usr/local/bin/sshpass")
 export SSHPASS="${ROOT_PASS}"
-SSH_CMD="${SSHPASS_BIN} -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${VPS_IP}"
+
+# Determine initial SSH port (use 22 for initial connection, will change to SSH_PORT later)
+INITIAL_PORT=22
+SSH_CMD="${SSHPASS_BIN} -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p ${INITIAL_PORT} root@${VPS_IP}"
 
 echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}        VPS Security Hardening Script v1.0.0               ${NC}"
