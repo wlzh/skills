@@ -355,7 +355,7 @@ $SSH_CMD "
 echo -e "${GREEN}[✓] Services restarted${NC}"
 
 # ============================================
-# Phase 10: Docker Security Check
+# Phase 10: Docker Security Check & Fix
 # ============================================
 echo -e "${YELLOW}[Phase 10/10] Checking Docker security...${NC}"
 DOCKER_CHECK=$($SSH_CMD "which docker &>/dev/null && echo 'installed' || echo 'not_installed'")
@@ -364,6 +364,35 @@ if [ "$DOCKER_CHECK" = "installed" ]; then
     echo -e "${YELLOW}[!] Docker is installed on this VPS${NC}"
     DOCKER_VERSION=$($SSH_CMD "docker --version 2>/dev/null | head -1")
     echo -e "${CYAN}[i] ${DOCKER_VERSION}${NC}"
+
+    # Check if Docker daemon.json exists and has iptables setting
+    DOCKER_IPTABLES=$($SSH_CMD "cat /etc/docker/daemon.json 2>/dev/null | grep -c 'iptables' || echo 0")
+
+    if [ "$DOCKER_IPTABLES" -eq 0 ]; then
+        echo -e "${YELLOW}[!] Docker is configured to bypass UFW (default behavior)${NC}"
+        echo -e "${YELLOW}[i] Configuring Docker to respect UFW firewall...${NC}"
+
+        # Backup existing daemon.json if exists
+        $SSH_CMD "if [ -f /etc/docker/daemon.json ]; then sudo cp /etc/docker/daemon.json /etc/docker/daemon.json.bak; fi"
+
+        # Create or update daemon.json
+        $SSH_CMD "
+            if [ -f /etc/docker/daemon.json ]; then
+                # Merge with existing config
+                sudo sed -i 's/}/, \"iptables\": false}/' /etc/docker/daemon.json 2>/dev/null || \
+                echo '{\"iptables\": false}' | sudo tee /etc/docker/daemon.json
+            else
+                echo '{\"iptables\": false}' | sudo tee /etc/docker/daemon.json
+            fi
+        "
+
+        # Restart Docker
+        echo -e "${YELLOW}[i] Restarting Docker service...${NC}"
+        $SSH_CMD "sudo systemctl restart docker"
+        echo -e "${GREEN}[✓] Docker configured to respect UFW firewall${NC}"
+    else
+        echo -e "${GREEN}[✓] Docker already configured to respect UFW${NC}"
+    fi
 
     # Check if user can access docker (might need sudo)
     DOCKER_TEST=$($SSH_CMD "docker ps &>/dev/null && echo 'ok' || echo 'need_sudo'")
@@ -381,10 +410,9 @@ if [ "$DOCKER_CHECK" = "installed" ]; then
 
     if [ "$DOCKER_EXPOSED" -gt 0 ]; then
         echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
-        echo -e "${RED}  ⚠️  DOCKER SECURITY WARNING ⚠️${NC}"
+        echo -e "${RED}  ⚠️  DOCKER EXPOSED PORTS WARNING ⚠️${NC}"
         echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
         echo -e "${YELLOW}[!] ${DOCKER_EXPOSED} container(s) have ports exposed to 0.0.0.0${NC}"
-        echo -e "${YELLOW}[!] Docker bypasses UFW firewall rules!${NC}"
         echo ""
         echo -e "${CYAN}Exposed containers:${NC}"
         if [ "$DOCKER_TEST" = "ok" ]; then
@@ -393,13 +421,8 @@ if [ "$DOCKER_CHECK" = "installed" ]; then
             $SSH_CMD "sudo docker ps --format '  - {{.Names}}: {{.Ports}}' 2>/dev/null | grep '0.0.0.0'"
         fi
         echo ""
-        echo -e "${YELLOW}Recommendations:${NC}"
-        echo "  1. Configure Docker to not bypass UFW:"
-        echo "     echo '{\"iptables\": false}' | sudo tee /etc/docker/daemon.json"
-        echo "     sudo systemctl restart docker"
-        echo "  2. Bind services to 127.0.0.1 when possible"
-        echo "  3. Use reverse proxy (nginx/caddy) for external access"
-        echo "  4. Consider using Docker's user namespace mapping"
+        echo -e "${YELLOW}Note: Docker now respects UFW. Make sure to add UFW rules for needed ports:${NC}"
+        echo "  sudo ufw allow <PORT>/tcp"
         echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
         DOCKER_WARNING="true"
     else
