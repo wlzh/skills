@@ -68,8 +68,10 @@ if ! command -v sshpass &> /dev/null; then
     exit 1
 fi
 
-# SSH command prefix
-SSH_CMD="sshpass -p '${ROOT_PASS}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${VPS_IP}"
+# SSH command prefix - use environment variable for password (more reliable)
+SSHPASS_BIN=$(which sshpass 2>/dev/null || echo "/usr/local/bin/sshpass")
+export SSHPASS="${ROOT_PASS}"
+SSH_CMD="${SSHPASS_BIN} -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${VPS_IP}"
 
 echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
 echo -e "${CYAN}        VPS Security Hardening Script v1.0.0               ${NC}"
@@ -92,7 +94,12 @@ echo -e "  ${CYAN}systemctl restart ssh${NC}"
 echo -e "  ${CYAN}passwd root${NC}"
 echo ""
 echo -e "${YELLOW}执行完成后，按 Enter 继续...（Ctrl+C 取消）${NC}"
-read -r
+# Auto-continue in non-interactive mode
+if [ -t 0 ]; then
+    read -r
+else
+    echo "(Auto-continuing...)"
+fi
 
 # ============================================
 # Phase 1: Test SSH Connection & Detect OS
