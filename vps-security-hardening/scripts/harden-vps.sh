@@ -355,6 +355,42 @@ $SSH_CMD "
 echo -e "${GREEN}[✓] Services restarted${NC}"
 
 # ============================================
+# Phase 10: Docker Security Check
+# ============================================
+echo -e "${YELLOW}[Phase 10/10] Checking Docker security...${NC}"
+DOCKER_STATUS=$($SSH_CMD "which docker &>/dev/null && echo 'installed' || echo 'not_installed'")
+
+if [ "$DOCKER_STATUS" = "installed" ]; then
+    echo -e "${YELLOW}[!] Docker is installed on this VPS${NC}"
+    DOCKER_CONTAINERS=$($SSH_CMD "docker ps --format '{{.Names}}' 2>/dev/null | wc -l")
+    DOCKER_EXPOSED=$($SSH_CMD "docker ps --format '{{.Ports}}' 2>/dev/null | grep -c '0.0.0.0' || echo 0")
+    
+    echo -e "${CYAN}[i] Docker containers running: ${DOCKER_CONTAINERS}${NC}"
+    
+    if [ "$DOCKER_EXPOSED" -gt 0 ]; then
+        echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+        echo -e "${RED}  ⚠️  DOCKER SECURITY WARNING ⚠️${NC}"
+        echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}[!] ${DOCKER_EXPOSED} container(s) have ports exposed to 0.0.0.0${NC}"
+        echo -e "${YELLOW}[!] Docker bypasses UFW firewall rules!${NC}"
+        echo ""
+        echo -e "${CYAN}Exposed containers:${NC}"
+        $SSH_CMD "docker ps --format '  - {{.Names}}: {{.Ports}}' 2>/dev/null | grep '0.0.0.0'"
+        echo ""
+        echo -e "${YELLOW}Recommendations:${NC}"
+        echo "  1. Use Docker's --network host sparingly"
+        echo "  2. Bind services to 127.0.0.1 when possible"
+        echo "  3. Use reverse proxy (nginx/caddy) for external access"
+        echo "  4. Consider using Docker's user namespace mapping"
+        echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+    else
+        echo -e "${GREEN}[✓] No containers with exposed ports detected${NC}"
+    fi
+else
+    echo -e "${GREEN}[✓] Docker not installed, skipping security check${NC}"
+fi
+
+# ============================================
 # Generate Report
 # ============================================
 echo ""
