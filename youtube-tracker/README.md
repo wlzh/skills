@@ -3,6 +3,12 @@
 A script-backed skill to track YouTube channels and get notified of new uploads.
 
 ## Version History
+### v2.0.1 (2026-03-17) - Bugfix
+**Fix**: Increased seen video ID limit from 500 to 2000
+- With 54+ channels, 500 IDs was too small
+- Old IDs got pushed out and re-detected as "new"
+- Now keeps up to 2000 video IDs
+
 ### v2.0.0 (2026-03-17) - RSS Mode
 **Major update**: now uses YouTube RSS feeds by default - no API key needed!
 - ✅ No API quota limits

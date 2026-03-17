@@ -1,12 +1,18 @@
 ---
 name: youtube-tracker
 description: "Track YouTube channels for new uploads. Supports both RSS mode (no API key needed, unlimited quota) and API mode. Use when: add/remove/list tracked YouTube channels, check for new videos, or run scheduled YouTube channel monitoring."
-version: "2.0.0"
+version: "2.0.1"
 ---
 
 # youtube-tracker
 
 A script-backed Skill to maintain a list of tracked YouTube channels and periodically check for **new uploads**.
+
+## v2.0.1 - Bugfix (2026-03-17)
+
+**Fix**: Increased seen video ID limit from 500 to 2000 to prevent duplicate notifications.
+- With 54+ channels, 500 IDs was too small (videos got pushed out and re-detected)
+- Now keeps up to 2000 video IDs in `state/seen.json`
 
 ## v2.0.0 - RSS Mode (2026-03-17)
 

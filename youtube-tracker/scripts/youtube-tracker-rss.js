@@ -400,7 +400,7 @@ async function main() {
     if (newlySeen.length) {
       const merged = (seen.seenVideoIds || []).concat(newlySeen);
       const unique = Array.from(new Set(merged));
-      const trimmed = unique.slice(Math.max(0, unique.length - 500));
+      const trimmed = unique.slice(Math.max(0, unique.length - 2000));
       saveSeen({ seenVideoIds: trimmed, updatedAt: nowIso() });
     }
 
