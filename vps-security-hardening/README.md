@@ -1,7 +1,7 @@
 # VPS Security Hardening
 
 > VPS 安全加固自动化工具
-> 版本: 1.0.2 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
+> 版本: 1.0.3 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
 
 ## 概述
 
@@ -63,6 +63,10 @@ sudo yum install sshpass -y
 ```
 
 ## 更新日志
+
+### v1.0.3 (2026-03-17)
+- 改进: 前置条件提示更清晰，增加注意事项
+- 修复: 初始 SSH 连接使用端口 22
 
 ### v1.0.2 (2026-03-17)
 - 新增: Docker 自动配置不绕过 UFW (`iptables: false`)
