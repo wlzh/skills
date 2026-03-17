@@ -78,6 +78,23 @@ echo -e "${BLUE}═════════════════════�
 echo ""
 
 # ============================================
+# Pre-flight Check: Root Password Login
+# ============================================
+echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+echo -e "${RED}  🔴 前置条件检查：root 密码登录${NC}"
+echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+echo ""
+echo -e "${YELLOW}如果 VPS 不支持 root 密码登录，请先通过 VNC/控制台 执行以下命令：${NC}"
+echo ""
+echo -e "  ${CYAN}sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config${NC}"
+echo -e "  ${CYAN}sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config${NC}"
+echo -e "  ${CYAN}systemctl restart ssh${NC}"
+echo -e "  ${CYAN}passwd root${NC}"
+echo ""
+echo -e "${YELLOW}执行完成后，按 Enter 继续...（Ctrl+C 取消）${NC}"
+read -r
+
+# ============================================
 # Phase 1: Test SSH Connection & Detect OS
 # ============================================
 echo -e "${YELLOW}[Phase 1/9] Testing SSH connection & detecting OS...${NC}"

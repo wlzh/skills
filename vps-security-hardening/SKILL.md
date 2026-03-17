@@ -37,6 +37,30 @@ description: |
 2. 如使用云服务商（AWS/阿里云/腾讯云等），需在安全组/防火墙规则中放行端口
 3. 建议先保持原 22 端口连接，新开一个终端测试新端口成功后再关闭 22
 
+## 🔴 前置条件：开启 root 密码登录
+
+**如果 VPS 不支持 root 密码登录，必须先通过 VNC/控制台 开启！**
+
+很多云服务商（AWS、阿里云等）默认禁用 root 密码登录，只允许密钥登录。在运行此 Skill 前，需要先开启：
+
+**通过 VPS 平台控制台（VNC）执行以下命令：**
+
+```bash
+# 1. 开启密码认证
+sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# 2. 开启 root 登录
+sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# 3. 重启 SSH 服务
+systemctl restart ssh
+
+# 4. 设置 root 密码（会提示输入两次）
+passwd root
+```
+
+**执行完成后，才能使用此 Skill 进行 SSH 登录和后续配置。**
+
 ## 所需信息（执行时收集）
 
 运行此 Skill 时，需要用户提供：
