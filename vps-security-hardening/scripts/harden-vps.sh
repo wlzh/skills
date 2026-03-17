@@ -358,15 +358,27 @@ echo -e "${GREEN}[✓] Services restarted${NC}"
 # Phase 10: Docker Security Check
 # ============================================
 echo -e "${YELLOW}[Phase 10/10] Checking Docker security...${NC}"
-DOCKER_STATUS=$($SSH_CMD "which docker &>/dev/null && echo 'installed' || echo 'not_installed'")
+DOCKER_CHECK=$($SSH_CMD "which docker &>/dev/null && echo 'installed' || echo 'not_installed'")
 
-if [ "$DOCKER_STATUS" = "installed" ]; then
+if [ "$DOCKER_CHECK" = "installed" ]; then
     echo -e "${YELLOW}[!] Docker is installed on this VPS${NC}"
-    DOCKER_CONTAINERS=$($SSH_CMD "docker ps --format '{{.Names}}' 2>/dev/null | wc -l")
-    DOCKER_EXPOSED=$($SSH_CMD "docker ps --format '{{.Ports}}' 2>/dev/null | grep -c '0.0.0.0' || echo 0")
-    
+    DOCKER_VERSION=$($SSH_CMD "docker --version 2>/dev/null | head -1")
+    echo -e "${CYAN}[i] ${DOCKER_VERSION}${NC}"
+
+    # Check if user can access docker (might need sudo)
+    DOCKER_TEST=$($SSH_CMD "docker ps &>/dev/null && echo 'ok' || echo 'need_sudo'")
+
+    if [ "$DOCKER_TEST" = "ok" ]; then
+        DOCKER_CONTAINERS=$($SSH_CMD "docker ps --format '{{.Names}}' 2>/dev/null | wc -l")
+        DOCKER_EXPOSED=$($SSH_CMD "docker ps --format '{{.Ports}}' 2>/dev/null | grep -c '0.0.0.0' || echo 0")
+    else
+        # Try with sudo
+        DOCKER_CONTAINERS=$($SSH_CMD "sudo docker ps --format '{{.Names}}' 2>/dev/null | wc -l")
+        DOCKER_EXPOSED=$($SSH_CMD "sudo docker ps --format '{{.Ports}}' 2>/dev/null | grep -c '0.0.0.0' || echo 0")
+    fi
+
     echo -e "${CYAN}[i] Docker containers running: ${DOCKER_CONTAINERS}${NC}"
-    
+
     if [ "$DOCKER_EXPOSED" -gt 0 ]; then
         echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
         echo -e "${RED}  ⚠️  DOCKER SECURITY WARNING ⚠️${NC}"
@@ -375,14 +387,21 @@ if [ "$DOCKER_STATUS" = "installed" ]; then
         echo -e "${YELLOW}[!] Docker bypasses UFW firewall rules!${NC}"
         echo ""
         echo -e "${CYAN}Exposed containers:${NC}"
-        $SSH_CMD "docker ps --format '  - {{.Names}}: {{.Ports}}' 2>/dev/null | grep '0.0.0.0'"
+        if [ "$DOCKER_TEST" = "ok" ]; then
+            $SSH_CMD "docker ps --format '  - {{.Names}}: {{.Ports}}' 2>/dev/null | grep '0.0.0.0'"
+        else
+            $SSH_CMD "sudo docker ps --format '  - {{.Names}}: {{.Ports}}' 2>/dev/null | grep '0.0.0.0'"
+        fi
         echo ""
         echo -e "${YELLOW}Recommendations:${NC}"
-        echo "  1. Use Docker's --network host sparingly"
+        echo "  1. Configure Docker to not bypass UFW:"
+        echo "     echo '{\"iptables\": false}' | sudo tee /etc/docker/daemon.json"
+        echo "     sudo systemctl restart docker"
         echo "  2. Bind services to 127.0.0.1 when possible"
         echo "  3. Use reverse proxy (nginx/caddy) for external access"
         echo "  4. Consider using Docker's user namespace mapping"
         echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+        DOCKER_WARNING="true"
     else
         echo -e "${GREEN}[✓] No containers with exposed ports detected${NC}"
     fi
