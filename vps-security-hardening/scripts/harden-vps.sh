@@ -311,13 +311,35 @@ $SSH_CMD "
     # Enable UFW
     ufw --force enable
 
-    # Delete default port 22
-    ufw delete allow 22/tcp 2>/dev/null || echo 'Port 22 rule not found or already removed'
+    # Delete default port 22 - try multiple methods
+    # Method 1: Delete by rule name
+    ufw --force delete allow 22 2>/dev/null || true
+    ufw --force delete allow 22/tcp 2>/dev/null || true
+    
+    # Method 2: Delete by rule number (find and delete)
+    for rule_num in \$(ufw status numbered | grep -E '^\[.*\] 22 ' | grep -oE '^\[ *[0-9]+\]' | tr -d '[]' | sort -rn); do
+        ufw --force delete \$rule_num 2>/dev/null || true
+    done
+    for rule_num in \$(ufw status numbered | grep -E '^\[.*\] 22 \(v6\)' | grep -oE '^\[ *[0-9]+\]' | tr -d '[]' | sort -rn); do
+        ufw --force delete \$rule_num 2>/dev/null || true
+    done
 
     # Show status
     ufw status verbose
 "
 echo -e "${GREEN}[✓] UFW firewall configured${NC}"
+
+# Verify port 22 is removed
+UFW_STATUS=$($SSH_CMD "ufw status | grep -E '^22 ' || true")
+if [ -n "$UFW_STATUS" ]; then
+    echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+    echo -e "${RED}  ⚠️  WARNING: Port 22 is still in UFW rules!${NC}"
+    echo -e "${RED}══════════════════════════════════════════════════════════${NC}"
+    echo "$UFW_STATUS"
+    echo -e "${YELLOW}Please manually remove with: sudo ufw delete allow 22${NC}"
+else
+    echo -e "${GREEN}[✓] Port 22 removed from UFW${NC}"
+fi
 
 # ============================================
 # Phase 9: Restart Services
