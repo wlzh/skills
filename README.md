@@ -254,6 +254,46 @@ YouTube 视频自动下载并发布到小宇宙播客
 
 ---
 
+### 🔒 vps-security-hardening
+VPS 安全加固自动化工具 - 通过 SSH 远程执行完整的安全策略配置
+
+**版本**: v1.0.0
+
+**作者**: github.com/wlzh
+
+**参考**: [VPS被黑?这7招让你的服务器固若金汤!](https://youmind.com/s/9cdDm7A9wY78jN)
+
+**7招安全加固**：
+1. ✅ 创建 sudo 用户，禁用 root 密码登录
+2. ✅ 修改 SSH 端口（支持 Ubuntu 不同版本）
+3. ✅ Fail2ban 自动安装配置
+4. ✅ SSH 密钥登录支持
+5. ✅ SSH 登录通知（可选）
+6. ✅ UFW 防火墙配置
+7. ✅ Docker 安全提醒
+
+**特点**：
+- 🔐 全自动 SSH 登录（支持 root 密码登录）
+- 🖥️ Ubuntu 版本自动检测（22.10/23.x socket 激活 vs 24.04+ 传统方式）
+- 🛡️ Fail2ban 暴力破解防护
+- 🔥 UFW 防火墙一键配置
+- 📋 完整的安全加固报告
+- ⚠️ 云平台防火墙提醒
+
+**使用方式**：
+```bash
+./scripts/harden-vps.sh \
+  --ip <VPS_IP> \
+  --root-pass <ROOT_PASSWORD> \
+  --user <NEW_USER> \
+  --user-pass <NEW_USER_PASSWORD> \
+  --port <SSH_PORT>
+```
+
+[查看详情 →](./vps-security-hardening/)
+
+---
+
 ## 🔧 安装使用
 
 每个 skill 都是独立的，可以单独使用或组合使用。
