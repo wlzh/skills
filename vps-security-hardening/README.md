@@ -1,13 +1,11 @@
 # VPS Security Hardening
 
 > VPS 安全加固自动化工具
-> 版本: 1.0.1 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
+> 版本: 1.0.2 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
 
 ## 概述
 
-自动化 VPS 安全加固流程，基于「7招安全加固」最佳实践。
-
-## 功能
+自动化 VPS 安全加固流程，## 功能
 
 | Phase | 功能 | 说明 |
 |-------|------|------|
@@ -20,7 +18,7 @@
 | 7 | SSH 配置验证 | 检查配置正确性 |
 | 8 | UFW 防火墙 | 开放新端口，删除 22 |
 | 9 | 重启服务 | ssh, fail2ban |
-| 10 | Docker 安全检查 | 检测暴露端口容器 |
+| 10 | Docker 安全 | 自动配置不绕过 UFW + 端口检查 |
 
 ## 使用方法
 
@@ -66,6 +64,12 @@ sudo yum install sshpass -y
 
 ## 更新日志
 
+### v1.0.2 (2026-03-17)
+- 新增: Docker 自动配置不绕过 UFW (`iptables: false`)
+- 新增: 最终报告包含 Docker 状态
+- 改进: UFW 22 端口删除逻辑（多种方式 + 验证）
+- 修复: Docker 检查需要 sudo 权限的问题
+
 ### v1.0.1 (2026-03-17)
 - 新增 Phase 10: Docker 安全检查
 - 改进 UFW 22 端口删除逻辑 (多种方式 + 验证)
@@ -80,7 +84,7 @@ sudo yum install sshpass -y
 
 1. **VPS 平台防火墙** - 确保已开放新 SSH 端口
 2. **SSH 密钥登录** - 建议配置后禁用密码认证
-3. **Docker 安全** - Docker 会绕过 UFW，注意端口暴露
+3. **Docker 安全** - 脚本会自动配置 Docker 不绕过 UFW
 
 ## License
 
