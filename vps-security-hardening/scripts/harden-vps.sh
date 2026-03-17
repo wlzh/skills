@@ -4,7 +4,7 @@
 # Author: github.com/wlzh
 # Version: 1.0.0
 # Date: 2026-03-17
-# Reference: https://youmind.com/s/9cdDm7A9wY78jN
+# Reference: https://x.com/gxjdian/status/2033751314208059507
 #
 # Usage:
 #   ./harden-vps.sh --ip <IP> --root-pass <PASSWORD> --user <USERNAME> --user-pass <PASSWORD> --port <PORT>

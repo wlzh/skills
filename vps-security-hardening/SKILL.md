@@ -23,7 +23,7 @@ description: |
 
 # VPS 安全加固 Skill
 
-> 版本: 1.0.0 | 作者: github.com/wlzh | 参考: [VPS被黑?这7招让你的服务器固若金汤!](https://youmind.com/s/9cdDm7A9wY78jN)
+> 版本: 1.0.0 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
 
 ## 概述
 
