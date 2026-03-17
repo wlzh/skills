@@ -23,7 +23,7 @@ description: |
 
 # VPS 安全加固 Skill
 
-> 版本: 1.0.4 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
+> 版本: 1.0.5 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
 
 ## 概述
 
