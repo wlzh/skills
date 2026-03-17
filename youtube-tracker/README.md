@@ -1,108 +1,82 @@
-# youtube-tracker
+# YouTube Tracker
 
-Track YouTube channels for **new uploads**.
+A script-backed skill to track YouTube channels and get notified of new uploads.
 
-- Maintains a local channel list
-- Periodically checks the latest uploads
-- **Outputs nothing when there is no update** (perfect for cron)
+## Version History
+### v2.0.0 (2026-03-17) - RSS Mode
+**Major update**: now uses YouTube RSS feeds by default - no API key needed!
+- ✅ No API quota limits
+- ✅ No API key required
+- ✅ Unlimited channel tracking
+- ✅ Official YouTube RSS feeds (fully compliant)
+- ✅ ~5-30 min delay (acceptable for most use cases)
 
-## Output format
+**Why this change?**
+- YouTube API free quota: 10,000 units/day
+- With 56 channels, each check consumed 5,600 units
+- Only 1-2 checks per day before quota exhausted
+- RSS feeds are free, unlimited, and official
 
-When new videos are detected, each item prints:
+**Migration from v1.x**
+- Existing `state/config.json` and `state/seen.json` are fully compatible
+- Just switch to `youtube-tracker-rss.js` commands
+- No need to re-add channels
 
-- 频道：<频道名字>
-- 标题：<视频标题>
-- 简介：<简介摘要>
-- 链接：<视频URL>
+---
 
-Items are separated by a blank line.
-
-## Requirements
-
-- Node.js 18+ (recommended: Node 20+)
-- A **YouTube Data API v3** key
-
-## How to get a YouTube API key
-
-1. Open Google Cloud Console: https://console.cloud.google.com/
-2. Create/select a project
-3. Enable API: **YouTube Data API v3**
-4. Go to **APIs & Services → Credentials**
-5. Create **API key**
-
-> Tip: Restrict the key (HTTP referrer/IP) if you can.
-
-## State & config files
-
-All state lives under this skill’s `state/` directory:
-
-- `state/config.json` (local, not committed)
-
-```json
-{
-  "apiKey": "YOUR_KEY",
-  "channels": [
-    {
-      "channelId": "UCxxxxxxxxxxxxxxxxxxxxxx",
-      "title": "Channel Name",
-      "handle": "@handle",
-      "addedAt": "2026-03-13T00:00:00.000Z"
-    }
-  ]
-}
-```
-
-- `state/seen.json` (local, not committed)
-
-```json
-{
-  "seenVideoIds": ["VIDEO_ID_1", "VIDEO_ID_2"],
-  "updatedAt": "2026-03-13T00:00:00.000Z"
-}
-```
-
-Repo only ships examples:
-- `state/config.json.example`
-- `state/seen.json.example`
-
-## Commands
-
-Run in this directory:
+## Quick Start (RSS Mode)
 
 ```bash
-# 1) set API key (3 ways)
-node scripts/youtube-tracker.js set-key "YOUR_KEY"
-# or
-YOUTUBE_API_KEY="YOUR_KEY" node scripts/youtube-tracker.js set-key
-# or
-echo "YOUR_KEY" | node scripts/youtube-tracker.js set-key
+# Add channels
+node scripts/youtube-tracker-rss.js add "@veritasium"
+node scripts/youtube-tracker-rss.js add "https://www.youtube.com/@tech-shrimp"
 
-# 2) validate key
-node scripts/youtube-tracker.js validate-key
+# List tracked channels
+node scripts/youtube-tracker-rss.js list
 
-# 3) add channels
-node scripts/youtube-tracker.js add "@veritasium"
-node scripts/youtube-tracker.js add "https://www.youtube.com/@veritasium"
-node scripts/youtube-tracker.js add "https://www.youtube.com/channel/UCddiUEpeqJcYeBxX1IVBKvQ"
-node scripts/youtube-tracker.js add "UCddiUEpeqJcYeBxX1IVBKvQ"
+# Check for new videos
+node scripts/youtube-tracker-rss.js check
 
-# 4) list / remove
-node scripts/youtube-tracker.js list
-node scripts/youtube-tracker.js remove "@veritasium"
-node scripts/youtube-tracker.js remove "UCddiUEpeqJcYeBxX1IVBKvQ"
-
-# 5) check new videos (prints only NEW)
-node scripts/youtube-tracker.js check
+# Remove a channel
+node scripts/youtube-tracker-rss.js remove "UCddiUEpeqJcYeBxX1IVBKvQ"
 ```
+## API Mode (Legacy)
+If you need higher quota or still use API mode:
 
-## Baseline behavior (anti-spam)
+```bash
+# Set API key
+node scripts/youtube-tracker.js set-key "YOUR_API_KEY"
 
-When a channel is newly added, the first `check` run will **not announce old videos**.
-Only videos published **after** `addedAt` will be treated as new.
+# Add channels (requires API key for handle resolution)
+node scripts/youtube-tracker.js add "@veritasium"
+```
+## Cron Usage
+Run periodically and forward output to help notification system
 
-## OpenClaw / cron usage
+```bash
+# Check every 30 minutes
+*/30 * * * * cd /path/to/youtube-tracker && node scripts/youtube-tracker-rss.js check | your-notification-command
+```
+If there are no new videos, the command outputs nothing (silent).
 
-- Schedule: run `node scripts/youtube-tracker.js check`
-- If stdout is empty → do nothing
-- If stdout has content → send it to your target chat/topic
+## State files
+Located in `state/` directory
 
+- `config.json` - tracked channels (no API key needed for RSS mode)
+- `seen.json` - video IDs already seen (deduplication)
+## API Quota Notes
+YouTube Data API v3 has quota limits:
+- Daily quota: 10,000 units (default)
+- `search.list` costs 100 units per request
+- Monitor usage in [Google Cloud Console](https://console.cloud.google.com/apis/api_youtube.googleapis.com/quotas)
+## Troubleshooting
+### "API key not set" (API mode only)
+Run `set-key` command or set `Youtube_api_key` environment variable
+### "YouTube API error: quota exceeded"
+This:
+- Wait for quota reset (midnight Pacific time)
+- Request higher quota from Google
+- Reduce check frequency or number of channels
+### "Channel not found" (API mode only)
+- Verify the channel exists
+- Try using the full channel URL instead of handle
