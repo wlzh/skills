@@ -19,7 +19,6 @@ description: |
   
   Author: github.com/wlzh
   Version: 1.0.0
-  Reference: https://youmind.com/s/9cdDm7A9wY78jN
 ---
 
 # VPS 安全加固 Skill
