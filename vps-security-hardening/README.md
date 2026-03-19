@@ -1,7 +1,9 @@
 # VPS Security Hardening
 
 > VPS 安全加固自动化工具
-> 版本: 1.0.7 | 作者: github.com/wlzh | 参考: https://x.com/gxjdian/status/2033751314208059507
+> 版本: 1.0.7 | 作者: github.com/wlzh
+>
+> 📺 视频教程: [YouTube](https://youtu.be/-uqap0UClnY) | 📝 文字教程: [Twitter/X](https://x.com/gxjdian/status/2033751314208059507)
 
 ## 概述
 

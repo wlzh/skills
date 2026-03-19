@@ -257,11 +257,11 @@ YouTube 视频自动下载并发布到小宇宙播客
 ### 🔒 vps-security-hardening
 VPS 安全加固自动化工具 - 通过 SSH 远程执行完整的安全策略配置
 
-**版本**: v1.0.0
+**版本**: v1.0.7
 
 **作者**: github.com/wlzh
 
-**参考**: https://x.com/gxjdian/status/2033751314208059507
+**📺 视频教程**: [YouTube](https://youtu.be/-uqap0UClnY) | **📝 文字教程**: [Twitter/X](https://x.com/gxjdian/status/2033751314208059507)
 
 **7招安全加固**：
 1. ✅ 创建 sudo 用户，禁用 root 密码登录
