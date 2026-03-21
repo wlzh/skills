@@ -1,3 +1,194 @@
+# v3.4 Changelog - HTML 安全性修复版
+
+**版本**: 3.4
+**发布日期**: 2026-03-21
+**类型**: 关键修复
+
+---
+
+## 概述
+
+修复了 iframe title 属性中包含特殊字符导致 Hexo 渲染失败的严重问题。
+
+**核心问题：** 中文引号导致 HTML 解析错误，生成的 index.html 文件为空（0B），页面显示空白。
+
+---
+
+## 问题描述
+
+### 症状
+- 生成的 `index.html` 文件大小为 0B
+- Hexo 部署后页面空白
+- 控制台错误：`ERROR Render HTML failed: Parse Error`
+
+### 根本原因
+iframe 标签的 title 属性中包含中文引号（`"` `"`），导致 HTML 解析器无法正确闭合属性值。
+
+**错误示例：**
+```html
+<!-- ❌ 错误：title 中包含引号 -->
+<iframe title="苹果 AppID...拒绝"无法完成购买"！" ...>
+```
+
+解析器将 `拒绝"` 视为属性值结束，导致后续内容解析失败。
+
+---
+
+## 解决方案
+
+### 新增函数：`sanitize_for_html_attribute()`
+
+**功能：** 清理 HTML 属性值中的危险字符
+
+**处理内容：**
+1. **移除所有类型的引号**
+   - 中文引号：`"` `"` `「` `」` `『` `』` `《` `》` `【` `】`
+   - 英文引号：`"` `'` `` ` ``
+
+2. **移除 HTML 特殊字符**
+   - `<` `>` `&` 等保留字符
+
+3. **智能截断**
+   - 默认限制 100 字符
+   - 在单词边界处截断，保持可读性
+
+**代码实现：**
+```python
+def sanitize_for_html_attribute(text, max_length=100):
+    """
+    Sanitize text for HTML attributes (e.g., iframe title)
+    Remove characters that can break HTML parsing
+    """
+    if not text:
+        return ""
+
+    # Remove all types of quotes
+    text = re.sub(r'[""\'`「」『』《》【】]', '', text)
+
+    # Remove other HTML special characters
+    text = re.sub(r'[<>&]', '', text)
+
+    # Collapse multiple spaces
+    text = re.sub(r'\s+', ' ', text)
+
+    # Trim and limit length
+    text = text.strip()
+    if len(text) > max_length:
+        text = text[:max_length].rsplit(' ', 1)[0]
+
+    return text
+```
+
+### 修改点
+
+**文件：** `youtube_to_post.py`
+
+**修改位置：** iframe 标签生成（约第469行）
+
+**之前：**
+```python
+video_iframe = f"""## 视频教程
+
+<iframe ... title="{title}" ...>
+```
+
+**之后：**
+```python
+# Sanitize title for HTML attribute to prevent parsing errors
+safe_title = sanitize_for_html_attribute(title)
+video_iframe = f"""## 视频教程
+
+<iframe ... title="{safe_title}" ...>
+```
+
+---
+
+## 测试验证
+
+### 测试用例
+
+| 输入 | 输出 | 结果 |
+|------|------|------|
+| `拒绝"无法完成购买"` | `拒绝无法完成购买` | ✅ 引号已移除 |
+| `Test "quotes" in title` | `Test quotes in title` | ✅ 引号已移除 |
+| `包含《书名号》的标题` | `包含书名号的标题` | ✅ 书名号已移除 |
+| 长标题（>100字符） | 截断至95字符 | ✅ 智能截断 |
+
+### 实际案例
+
+**原视频标题：**
+```
+苹果 AppID 充值或者Apple Gift Card 购买失败？Apple ID 风控？联系客服 100% 解锁教程！拒绝"无法完成购买"！
+```
+
+**处理后的 iframe title：**
+```
+苹果 AppID 充值或者Apple Gift Card 购买失败？Apple ID 风控？联系客服 100% 解锁教程！拒绝无法完成购买！
+```
+
+**结果：**
+- ✅ 生成的 HTML 文件大小正常（31KB）
+- ✅ Hexo 渲染成功
+- ✅ 页面正常显示
+
+---
+
+## 影响范围
+
+### 受影响的功能
+- YouTube 视频转博客文章
+- iframe 标签生成
+- Hexo 静态文件生成
+
+### 不受影响的功能
+- 其他所有功能（仅修改 iframe title 生成逻辑）
+- SEO 优化（标题在文章 H1/H2 中保持原样）
+
+---
+
+## 最佳实践
+
+### HTML 属性安全规则
+
+1. **总是使用转义函数**
+   ```python
+   # ✅ 正确
+   safe_title = sanitize_for_html_attribute(title)
+
+   # ❌ 错误
+   title = video_info['title']  # 可能包含特殊字符
+   ```
+
+2. **保持属性简洁**
+   - iframe title 建议长度 < 100 字符
+   - 完整标题放在文章 H1/H2 中
+
+3. **避免的字符**
+   - 所有类型的引号
+   - HTML 保留字符（`<` `>` `&`）
+   - 其他可能影响解析的字符
+
+### 部署检查清单
+
+**部署前：**
+- [ ] 检查生成的 HTML 文件大小 > 0
+- [ ] 查看 `hexo generate` 是否有错误
+- [ ] 确认没有 `Parse Error` 警告
+
+**部署后：**
+- [ ] 访问文章 URL 确认非空白
+- [ ] 检查视频 iframe 正常显示
+- [ ] 验证自定义域名访问正常
+
+---
+
+## 相关链接
+
+- **问题报告：** https://869hr.uk/2026/tech/appid-apple-gift-card-id-100-tutorial/ 空白页问题
+- **修复提交：** 2026-03-21 23:30
+
+---
+
 # v3.0 Changelog - 自然语言 + SEO 版
 
 **版本**: 3.0

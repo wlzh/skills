@@ -101,6 +101,39 @@ def sanitize_text_for_yaml(text):
     return text
 
 
+def sanitize_for_html_attribute(text, max_length=100):
+    """
+    Sanitize text for HTML attributes (e.g., iframe title)
+    Remove characters that can break HTML parsing
+
+    Args:
+        text: Text to sanitize
+        max_length: Maximum length (default 100 for better compatibility)
+
+    Returns:
+        Sanitized text safe for HTML attributes
+    """
+    if not text:
+        return ""
+
+    # Remove problematic characters for HTML attributes
+    # 1. Remove all types of quotes (causes attribute parsing errors)
+    text = re.sub(r'[""\'`「」『』《》【】]', '', text)
+
+    # 2. Remove other HTML special characters
+    text = re.sub(r'[<>&]', '', text)
+
+    # 3. Collapse multiple spaces
+    text = re.sub(r'\s+', ' ', text)
+
+    # 4. Trim and limit length
+    text = text.strip()
+    if len(text) > max_length:
+        text = text[:max_length].rsplit(' ', 1)[0]  # Cut at word boundary
+
+    return text
+
+
 def clean_keywords(keywords):
     """Clean and optimize keywords for SEO"""
     cleaned = []
@@ -464,9 +497,11 @@ copyright: true
     summary = generate_article_summary(video_info)
 
     # Generate video iframe with SEO attributes
+    # Sanitize title for HTML attribute to prevent parsing errors
+    safe_title = sanitize_for_html_attribute(title)
     video_iframe = f"""## 视频教程
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/{video_id}" title="{title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/{video_id}" title="{safe_title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 """
 
