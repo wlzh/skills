@@ -11,6 +11,12 @@ setup: "./SETUP.md"
 
 Upload videos to YouTube with full metadata control.
 
+## Metadata sanitization
+
+- `>` in title/description is automatically rewritten to `》`
+- `<` in title/description is automatically rewritten to `《`
+- Use this when YouTube rejects metadata because of special characters
+
 ## Quick Start
 
 ```bash

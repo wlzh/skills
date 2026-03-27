@@ -84,6 +84,13 @@ def load_config(config_path=None, blog_dir=None):
     return config
 
 
+def normalize_youtube_text(text):
+    """Normalize YouTube title/description text for downstream publishing"""
+    if not text:
+        return text
+    return text.replace('>', '》').replace('<', '《').replace('\r\n', '\n').strip()
+
+
 def sanitize_text_for_yaml(text):
     """
     Sanitize text for YAML format
@@ -92,9 +99,11 @@ def sanitize_text_for_yaml(text):
     if not text:
         return text
 
+    text = normalize_youtube_text(text)
+
     # Remove YAML special characters
-    text = re.sub(r'[*&:!|>]', '', text)  # Remove problematic chars
-    text = re.sub(r'[【】《》「」『』（）()]', '', text)  # Remove Chinese brackets
+    text = re.sub(r'[*&:!|]', '', text)  # Remove problematic chars but preserve converted chevrons
+    text = re.sub(r'[【】「」『』（）()]', '', text)  # Remove Chinese brackets except chevrons
     text = re.sub(r'[\[\]{}]', '', text)  # Remove brackets
     text = text.strip()
 
@@ -115,6 +124,8 @@ def sanitize_for_html_attribute(text, max_length=100):
     """
     if not text:
         return ""
+
+    text = normalize_youtube_text(text)
 
     # Remove problematic characters for HTML attributes
     # 1. Remove all types of quotes (causes attribute parsing errors)
@@ -179,7 +190,7 @@ def get_video_info(url):
             return {
                 'id': info.get('id', ''),
                 'title': sanitize_text_for_yaml(info.get('title', 'Untitled')),
-                'description': info.get('description', ''),
+                'description': normalize_youtube_text(info.get('description', '')),
                 'uploader': info.get('uploader', ''),
                 'upload_date': info.get('upload_date', ''),
                 'duration': info.get('duration', 0),
@@ -509,15 +520,7 @@ copyright: true
     content = generate_article_content(video_info, video_id)
 
     # Generate reference links
-    references = f"""
-
-## 参考链接
-
-- [YouTube视频原地址](https://www.youtube.com/watch?v={video_id})
-- [相关推荐](https://869hr.uk)
-
----
-"""
+    references = ""
 
     return front_matter + summary + video_iframe + content + references
 
@@ -661,7 +664,7 @@ def generate_article_content(video_info, video_id):
     # 提取链接作为参考
     urls = re.findall(r'https?://[^\s]+', description)
     if urls:
-        content += "## 参考链接\n\n"
+        content += "## 延伸链接\n\n"
         seen = set()
         for url in urls[:5]:
             if url not in seen and 'http' in url:
@@ -744,11 +747,14 @@ def humanize_article(content, video_title):
             continue
 
         # Remove or replace AI patterns
+        # Preserve real title metadata in info blocks
+        if line.strip().startswith('- **视频标题**:') or line.strip().startswith('- 视频标题:'):
+            humanized_lines.append(line)
+            continue
+
         # Remove excessive emphasis
         line = re.sub(r'\*\*(.*?)\*\*', r'\1', line)  # Remove bold markdown
         line = re.sub(r'🚀\*\*', '', line)  # Remove rocket emoji
-
-        # Simplify overly promotional language
         line = re.sub(r'真正[的]', '', line)
         line = re.sub(r'终极[""]', '', line)
         line = re.sub(r'"白嫖[""]', '免费', line)

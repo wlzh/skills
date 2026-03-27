@@ -40,6 +40,14 @@ interface TokenData {
   expiry_date: number;
 }
 
+function sanitizeYouTubeMetadata(text: string = ""): string {
+  return text
+    .replace(/>/g, "》")
+    .replace(/</g, "《")
+    .replace(/\r\n/g, "\n")
+    .trim();
+}
+
 // Parse command line arguments
 function parseArgs(): { auth: boolean; options: UploadOptions } {
   const args = process.argv.slice(2);
@@ -274,12 +282,14 @@ async function uploadVideo(
   options: UploadOptions
 ): Promise<{ videoId: string; url: string }> {
   const youtube = google.youtube({ version: "v3", auth });
+  const sanitizedTitle = sanitizeYouTubeMetadata(options.title);
+  const sanitizedDescription = sanitizeYouTubeMetadata(options.description || "");
 
   // Prepare video metadata
   const videoMetadata: youtube_v3.Schema$Video = {
     snippet: {
-      title: options.title,
-      description: options.description || "",
+      title: sanitizedTitle,
+      description: sanitizedDescription,
       tags: options.tags,
       categoryId: options.category,
     },
@@ -291,13 +301,13 @@ async function uploadVideo(
 
   // Add Shorts indicator if specified
   if (options.isShort) {
-    videoMetadata.snippet!.title = options.title.includes("#Shorts")
-      ? options.title
-      : `${options.title} #Shorts`;
+    videoMetadata.snippet!.title = sanitizedTitle.includes("#Shorts")
+      ? sanitizedTitle
+      : `${sanitizedTitle} #Shorts`;
   }
 
   console.log("\n=== Uploading to YouTube ===");
-  console.log(`Title: ${options.title}`);
+  console.log(`Title: ${videoMetadata.snippet!.title}`);
   console.log(`Privacy: ${options.privacy}`);
   console.log(`Category: ${options.category}`);
   if (options.tags?.length) {

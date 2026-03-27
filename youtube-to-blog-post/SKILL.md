@@ -11,6 +11,7 @@ description: Convert YouTube videos to SEO-optimized blog posts. Extract video t
 
 ### 🚀 SEO 优化
 - ✅ **自动 YAML 安全过滤** - 100% 部署成功，无特殊字符错误
+- ✅ **YouTube 特殊字符改写** - 标题/描述中的 `>` 自动改写为 `》`，`<` 自动改写为 `《`
 - ✅ **描述优化** - 自动生成 160 字符内的高质量描述
 - ✅ **智能关键词** - 自动提取 5-8 个高价值关键词
 - ✅ **封面图** - 自动使用 YouTube 高清缩略图
