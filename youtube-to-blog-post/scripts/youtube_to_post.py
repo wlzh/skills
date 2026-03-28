@@ -26,7 +26,8 @@ except ImportError:
 MAX_DESCRIPTION_LENGTH = 160  # Google SEO recommended
 MAX_KEYWORDS = 8  # Optimal number for SEO
 MIN_KEYWORD_LENGTH = 2
-MAX_KEYWORD_LENGTH = 20
+MAX_KEYWORD_LENGTH = 25  # Filter out overly long keyword fragments
+MAX_IFRAME_TITLE_LENGTH = 50  # Keep iframe titles short and safe
 
 # Stop words to filter from keywords
 STOP_WORDS = {
@@ -34,6 +35,9 @@ STOP_WORDS = {
     '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好',
     '自己', '这', 'https', 'http', 'www', 'com', 'cn', 'org', 'net', '://', '//',
     '加入', '这个', '那个', '可以', '使用', '通过', '进行', '如果', '因为', '所以',
+    # Additional low-quality keyword filters
+    '视频教程', '手把手', '教程', '教程！', '指南', '方法', '攻略',
+    '100%', '50', '1', '2', '3', '0',  # Pure numbers
 }
 
 # Common tech keyword mappings for better SEO
@@ -110,14 +114,14 @@ def sanitize_text_for_yaml(text):
     return text
 
 
-def sanitize_for_html_attribute(text, max_length=100):
+def sanitize_for_html_attribute(text, max_length=50):
     """
     Sanitize text for HTML attributes (e.g., iframe title)
     Remove characters that can break HTML parsing
 
     Args:
         text: Text to sanitize
-        max_length: Maximum length (default 100 for better compatibility)
+        max_length: Maximum length (default 50 for short, safe titles)
 
     Returns:
         Sanitized text safe for HTML attributes
@@ -146,7 +150,15 @@ def sanitize_for_html_attribute(text, max_length=100):
 
 
 def clean_keywords(keywords):
-    """Clean and optimize keywords for SEO"""
+    """
+    Clean and optimize keywords for SEO
+    Filter out low-quality keywords:
+    - Too short or too long
+    - Stop words
+    - Pure numbers
+    - Title fragments with punctuation
+    - URLs
+    """
     cleaned = []
 
     for kw in keywords:
@@ -158,18 +170,33 @@ def clean_keywords(keywords):
             continue
 
         # Skip stop words
-        if kw.lower() in STOP_WORDS:
+        if kw.lower() in STOP_WORDS or kw in STOP_WORDS:
             continue
 
         # Skip URLs
         if kw.startswith(('http', 'https', 'www', '//')):
             continue
 
-        # Skip if starts with special chars
-        if re.match(r'^[^\w]', kw):
+        # Skip pure numbers or numbers with special chars
+        if re.match(r'^[\d\s\-+=%#@!。，,、]+$', kw):
             continue
 
-        cleaned.append(kw)
+        # Skip if starts/ends with special chars
+        if re.match(r'^[^\w]', kw) or re.search(r'[^\w]$', kw):
+            continue
+
+        # Skip title fragments (phrases with question marks, exclamation marks)
+        if re.search(r'[？！!？。]', kw):
+            continue
+
+        # Skip if contains too many punctuation marks (likely a fragment)
+        punctuation_count = len(re.findall(r'[,，、:：;；]', kw))
+        if punctuation_count > 1:
+            continue
+
+        # Deduplicate
+        if kw not in cleaned:
+            cleaned.append(kw)
 
     return cleaned
 
@@ -433,14 +460,15 @@ def generate_seo_description(title, description):
     """
     Generate SEO-optimized description
     - Max 160 characters (Google snippet length)
+    - Complete sentences, not truncated mid-thought
     - Include main keywords
-    - Compelling call-to-action
     """
     # Clean up description
     if description:
-        # Remove URLs, email addresses
+        # Remove URLs, email addresses, markdown formatting
         desc = re.sub(r'https?://\S+', '', description)
         desc = re.sub(r'\S+@\S+', '', desc)
+        desc = re.sub(r'\*\*|\*|__', '', desc)  # Remove markdown bold/italic
 
         # Remove excessive whitespace
         desc = re.sub(r'\s+', ' ', desc).strip()
@@ -449,8 +477,24 @@ def generate_seo_description(title, description):
         sentences = re.split(r'[。！？.!?]', desc)
         for sentence in sentences:
             sentence = sentence.strip()
-            if len(sentence) > 20 and len(sentence) <= MAX_DESCRIPTION_LENGTH:
+
+            # Skip very short sentences
+            if len(sentence) < 20:
+                continue
+
+            # Perfect length - use as-is
+            if len(sentence) <= MAX_DESCRIPTION_LENGTH:
                 return sentence
+
+            # Too long - intelligently truncate at word boundary
+            # Try to cut at a natural break point
+            truncated = sentence[:MAX_DESCRIPTION_LENGTH]
+            # Find last space to avoid cutting mid-word
+            last_space = truncated.rfind(' ')
+            if last_space > MAX_DESCRIPTION_LENGTH * 0.7:  # At least 70% of target length
+                truncated = truncated[:last_space]
+
+            return truncated.strip()
 
     # Fallback to title-based description
     desc_template = f"本视频详细介绍{title}，帮助你快速了解和掌握相关知识点。"
