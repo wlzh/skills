@@ -12,6 +12,7 @@ description: Convert YouTube videos to SEO-optimized blog posts. Extract video t
 ### 🚀 SEO 优化
 - ✅ **自动 YAML 安全过滤** - 100% 部署成功，无特殊字符错误
 - ✅ **YouTube 特殊字符改写** - 标题/描述中的 `>` 自动改写为 `》`，`<` 自动改写为 `《`
+- ✅ **HTML 属性安全** - iframe `title` 自动清洗，避免 Hexo 渲染空白页
 - ✅ **描述优化** - 自动生成 160 字符内的高质量描述
 - ✅ **智能关键词** - 自动提取 5-8 个高价值关键词
 - ✅ **封面图** - 自动使用 YouTube 高清缩略图
@@ -19,6 +20,8 @@ description: Convert YouTube videos to SEO-optimized blog posts. Extract video t
 - ✅ **内部链接** - 自动添加相关推荐链接
 - ✅ **结构化内容** - H1-H3 层次清晰，利于 SEO
 - ✅ **自动去 AI 化** - 集成 humanizer，自动去除 AI 写作痕迹
+- ✅ **参考链接去重** - 自动避免重复 `## 参考链接` 区块
+- ✅ **真实标题保留** - 不再生成“这个教程”这类占位文案
 
 ### 📝 内容生成
 - 自动获取 YouTube 视频标题、描述和内容
@@ -146,6 +149,14 @@ EOF
 3. 博客目录下的 `youtube-blog-config.json`
 
 ## 📄 文章格式
+
+### 合格文章规则（默认内置）
+
+- 不生成“这个教程”之类占位文案
+- 不重复生成 `## 参考链接`
+- iframe `title` 自动做安全清洗，避免引号/特殊字符导致 Hexo 渲染失败
+- 标题和描述中的 `<` / `>` 自动改写为 `《` / `》`
+- front matter 默认包含 `description`、`keywords`、`cover`、`thumbnail`
 
 ### Front Matter（SEO 优化版）
 

@@ -1,3 +1,73 @@
+# v3.6 Changelog - 文章质量守门版
+
+**版本**: 3.6
+**发布日期**: 2026-03-28
+**类型**: 质量升级
+
+---
+
+## 概述
+
+把最近博客清理中总结出的合格文章规则正式固化到 `youtube-to-blog-post` skill，确保以后新生成文章默认不会再出现“这个教程”、重复参考链接或 iframe title 风险字符导致的渲染问题。
+
+---
+
+## 本次升级
+
+### 1. 保留真实视频标题
+
+- 移除了 humanizer 中把长标题替换成“这个教程”的逻辑
+- `视频信息` 区块始终保留真实标题，不再出现低质量占位文案
+
+### 2. 自动去重参考链接
+
+- 新增 `dedupe_reference_sections()`
+- 自动消除重复的 `## 参考链接` 区块
+- 避免旧模板或 humanizer 处理后生成重复尾部内容
+
+### 3. 延续已有安全规则
+
+- `>` 自动改写为 `》`
+- `<` 自动改写为 `《`
+- iframe `title` 继续走 HTML 属性安全清洗
+- front matter 继续保持 YAML 安全过滤
+
+### 4. 文档同步更新
+
+- `README.md`
+- `SKILL.md`
+- 增补“合格文章规则（默认内置）”说明
+
+---
+
+## 默认内置规则
+
+- 不生成“这个教程”之类占位文案
+- 不重复生成 `## 参考链接`
+- iframe `title` 自动做安全清洗，避免 Hexo 渲染失败
+- 标题和描述中的 `<` / `>` 自动改写为 `《` / `》`
+- front matter 默认包含 `description`、`keywords`、`cover`、`thumbnail`
+
+---
+
+## 影响范围
+
+- `youtube-to-blog-post/scripts/youtube_to_post.py`
+- `youtube-to-blog-post/README.md`
+- `youtube-to-blog-post/SKILL.md`
+- `youtube-to-blog-post/CHANGELOG.md`
+
+---
+
+## 验证目标
+
+- 生成文章中不再出现“这个教程”
+- 文章中只保留一组 `## 参考链接`
+- iframe `title` 安全且可渲染
+- Hexo 生成阶段不因标题特殊字符而报错
+
+---
+
 # v3.5 Changelog - YouTube 元数据字符修复版
 
 **版本**: 3.5
