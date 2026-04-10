@@ -13,11 +13,13 @@ description: Convert YouTube videos to SEO-optimized blog posts. Extract video t
 - ✅ **自动 YAML 安全过滤** - 100% 部署成功，无特殊字符错误
 - ✅ **YouTube 特殊字符改写** - 标题/描述中的 `>` 自动改写为 `》`，`<` 自动改写为 `《`
 - ✅ **HTML 属性安全** - iframe `title` 限制 50 字符，自动清洗引号/特殊字符
-- ✅ **描述优化** - 智能生成完整句子，最大 160 字符（不在词语中间截断）
-- ✅ **智能关键词** - 过滤无意义片段，提取 5-8 个高质量关键词（2-25 字符）
+- ✅ **描述优化** - 智能生成完整句子，最大 160 字符，**自动去除 emoji 和 markdown 格式**
+- ✅ **智能关键词** - 过滤无意义片段，提取 5-8 个高质量关键词，输出为 Google 标准引号字符串格式
 - ✅ **封面图** - 自动使用 YouTube 高清缩略图
 - ✅ **长尾词覆盖** - 自动添加同义词和相关词
-- ✅ **内部链接** - 自动添加相关推荐链接
+- ✅ **自动分类检测** - 根据标题/标签关键词自动匹配 category_map（教程/技术/工具等）
+- ✅ **FAQ 章节自动提取** - 检测描述中的 Q/A 对，生成 `## 常见问题` 章节（支持 Google FAQ 富摘要）
+- ✅ **智能内部链接** - 根据视频主题自动生成 `## 相关教程推荐` 区块（SEO 内链权重传递）
 - ✅ **结构化内容** - H1-H3 层次清晰，利于 SEO
 - ✅ **自动去 AI 化** - 集成 humanizer，自动去除 AI 写作痕迹
 - ✅ **参考链接去重** - 自动避免重复 `## 参考链接` 区块
@@ -186,17 +188,14 @@ subtitle: 视频标题
 date: 2026-02-02 15:00:00
 updated: 2026-02-02 15:00:00
 author: M.
-description: 本视频详细介绍... (159字符，包含核心关键词)
+description: 本视频详细介绍... (≤160字符，无emoji，无markdown)  # ✅ v4.0 自动净化
 categories:
-  - 技术
+  - 教程  # ✅ v4.0 自动检测（按标题关键词匹配 category_map）
 tags:
   - 视频教程
-keywords:
-  - 核心关键词
-  - 长尾关键词
-  - 相关词
-cover: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg  # ✅ 新增
-thumbnail: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg  # ✅ 新增
+keywords: "核心关键词, 长尾关键词, 相关词"  # ✅ v4.0 改为 Google 标准引号字符串
+cover: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg
+thumbnail: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg
 toc: true
 comments: true
 copyright: true
@@ -220,20 +219,31 @@ copyright: true
 
 ```markdown
 ## 视频教程
-<iframe>...</iframe>  # 首屏可见
+<iframe>...</iframe>  # 首屏可见，响应式
 
 ## 视频介绍
-# 作者、时长（从描述提取真实内容）
+# 作者、时长
 
-## 核心亮点
-# 从视频描述提取的关键特性（标记 ✅ 的内容）
+## 视频章节（如有时间戳）
+- 00:00 章节名
 
-## 配置示例（如有）
-# 代码块自动提取
+## 详细内容
+# YouTube 描述完整内容
+
+## 脚本命令（如有代码块）
+
+## 常见问题（FAQ）  ← v4.0 新增（Google FAQ 富摘要）
+# 自动从描述提取 Q/A 对
+
+## 相关教程推荐  ← v4.0 新增（SEO 内部链接）
+# 按视频主题自动推荐站内相关文章
+
+## 视频信息
+# 标题、UP主、时长
 
 ## 参考链接
-- YouTube视频原地址
-- 相关推荐
+- YouTube原视频
+- 博客首页
 ```
 
 ## 📝 文件命名规则
@@ -431,6 +441,18 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ## 🆕 更新日志
 
+### v4.0 - SEO 全站规则沉淀版 (2026-04-11)
+
+基于全站 SEO 审计的规则沉淀，确保每篇新文章默认达到审计后的优化标准：
+
+- ✅ **description 净化** - 自动去除 emoji 和 `**` 格式，输出纯文字（Google snippet 更友好）
+- ✅ **keywords 格式标准化** - 改为 `"词1, 词2, 词3"` 引号字符串格式（与 scaffold 对齐）
+- ✅ **分类自动检测** - 按标题/标签关键词匹配博客 `category_map`（教程/技术/工具等）
+- ✅ **FAQ 章节自动提取** - 检测描述中 Q/A 对，生成 `## 常见问题` 章节，可触发 Google FAQ 富摘要
+- ✅ **智能内部链接区块** - 按视频主题自动生成 `## 相关教程推荐` 区块（Wise、VPS、Telegram 等系列互链）
+- ✅ **参考链接更新** - `[更多教程]` 改为更明确的 `[869hr.uk 博客首页]`
+- ✅ **dedupe 兼容性** - 参考链接去重逻辑更新，兼容新旧两种格式
+
 ### v3.5 - 响应式视频 + 完整描述保留版 (2026-04-10)
 
 - ✅ **响应式 iframe** - 用主题 `.video-container` 包裹 iframe，去掉硬编码 `width/height`，跟随页面宽度自适应（16:9 比例）
@@ -490,6 +512,6 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ---
 
-**版本**: 3.5 响应式视频 + 完整描述保留
-**更新日期**: 2026-04-10
+**版本**: 4.0 SEO 全站规则沉淀版
+**更新日期**: 2026-04-11
 **状态**: ✅ 已测试并上线

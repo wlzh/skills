@@ -1,3 +1,123 @@
+# v4.0 Changelog - SEO 全站规则沉淀版
+
+**版本**: 4.0
+**发布日期**: 2026-04-11
+**类型**: SEO 功能增强
+
+---
+
+## 背景
+
+基于对博客全站的 SEO 审计（108 篇文章）发现的系统性问题，将修复规则沉淀到生成器，确保未来每篇新文章默认达到优化标准，无需手动补救。
+
+---
+
+## 新功能
+
+### 1. FAQ 章节自动提取（`generate_faq_section()`）
+
+**为什么重要：** Google 可以从文章中提取 FAQ schema 展示富摘要，显著提升 SERP 点击率。
+
+**实现：**
+- 检测视频描述中的 `Q：/A：`、`问：/答：` 格式
+- 检测编号问题 + 答案格式（`1. 什么是XXX？\n答：...`）
+- 最多提取 5 组 Q/A，输出 `## 常见问题（FAQ）` 章节
+- 如果描述中没有 Q/A，不输出（不产生空模板）
+
+**输出示例：**
+```markdown
+## 常见问题（FAQ）
+
+**Q：如何申请德国沃达丰 eSIM？**
+
+**A：** 访问 Vodafone 官网，完成 KYC 认证后即可申请。
+
+---
+```
+
+### 2. 智能内部链接区块（`generate_related_posts_section()`）
+
+**为什么重要：** 内部链接是 SEO 权重传递的核心，全站审计发现大量文章缺少内链，相关推荐原来只是"最新5篇"的 bug。
+
+**实现：**
+- 按视频标题和标签关键词匹配，覆盖主要内容系列：
+  - Wise/银行/支付 → 链接到 Wise 注册教程
+  - eSIM/Vodafone/保号 → 链接到沃达丰 eSIM 教程
+  - VPS/服务器 → 链接到 VPS 安全加固教程
+  - Cloudflare/域名 → 链接到 Tunnel 教程
+  - Telegram → 链接到中文包教程
+  - Apple ID/App Store → 链接到美区教程
+  - AI/GPT → 链接到 DeepSeek 分析
+- 无匹配时输出注释提示，提醒用户手动添加
+
+### 3. description 净化（`strip_decorative_chars()`）
+
+**为什么重要：** 审计发现大量文章 description 包含 `🚀 **本期视频...`，emoji 和 markdown 格式在 Google SERP snippet 中显示为乱码。
+
+**实现：**
+- 先去除 markdown `**`、`*`、`__`
+- 再清除全 Unicode emoji 范围
+- 净化后再做 160 字符截断
+
+**修复前后：**
+```
+❌ 前：🚀 **本期视频带来【2026最新】"传家宝"级别的羊毛教程
+✅ 后：本期视频带来2026最新"传家宝"级别的羊毛教程，德国沃达丰 eSIM 申请全攻略
+```
+
+### 4. keywords 格式标准化
+
+**为什么重要：** Google SEO 最佳实践建议 keywords 以逗号分隔字符串形式提供；列表格式在某些解析器中会被忽略。同时与博客 scaffold/post.md 模板对齐。
+
+**修复前（列表格式）：**
+```yaml
+keywords:
+  - 核心关键词
+  - 长尾关键词
+```
+
+**修复后（引号字符串格式）：**
+```yaml
+keywords: "核心关键词, 长尾关键词, 相关词"
+```
+
+### 5. 分类自动检测（`auto_detect_category()`）
+
+**为什么重要：** 之前所有文章默认分类 `技术`，导致分类页面文章混杂，`教程` 类文章无法正确聚合。
+
+**实现：**
+- 按标题关键词映射到 `category_map`：`教程/指南/tutorial` → 教程，`VPS/服务器/银行` → 技术，`工具/tool` → 工具
+- 只在用户使用默认值 `技术` 时触发自动检测
+- 用户手动指定 `-c` 参数时不覆盖
+
+---
+
+## 影响范围
+
+- `scripts/youtube_to_post.py`
+  - 新增：`strip_decorative_chars()`
+  - 新增：`auto_detect_category()`
+  - 新增：`generate_faq_section()`
+  - 新增：`generate_related_posts_section()`
+  - 更新：`generate_seo_description()` - 集成 emoji 净化
+  - 更新：`generate_post_content()` - 使用自动分类检测 + keywords 字符串格式
+  - 更新：`generate_article_content()` - 末尾加 FAQ + 相关推荐
+  - 更新：`dedupe_reference_sections()` - 兼容新旧格式
+  - 保留：`generate_keywords_yaml()` - 兼容性保留（已不在主流程中使用）
+- `SKILL.md` - 版本更新至 4.0，更新特性列表和文章结构说明
+- `CHANGELOG.md` - 新增本条目
+
+---
+
+## 向后兼容
+
+- ✅ 所有 CLI 参数不变
+- ✅ 配置文件格式不变
+- ✅ 输出 Hexo 格式不变
+- ✅ 旧格式参考链接去重仍有效
+
+---
+
 # v3.5 Changelog - 响应式视频 + 完整描述保留版
 
 **版本**: 3.5

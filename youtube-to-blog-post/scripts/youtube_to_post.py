@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """
-YouTube to Blog Post Script - SEO Optimized Version
-Convert YouTube videos to Hexo blog posts with enhanced SEO
+YouTube to Blog Post Script - SEO Optimized Version v4.0
+Convert YouTube videos to Hexo blog posts with enhanced SEO.
+
+v4.0 changes:
+- FAQ auto-detection + placeholder section (enables Google FAQ rich snippets)
+- Smart internal links section (相关推荐) generated from tags/category
+- Improved description: strips emojis and markdown bold before use
+- Auto category mapping aligned with blog category_map
+- keywords now output as quoted comma string (SEO standard)
+- Updated scaffold-aligned article structure
 """
 
 import argparse
@@ -28,6 +36,45 @@ MAX_KEYWORDS = 8  # Optimal number for SEO
 MIN_KEYWORD_LENGTH = 2
 MAX_KEYWORD_LENGTH = 25  # Filter out overly long keyword fragments
 MAX_IFRAME_TITLE_LENGTH = 50  # Keep iframe titles short and safe
+
+# Blog category map (aligned with _config.yml category_map)
+CATEGORY_MAP = {
+    '技术': 'tech',
+    '工具': 'tools',
+    '教程': 'tutorial',
+    '技术教程': 'tutorial',
+    '软件': 'software',
+    '生活': 'life',
+    '学习': 'study',
+    '学习资源': 'learning-resource',
+    '网赚项目': 'online-earning',
+    '技术支持': 'support',
+}
+
+# Auto-detect category from title keywords
+CATEGORY_KEYWORDS = {
+    '教程': '教程',
+    '指南': '教程',
+    'tutorial': '教程',
+    'guide': '教程',
+    'vps': '技术',
+    '服务器': '技术',
+    '域名': '技术',
+    'cloudflare': '技术',
+    'docker': '技术',
+    'ssl': '技术',
+    'vpn': '技术',
+    '工具': '工具',
+    'tool': '工具',
+    '软件': '软件',
+    'app': '软件',
+    '银行': '技术',
+    '支付': '技术',
+    'wise': '技术',
+    'esim': '技术',
+    'ai': '技术',
+    '学习': '学习',
+}
 
 # Stop words to filter from keywords
 STOP_WORDS = {
@@ -456,24 +503,59 @@ def generate_seo_keywords(title, description, tags):
     return final_keywords[:MAX_KEYWORDS]
 
 
+def strip_decorative_chars(text):
+    """Remove emojis, markdown bold/italic, and leading decorative symbols from text."""
+    # Remove markdown bold and italic
+    text = re.sub(r'\*\*|\*|__', '', text)
+    # Remove common emoji ranges
+    text = re.sub(
+        r'[\U0001F300-\U0001FFFF'   # misc symbols, emoticons
+        r'\U00002600-\U000027BF'    # misc symbols
+        r'\U0000FE00-\U0000FE0F'    # variation selectors
+        r'\U00002B50\U00002B55'     # misc
+        r']+', '', text
+    )
+    # Remove leading/trailing decorative ASCII like 🔥 leftover and clean up spaces
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+def auto_detect_category(title, tags):
+    """Detect best-fit blog category from title keywords and tags."""
+    title_lower = title.lower()
+    # Check title first
+    for kw, cat in CATEGORY_KEYWORDS.items():
+        if kw in title_lower:
+            return cat
+    # Check tags
+    if tags:
+        tag_str = ' '.join(tags).lower() if isinstance(tags, list) else tags.lower()
+        for kw, cat in CATEGORY_KEYWORDS.items():
+            if kw in tag_str:
+                return cat
+    return '技术'  # default
+
+
 def generate_seo_description(title, description):
     """
-    Generate SEO-optimized description
+    Generate SEO-optimized description.
     - Max 160 characters (Google snippet length)
-    - Complete sentences, not truncated mid-thought
+    - No emojis or markdown bold
+    - Complete sentences, not truncated mid-word
     - Include main keywords
     """
-    # Clean up description
     if description:
-        # Remove URLs, email addresses, markdown formatting
-        desc = re.sub(r'https?://\S+', '', description)
-        desc = re.sub(r'\S+@\S+', '', desc)
-        desc = re.sub(r'\*\*|\*|__', '', desc)  # Remove markdown bold/italic
+        # Step 1: strip emojis and markdown
+        desc = strip_decorative_chars(description)
 
-        # Remove excessive whitespace
+        # Step 2: Remove URLs, email addresses
+        desc = re.sub(r'https?://\S+', '', desc)
+        desc = re.sub(r'\S+@\S+', '', desc)
+
+        # Step 3: Remove excessive whitespace
         desc = re.sub(r'\s+', ' ', desc).strip()
 
-        # Get first meaningful sentence
+        # Step 4: Find first meaningful sentence
         sentences = re.split(r'[。！？.!?]', desc)
         for sentence in sentences:
             sentence = sentence.strip()
@@ -487,11 +569,9 @@ def generate_seo_description(title, description):
                 return sentence
 
             # Too long - intelligently truncate at word boundary
-            # Try to cut at a natural break point
             truncated = sentence[:MAX_DESCRIPTION_LENGTH]
-            # Find last space to avoid cutting mid-word
             last_space = truncated.rfind(' ')
-            if last_space > MAX_DESCRIPTION_LENGTH * 0.7:  # At least 70% of target length
+            if last_space > MAX_DESCRIPTION_LENGTH * 0.7:
                 truncated = truncated[:last_space]
 
             return truncated.strip()
@@ -522,9 +602,16 @@ def generate_post_content(video_info, config, category, tags):
     # Generate tags list
     tag_list = tags if isinstance(tags, list) else [t.strip() for t in tags.split(',')]
 
+    # Auto-detect category if user passed the default (未指定)
+    if category == '技术':
+        category = auto_detect_category(title, tag_list)
+
     # Build cover image URL from YouTube thumbnail
     # Use high-quality thumbnail (maxresdefault)
     cover_image = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+
+    # keywords as quoted comma string (SEO standard, matches blog scaffold)
+    keywords_str = ', '.join(keywords)
 
     # Build front matter with SEO fields
     front_matter = f"""---
@@ -537,8 +624,7 @@ description: {post_description}
 categories:
   - {category}
 {generate_tags_yaml(tag_list)}
-keywords:
-{generate_keywords_yaml(keywords)}
+keywords: "{keywords_str}"
 cover: {cover_image}
 thumbnail: {cover_image}
 toc: true
@@ -581,15 +667,10 @@ def generate_tags_yaml(tags):
 
 
 def generate_keywords_yaml(keywords):
-    """Generate keywords in YAML format"""
+    """Kept for compatibility. In v4.0, keywords are written as quoted comma string in front matter."""
     if not keywords:
         return ""
-    yaml = ""
-    for kw in keywords:
-        # Escape special YAML characters
-        kw_safe = sanitize_text_for_yaml(kw)
-        yaml += f"  - {kw_safe}\n"
-    return yaml
+    return ', '.join(keywords)
 
 
 def generate_article_summary(video_info):
@@ -623,9 +704,12 @@ def generate_article_summary(video_info):
 
 
 def dedupe_reference_sections(content):
-    """Remove duplicated trailing reference sections generated by templating/humanizer interactions"""
+    """Remove duplicated trailing reference sections generated by templating/humanizer interactions.
+    Matches both old format ([相关推荐]) and new format ([869hr.uk 博客首页]).
+    """
+    # Generic dedup: remove any consecutive duplicate ## 参考链接 blocks
     pattern = re.compile(
-        r'(## 参考链接\n\n- \[YouTube视频原地址\]\(https://www\.youtube\.com/watch\?v=[^)]+\)\n- \[相关推荐\]\(https://869hr\.uk\)\n\n---\n)(?:\n*\1)+',
+        r'(## 参考链接\n\n(?:- .+\n)+\n---\n)(?:\n*\1)+',
         re.MULTILINE
     )
     return pattern.sub(r'\1', content)
@@ -737,6 +821,15 @@ def generate_article_content(video_info, video_id):
         for code in code_blocks:
             content += f"```bash\n{code.strip()}\n```\n\n"
 
+    # ── FAQ 章节（从描述提取，或生成占位模板）──────────────────────────
+    faq_section = generate_faq_section(video_info)
+    if faq_section:
+        content += faq_section
+
+    # ── 相关推荐内部链接区块 ────────────────────────────────────────────
+    related_section = generate_related_posts_section(video_info)
+    content += related_section
+
     # ── 尾部视频信息 ──────────────────────────────────────────────────────
     content += f"""---
 
@@ -749,10 +842,112 @@ def generate_article_content(video_info, video_id):
 ## 参考链接
 
 - [YouTube 原视频](https://www.youtube.com/watch?v={video_id})
-- [更多教程](https://869hr.uk)
+- [869hr.uk 博客首页](https://869hr.uk)
 
 ---
 """
+    return content
+
+
+def generate_faq_section(video_info):
+    """
+    Try to extract FAQ Q/A pairs from video description.
+    If found, generate ## 常见问题 section (supports Google FAQ rich snippets).
+    If not found, return empty string (user can add manually via scaffold template).
+    """
+    description = video_info.get('description', '')
+    if not description:
+        return ""
+
+    faq_items = []
+
+    # Pattern 1: explicit Q: / A: or 问：/答：
+    qa_blocks = re.finditer(
+        r'(?:Q[：:]\s*|问[：:]\s*)(.+?)(?:\n+)(?:A[：:]\s*|答[：:]\s*)(.+?)(?=\n\n|\nQ[：:]|\n问[：:]|$)',
+        description, re.DOTALL
+    )
+    for m in qa_blocks:
+        q = m.group(1).strip().replace('\n', ' ')
+        a = m.group(2).strip().replace('\n', ' ')
+        if q and a and len(q) < 120:
+            faq_items.append((q, a))
+
+    # Pattern 2: numbered questions like "1. 什么是XXX？\n答：..."
+    numbered_qa = re.finditer(
+        r'\d+\.\s+(.{5,80}[？?])\s*\n+\s*(?:答[：:]?\s*)?(.{10,300}?)(?=\n\n|\n\d+\.|$)',
+        description, re.DOTALL
+    )
+    for m in numbered_qa:
+        q = m.group(1).strip()
+        a = m.group(2).strip().replace('\n', ' ')
+        if q and a and len(q) < 120:
+            faq_items.append((q, a))
+
+    if not faq_items:
+        return ""
+
+    content = "## 常见问题（FAQ）\n\n"
+    for q, a in faq_items[:5]:
+        a_clean = strip_decorative_chars(a)
+        content += f"**Q：{q}**\n\n**A：** {a_clean}\n\n---\n\n"
+
+    return content
+
+
+def generate_related_posts_section(video_info):
+    """
+    Generate 相关推荐 internal links section.
+    Based on video tags/title keywords, suggest which blog posts to link to.
+    Outputs placeholder links that the user should replace with real internal URLs.
+    This section is critical for SEO internal linking.
+    """
+    title = video_info['title'].lower()
+    tags = video_info.get('tags', [])
+    tag_str = ' '.join(tags).lower() if tags else ''
+    combined = title + ' ' + tag_str
+
+    # Topic-based link suggestions (aligned with actual blog post patterns)
+    suggestions = []
+
+    if any(kw in combined for kw in ['wise', '银行', '支付', 'payment', '收款']):
+        suggestions.append('<!-- 推荐链接：Wise/N26/银行卡系列 → /年份/tutorial/wise-mainland-phone-id-register-guide/ -->')
+        suggestions.append('- [Wise 国内注册全教程（身份证+手机号）](/2026/tutorial/wise-mainland-phone-id-register-guide/)')
+
+    if any(kw in combined for kw in ['esim', 'vodafone', '手机卡', '保号']):
+        suggestions.append('<!-- 推荐链接：eSIM/手机卡系列 -->')
+        suggestions.append('- [德国沃达丰 eSIM 申请全攻略](/2026/tutorial/vodafone-esim-wise-n26-guide/)')
+
+    if any(kw in combined for kw in ['vps', '服务器', 'server', 'oracle', 'gcp']):
+        suggestions.append('<!-- 推荐链接：VPS系列 -->')
+        suggestions.append('- [VPS 安全加固全攻略](/2026/tutorial/vps-security-hardening-skill-tutorial/)')
+
+    if any(kw in combined for kw in ['cloudflare', 'tunnel', 'cdn', 'dns', '域名']):
+        suggestions.append('<!-- 推荐链接：Cloudflare/域名系列 -->')
+        suggestions.append('- [Cloudflare Tunnel + Docker 内网穿透教程](/2026/tutorial/cloudflare-tunnel-docker-tutorial/)')
+
+    if any(kw in combined for kw in ['telegram', 'tg', '电报']):
+        suggestions.append('<!-- 推荐链接：Telegram系列 -->')
+        suggestions.append('- [Telegram 中文语言包安装教程](/2025/software/telegram-chinese-pack/)')
+
+    if any(kw in combined for kw in ['apple', 'ios', 'app store', 'apple id', '苹果']):
+        suggestions.append('<!-- 推荐链接：苹果账号系列 -->')
+        suggestions.append('- [美区 Apple ID 注册与购买 App 教程](/2025/tech/us-apple-id-guide/)')
+
+    if any(kw in combined for kw in ['ai', 'gpt', 'deepseek', 'llm', '大语言', 'chatgpt']):
+        suggestions.append('<!-- 推荐链接：AI工具系列 -->')
+        suggestions.append('- [DeepSeek 相关传闻深度分析](/2025/tech/deepseek-20250208/)')
+
+    # Generic fallback if no match
+    if not suggestions:
+        suggestions = [
+            '<!-- 请手动添加2-3个相关文章内部链接，格式：[文章标题](/年份/分类/文件名/) -->',
+            '<!-- 内部链接是 SEO 权重传递的关键，每篇文章至少2条 -->',
+        ]
+
+    content = "## 相关教程推荐\n\n"
+    for s in suggestions:
+        content += s + "\n"
+    content += "\n"
     return content
 
 
