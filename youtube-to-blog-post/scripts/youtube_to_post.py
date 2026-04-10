@@ -551,12 +551,13 @@ copyright: true
     # Generate article summary
     summary = generate_article_summary(video_info)
 
-    # Generate video iframe with SEO attributes
-    # Sanitize title for HTML attribute to prevent parsing errors
+    # Generate video iframe with SEO attributes - responsive via .video-container
     safe_title = sanitize_for_html_attribute(title)
     video_iframe = f"""## 视频教程
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/{video_id}" title="{safe_title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div class="video-container">
+<iframe src="https://www.youtube.com/embed/{video_id}" title="{safe_title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 """
 
@@ -630,131 +631,128 @@ def dedupe_reference_sections(content):
     return pattern.sub(r'\1', content)
 
 
+def format_description_line(line):
+    """
+    将描述中的一行转为 Markdown 格式，把内联 URL 转为可点击链接。
+    规则：行内出现 http://... 则提取 URL，用其前面紧邻的文字做链接文本。
+    """
+    # 把裸 URL 转成 Markdown 链接（保留原 URL，用域名做显示文本）
+    def url_to_link(m):
+        url = m.group(0).rstrip(')')  # 去掉可能粘连的右括号
+        domain = re.search(r'https?://([^/?#\s]+)', url)
+        label = domain.group(1) if domain else url
+        return f"[{label}]({url})"
+
+    # 如果整行就是一个裸 URL（常见于描述里单独一行放链接）
+    if re.match(r'^https?://\S+$', line):
+        url = line.rstrip(')')
+        domain = re.search(r'https?://([^/?#\s]+)', url)
+        label = domain.group(1) if domain else url
+        return f"[{label}]({url})"
+
+    # 行内有混合文字+URL，把 URL 部分替换成链接
+    line = re.sub(r'https?://\S+', url_to_link, line)
+    return line
+
+
 def generate_article_content(video_info, video_id):
-    """Generate detailed article content - 使用完整描述"""
+    """
+    生成文章正文 —— 完整保留 YouTube 描述内容，不丢失任何文字或链接。
+    只做格式转换（Markdown 化），不过滤任何内容。
+    """
     title = video_info['title']
     uploader = video_info.get('uploader', '')
     description = video_info.get('description', '')
     duration = video_info.get('duration', 0)
-    tags = video_info.get('tags', [])
 
-    # Convert duration to minutes and seconds
     duration_min = duration // 60 if duration else 0
     duration_sec = duration % 60 if duration else 0
 
-    content = f"""## 视频介绍
+    content = f"## 视频介绍\n\n本视频由 {uploader} 制作，时长约 {duration_min} 分 {duration_sec} 秒。\n\n"
 
-本视频由 {uploader} 制作，时长约 {duration_min} 分 {duration_sec} 秒。
+    if not description:
+        content += f"\n---\n\n## 参考链接\n\n- [YouTube 原视频](https://www.youtube.com/watch?v={video_id})\n- [更多教程](https://869hr.uk)\n\n---\n"
+        return content
 
-"""
+    # ── 第一步：识别时间戳章节行，单独提取 ──────────────────────────────
+    timestamp_re = re.compile(r'^(\d{1,2}:\d{2})\s*[-–—]\s*(.+)$')
+    raw_lines = description.split('\n')
 
-    # 清理描述，提取有意义的行
-    desc_lines = []
-    for line in description.split('\n'):
-        line = line.strip()
-        if not line:
-            continue
-        # 跳过链接
-        if line.startswith('http'):
-            continue
-        # 跳过社交媒体
-        if 'Telegram' in line and 't.me' in line:
-            continue
-        if 'Twitter' in line or 'x.com' in line:
-            continue
-        if '微信' in line and 'qr.' in line:
-            continue
-        # 跳过 emoji 开头的行
-        if line.startswith('💬') or line.startswith('🔗'):
-            continue
-        # 跳过纯符号行
-        if len(set(line.replace(' ', ''))) < 3:
-            continue
-        desc_lines.append(line)
-
-    # 提取时间戳章节
-    timestamp_pattern = r'(\d{1,2}:\d{2})\s*[.\-]?\s*(.+)'
-    timestamps = re.findall(timestamp_pattern, '\n'.join(desc_lines))
+    timestamps = []
+    other_lines = []
+    for line in raw_lines:
+        m = timestamp_re.match(line.strip())
+        if m:
+            timestamps.append((m.group(1), m.group(2).strip()))
+        else:
+            other_lines.append(line)
 
     if timestamps:
         content += "## 视频章节\n\n"
-        for ts, chapter in timestamps[:10]:
+        for ts, chapter in timestamps:
             content += f"- **{ts}** {chapter}\n"
         content += "\n"
 
-    # 提取核心亮点（通常标记为 ✅）
-    features = []
-    for line in desc_lines:
-        if '✅' in line:
-            feature = line.replace('✅', '').strip()
-            feature = re.sub(r'[🚀💡✅🎯\*]+', '', feature).strip()
-            if feature and len(feature) > 5:
-                features.append(feature)
+    # ── 第二步：把剩余描述整体转为 Markdown，完整保留所有内容 ──────────
+    # 按空行分段，每段独立处理
+    paragraphs = []
+    current = []
+    for line in other_lines:
+        stripped = line.strip()
+        if stripped == '':
+            if current:
+                paragraphs.append(current)
+                current = []
+        else:
+            current.append(stripped)
+    if current:
+        paragraphs.append(current)
 
-    if features:
-        content += "## 核心内容\n\n"
-        for feature in features[:8]:
-            content += f"- {feature}\n"
-        content += "\n"
+    content += "## 详细内容\n\n"
+    for para in paragraphs:
+        # 单行段落
+        if len(para) == 1:
+            formatted = format_description_line(para[0])
+            content += formatted + "\n\n"
+        else:
+            # 多行段落 —— 判断是否像列表
+            all_list_like = all(
+                re.match(r'^[\d\.\-\*\#✅💡📌🔗💬🔔👍🎯]+', l) or len(l) < 80
+                for l in para
+            )
+            if all_list_like:
+                for line in para:
+                    formatted = format_description_line(line)
+                    content += formatted + "\n\n"
+            else:
+                # 普通段落，合并为一段
+                merged = ' '.join(para)
+                formatted = format_description_line(merged)
+                content += formatted + "\n\n"
 
-    # 提取代码块
+    # ── 第三步：提取代码块（如有）────────────────────────────────────────
     code_blocks = re.findall(r'```[a-z]*\n(.*?)```', description, re.DOTALL)
     if code_blocks:
         content += "## 脚本命令\n\n"
-        for code in code_blocks[:3]:
+        for code in code_blocks:
             content += f"```bash\n{code.strip()}\n```\n\n"
 
-    # 添加完整的描述内容作为正文
-    if desc_lines:
-        content += "## 详细内容\n\n"
-        for line in desc_lines[:20]:
-            # 清理行
-            line = re.sub(r'[🚀💡✅🎯🔗💬]+', '', line)
-            line = line.replace('**', '').strip()
-            if line and len(line) > 5:
-                content += f"{line}\n\n"
-
-    # 提取链接作为参考
-    urls = re.findall(r'https?://[^\s]+', description)
-    if urls:
-        content += "## 延伸链接\n\n"
-        seen = set()
-        for url in urls[:5]:
-            if url not in seen and 'http' in url:
-                seen.add(url)
-                # 提取域名作为链接描述
-                domain = re.search(r'https?://([^/]+)', url)
-                if domain:
-                    domain_name = domain.group(1)
-                    if 'github' in domain_name:
-                        content += f"- [GitHub]({url})\n"
-                    elif 't.me' in domain_name:
-                        content += f"- [Telegram]({url})\n"
-                    elif 'x.com' in domain_name:
-                        content += f"- [X (Twitter)]({url})\n"
-                    else:
-                        content += f"- [{domain_name}]({url})\n"
-
-    content += f"""
----
+    # ── 尾部视频信息 ──────────────────────────────────────────────────────
+    content += f"""---
 
 ## 视频信息
 
 - **视频标题**: {title}
 - **UP主**: {uploader}
-- **视频时长**: {duration_min}分{duration_sec}秒
-- **视频ID**: {video_id}
+- **时长**: {duration_min} 分 {duration_sec} 秒
 
-"""
+## 参考链接
 
-    content += """## 参考链接
-
-- [YouTube视频原地址](https://www.youtube.com/watch?v={})
-- [相关推荐](https://869hr.uk)
+- [YouTube 原视频](https://www.youtube.com/watch?v={video_id})
+- [更多教程](https://869hr.uk)
 
 ---
-""".format(video_id)
-
+"""
     return content
 
 
