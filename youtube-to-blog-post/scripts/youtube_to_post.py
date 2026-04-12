@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-YouTube to Blog Post Script - SEO Optimized Version v4.1
+YouTube to Blog Post Script - SEO Optimized Version v4.2
 Convert YouTube videos to Hexo blog posts with enhanced SEO.
 
 v4.1 changes:
@@ -502,14 +502,18 @@ def generate_seo_keywords(title, description, tags):
 
     # Add related keywords for better SEO coverage
     final_keywords = []
-    for kw in keywords[:MAX_KEYWORDS]:
-        final_keywords.append(kw)
+    for kw in keywords[:MAX_KEYWORDS * 2]:  # wider pool before capping
+        if kw not in final_keywords:
+            final_keywords.append(kw)
 
         # Add synonyms for important keywords
         if kw.lower() in KEYWORD_SYNONYMS:
-            for synonym in KEYWORD_SYNONYMS[kw.lower()][:2]:
+            for synonym in KEYWORD_SYNONYMS[kw.lower()][:1]:
                 if synonym not in final_keywords and len(final_keywords) < MAX_KEYWORDS:
                     final_keywords.append(synonym)
+
+        if len(final_keywords) >= MAX_KEYWORDS:
+            break
 
     return final_keywords[:MAX_KEYWORDS]
 
@@ -581,10 +585,12 @@ def generate_seo_description(title, description):
 
             # Too long - intelligently truncate at word boundary
             truncated = sentence[:MAX_DESCRIPTION_LENGTH]
-            last_space = truncated.rfind(' ')
-            if last_space > MAX_DESCRIPTION_LENGTH * 0.7:
-                truncated = truncated[:last_space]
-
+            # Try to cut at last Chinese punctuation or space
+            for punct in ['。', '，', '、', ' ']:
+                pos = truncated.rfind(punct)
+                if pos > MAX_DESCRIPTION_LENGTH * 0.7:
+                    truncated = truncated[:pos + (1 if punct in '。，、' else 0)]
+                    break
             return truncated.strip()
 
     # Fallback to title-based description
@@ -655,6 +661,8 @@ copyright: true
 <div class="video-container">
 <iframe src="https://www.youtube.com/embed/{video_id}" title="{safe_title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 </div>
+
+<!-- more -->
 
 """
 
@@ -750,35 +758,85 @@ def format_description_line(line):
     return line
 
 
+def is_hashtag_line(line):
+    """判断是否为纯 hashtag 行（如 #美国税号 #ITIN申请），博客正文不需要"""
+    stripped = line.strip()
+    if not stripped:
+        return False
+    # 全行都是 #词 的组合
+    return bool(re.match(r'^(#[\w\u4e00-\u9fffA-Za-z]+\s*)+$', stripped))
+
+
+def bracket_title_to_h3(line):
+    """将【xxx】格式标题行转为 ### xxx Markdown 标题"""
+    m = re.match(r'^【(.+?)】\s*$', line.strip())
+    if m:
+        return f"### {m.group(1)}"
+    return None
+
+
 def generate_article_content(video_info, video_id):
     """
     生成文章正文 —— 完整保留 YouTube 描述内容，不丢失任何文字或链接。
-    只做格式转换（Markdown 化），不过滤任何内容。
+    格式转换规则（v4.2）：
+    - 【xxx】 → ### xxx (H3 标题，SEO 结构化)
+    - 时间戳行 → ## 视频章节（并从正文移除，含【视频分段】标题行）
+    - 纯 hashtag 行 → 过滤（内容已在 tags 字段）
+    - 裸 URL → Markdown 可点击链接
+    - 时长为 0 时不显示（覆盖模式下未提供时长）
+    - <!-- more --> 插入视频 iframe 后（Hexo 首页截断）
     """
     title = video_info['title']
     uploader = video_info.get('uploader', '')
     description = video_info.get('description', '')
     duration = video_info.get('duration', 0)
 
-    duration_min = duration // 60 if duration else 0
-    duration_sec = duration % 60 if duration else 0
+    # ── 视频介绍段落 ───────────────────────────────────────────────────────
+    # 用 description 第一段作实质简介，而非仅显示时长
+    intro_text = ""
+    if description:
+        first_lines = []
+        for ln in description.split('\n'):
+            s = ln.strip()
+            if not s:
+                if first_lines:
+                    break
+            elif not re.match(r'^\d{1,2}:\d{2}', s) and not s.startswith('【') and not s.startswith('#'):
+                first_lines.append(s)
+                if len(first_lines) >= 3:
+                    break
+        intro_text = ' '.join(first_lines)
 
-    content = f"## 视频介绍\n\n本视频由 {uploader} 制作，时长约 {duration_min} 分 {duration_sec} 秒。\n\n"
+    content = f"## 视频介绍\n\n"
+    if intro_text:
+        content += f"{intro_text}\n\n"
+    if uploader:
+        if duration and duration > 0:
+            duration_min = duration // 60
+            duration_sec = duration % 60
+            content += f"**频道**：{uploader}　**时长**：{duration_min} 分 {duration_sec} 秒\n\n"
+        else:
+            content += f"**频道**：{uploader}\n\n"
 
     if not description:
-        content += f"\n---\n\n## 参考链接\n\n- [YouTube 原视频](https://www.youtube.com/watch?v={video_id})\n- [更多教程](https://869hr.uk)\n\n---\n"
+        content += f"\n---\n\n## 参考链接\n\n- [YouTube 原视频](https://www.youtube.com/watch?v={video_id})\n- [869hr.uk 博客首页](https://869hr.uk)\n\n---\n"
         return content
 
-    # ── 第一步：识别时间戳章节行，单独提取 ──────────────────────────────
+    # ── 第一步：识别时间戳章节行，单独提取；同时移除章节标题行 ──────────
     timestamp_re = re.compile(r'^(\d{1,2}:\d{2})\s*[-–—]\s*(.+)$')
+    # 【视频分段】这类标题行在时间戳已提取后应从正文移除
+    section_header_re = re.compile(r'^【视频分段】\s*$')
     raw_lines = description.split('\n')
 
     timestamps = []
     other_lines = []
     for line in raw_lines:
-        m = timestamp_re.match(line.strip())
-        if m:
+        stripped = line.strip()
+        if timestamp_re.match(stripped):
+            m = timestamp_re.match(stripped)
             timestamps.append((m.group(1), m.group(2).strip()))
+        elif section_header_re.match(stripped):
+            pass  # 移除，内容已进入 ## 视频章节
         else:
             other_lines.append(line)
 
@@ -789,7 +847,6 @@ def generate_article_content(video_info, video_id):
         content += "\n"
 
     # ── 第二步：把剩余描述整体转为 Markdown，完整保留所有内容 ──────────
-    # 按空行分段，每段独立处理
     paragraphs = []
     current = []
     for line in other_lines:
@@ -805,25 +862,43 @@ def generate_article_content(video_info, video_id):
 
     content += "## 详细内容\n\n"
     for para in paragraphs:
-        # 单行段落
+        # ① 过滤纯 hashtag 行
+        para = [l for l in para if not is_hashtag_line(l)]
+        if not para:
+            continue
+
+        # ② 单行段落
         if len(para) == 1:
-            formatted = format_description_line(para[0])
-            content += formatted + "\n\n"
+            line = para[0]
+            # 【xxx】→ ### xxx
+            h3 = bracket_title_to_h3(line)
+            if h3:
+                content += h3 + "\n\n"
+            else:
+                content += format_description_line(line) + "\n\n"
         else:
-            # 多行段落 —— 判断是否像列表
+            # 多行段落：先检查首行是否是【xxx】标题
+            h3 = bracket_title_to_h3(para[0])
+            if h3:
+                content += h3 + "\n\n"
+                rest = para[1:]
+            else:
+                rest = para
+
+            if not rest:
+                continue
+
+            # 判断是否像列表
             all_list_like = all(
-                re.match(r'^[\d\.\-\*\#✅💡📌🔗💬🔔👍🎯]+', l) or len(l) < 80
-                for l in para
+                re.match(r'^[\d\.\-\*✅💡📌🔗💬🔔👍🎯]+', l) or len(l) < 80
+                for l in rest
             )
             if all_list_like:
-                for line in para:
-                    formatted = format_description_line(line)
-                    content += formatted + "\n\n"
+                for l in rest:
+                    content += format_description_line(l) + "\n\n"
             else:
-                # 普通段落，合并为一段
-                merged = ' '.join(para)
-                formatted = format_description_line(merged)
-                content += formatted + "\n\n"
+                merged = ' '.join(rest)
+                content += format_description_line(merged) + "\n\n"
 
     # ── 第三步：提取代码块（如有）────────────────────────────────────────
     code_blocks = re.findall(r'```[a-z]*\n(.*?)```', description, re.DOTALL)
@@ -842,13 +917,18 @@ def generate_article_content(video_info, video_id):
     content += related_section
 
     # ── 尾部视频信息 ──────────────────────────────────────────────────────
+    duration_str = ""
+    if duration and duration > 0:
+        duration_min = duration // 60
+        duration_sec = duration % 60
+        duration_str = f"\n- **时长**: {duration_min} 分 {duration_sec} 秒"
+
     content += f"""---
 
 ## 视频信息
 
 - **视频标题**: {title}
-- **UP主**: {uploader}
-- **时长**: {duration_min} 分 {duration_sec} 秒
+- **UP主**: {uploader}{duration_str}
 
 ## 参考链接
 
