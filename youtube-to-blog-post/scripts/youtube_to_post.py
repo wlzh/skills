@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
 """
-YouTube to Blog Post Script - SEO Optimized Version v4.0
+YouTube to Blog Post Script - SEO Optimized Version v4.1
 Convert YouTube videos to Hexo blog posts with enhanced SEO.
+
+v4.1 changes:
+- Add --title / --description / --tags / --video-id / --filename override args.
+  When YouTube video is still processing (or fetch fails for any reason),
+  supply metadata directly — no remote fetch needed.
+  The caller (e.g. after youtube-publisher) already has all metadata; there is
+  no need to re-fetch from the live URL.
+- URL argument is now optional when override args supply enough metadata.
+- --description is passed through 100% intact into article body; no truncation.
+- Full YouTube description (resource links, affiliate links, chapters, etc.)
+  is preserved as-is in the generated article.
 
 v4.0 changes:
 - FAQ auto-detection + placeholder section (enables Google FAQ rich snippets)
@@ -1170,7 +1181,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Convert YouTube video to SEO-optimized Hexo blog post'
     )
-    parser.add_argument('url', help='YouTube video URL')
+    parser.add_argument('url', nargs='?', default='', help='YouTube video URL (optional when --video-id + --title are provided)')
     parser.add_argument('-b', '--blog-dir', help='Blog directory path')
     parser.add_argument('-c', '--category', default='技术', help='Post category')
     parser.add_argument('-t', '--tags', nargs='+', default=['视频教程'], help='Post tags')
@@ -1179,6 +1190,17 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Generate content but don\'t save')
     parser.add_argument('--no-humanizer', action='store_true', help='Skip AI writing removal (humanizer)')
     parser.add_argument('--deploy', action='store_true', help='Auto deploy to git after saving post')
+    # ── v4.1 override args ──────────────────────────────────────────────────
+    parser.add_argument('--title', dest='override_title', default='',
+                        help='Override video title (skip YouTube fetch)')
+    parser.add_argument('--description', dest='override_description', default='',
+                        help='Override video description — passed through 100%% intact')
+    parser.add_argument('--video-id', dest='override_video_id', default='',
+                        help='Override YouTube video ID (e.g. B8gNipUixTo)')
+    parser.add_argument('--filename', dest='override_filename', default='',
+                        help='Force output filename (without .md)')
+    parser.add_argument('--uploader', dest='override_uploader', default='',
+                        help='Override uploader/channel name')
 
     args = parser.parse_args()
 
@@ -1196,20 +1218,47 @@ def main():
     else:
         posts_dir = config['posts_dir']
 
-    # Get video info
-    video_info = get_video_info(args.url)
-    if not video_info:
-        print("❌ Failed to fetch video information")
-        return 1
+    # ── v4.1: build video_info from overrides OR fetch from YouTube ──────────
+    has_overrides = bool(args.override_title and args.override_video_id)
+
+    if has_overrides:
+        # Caller already has all metadata; no remote fetch needed
+        video_id = args.override_video_id
+        video_info = {
+            'id': video_id,
+            'title': normalize_youtube_text(args.override_title),
+            'description': normalize_youtube_text(args.override_description),
+            'uploader': args.override_uploader or 'M.',
+            'upload_date': datetime.now().strftime('%Y%m%d'),
+            'duration': 0,
+            'thumbnail': f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg',
+            'tags': args.tags if args.tags != ['视频教程'] else [],
+        }
+        print(f"📹 Using provided metadata (skip YouTube fetch)")
+        print(f"   Title: {video_info['title'][:60]}...")
+    else:
+        # Fetch from YouTube
+        if not args.url:
+            print("❌ Please provide a YouTube URL or use --title + --video-id overrides")
+            return 1
+        video_info = get_video_info(args.url)
+        if not video_info:
+            print("❌ Failed to fetch video information")
+            print("   Tip: If the video is still processing, use:")
+            print("   --title '...' --video-id 'xxxxx' --description '...'")
+            return 1
+        video_id = extract_video_id(args.url) or video_info['id']
 
     print(f"📹 Video: {video_info['title']}")
     print(f"👤 Uploader: {video_info.get('uploader', 'N/A')}")
     if blog_dir:
         print(f"📂 Blog: {blog_dir}")
 
-    # Generate filename
-    video_id = extract_video_id(args.url) or video_info['id']
-    filename = generate_english_filename(video_info['title'], video_id)
+    # Generate filename (override takes priority)
+    if args.override_filename:
+        filename = args.override_filename.rstrip('.md')
+    else:
+        filename = generate_english_filename(video_info['title'], video_id)
     print(f"📝 Filename: {filename}.md")
 
     # Generate post content
