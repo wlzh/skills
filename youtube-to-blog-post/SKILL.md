@@ -1,6 +1,7 @@
 ---
 name: youtube-to-blog-post
-description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, and optimized metadata. Auto-generates English filenames and saves to the configured Hexo blog posts directory.
+description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, and optimized metadata. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
+version: 3.2.0
 ---
 
 # YouTube to Blog Post - SEO 优化版
@@ -11,19 +12,13 @@ description: Convert YouTube videos to SEO-optimized blog posts. Extract video t
 
 ### 🚀 SEO 优化
 - ✅ **自动 YAML 安全过滤** - 100% 部署成功，无特殊字符错误
-- ✅ **YouTube 特殊字符改写** - 标题/描述中的 `>` 自动改写为 `》`，`<` 自动改写为 `《`
-- ✅ **HTML 属性安全** - iframe `title` 限制 50 字符，自动清洗引号/特殊字符
-- ✅ **描述优化** - 智能生成完整句子，最大 160 字符，**自动去除 emoji 和 markdown 格式**
-- ✅ **智能关键词** - 过滤无意义片段，提取 5-8 个高质量关键词，输出为 Google 标准引号字符串格式
+- ✅ **描述优化** - 自动生成 160 字符内的高质量描述
+- ✅ **智能关键词** - 自动提取 5-8 个高价值关键词
 - ✅ **封面图** - 自动使用 YouTube 高清缩略图
 - ✅ **长尾词覆盖** - 自动添加同义词和相关词
-- ✅ **自动分类检测** - 根据标题/标签关键词自动匹配 category_map（教程/技术/工具等）
-- ✅ **FAQ 章节自动提取** - 检测描述中的 Q/A 对，生成 `## 常见问题` 章节（支持 Google FAQ 富摘要）
-- ✅ **智能内部链接** - 根据视频主题自动生成 `## 相关教程推荐` 区块（SEO 内链权重传递）
+- ✅ **内部链接** - 自动添加相关推荐链接
 - ✅ **结构化内容** - H1-H3 层次清晰，利于 SEO
 - ✅ **自动去 AI 化** - 集成 humanizer，自动去除 AI 写作痕迹
-- ✅ **参考链接去重** - 自动避免重复 `## 参考链接` 区块
-- ✅ **真实标题保留** - 不再生成”这个教程”这类占位文案
 
 ### 📝 内容生成
 - 自动获取 YouTube 视频标题、描述和内容
@@ -152,33 +147,6 @@ EOF
 
 ## 📄 文章格式
 
-### 合格文章规则（默认内置）
-
-**内容质量守门**：
-- ✅ 不生成”这个教程”之类占位文案
-- ✅ 不重复生成 `## 参考链接`
-- ✅ 真实视频标题完整保留
-
-**关键词质量**：
-- ✅ 过滤纯数字、单字、无意义片段
-- ✅ 过滤标题碎片（如”风控？联系客服”、”100%”）
-- ✅ 关键词长度 2-25 字符
-- ✅ 自动去重，最多 8 个高质量关键词
-
-**描述质量**：
-- ✅ 完整句子，不在词语中间截断
-- ✅ 长句智能截断到词边界
-- ✅ 最大 160 字符（Google SEO 标准）
-
-**HTML 安全**：
-- ✅ iframe `title` 限制 50 字符
-- ✅ 自动清洗引号、特殊字符
-- ✅ 标题和描述中的 `<` / `>` 自动改写为 `《` / `》`
-
-**Front Matter 完整性**：
-- ✅ 默认包含 `description`、`keywords`、`cover`、`thumbnail`
-- ✅ 所有字段 YAML 安全过滤
-
 ### Front Matter（SEO 优化版）
 
 ```yaml
@@ -188,14 +156,17 @@ subtitle: 视频标题
 date: 2026-02-02 15:00:00
 updated: 2026-02-02 15:00:00
 author: M.
-description: 本视频详细介绍... (≤160字符，无emoji，无markdown)  # ✅ v4.0 自动净化
+description: 本视频详细介绍... (159字符，包含核心关键词)
 categories:
-  - 教程  # ✅ v4.0 自动检测（按标题关键词匹配 category_map）
+  - 技术
 tags:
   - 视频教程
-keywords: "核心关键词, 长尾关键词, 相关词"  # ✅ v4.0 改为 Google 标准引号字符串
-cover: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg
-thumbnail: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg
+keywords:
+  - 核心关键词
+  - 长尾关键词
+  - 相关词
+cover: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg  # ✅ 新增
+thumbnail: https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg  # ✅ 新增
 toc: true
 comments: true
 copyright: true
@@ -219,31 +190,20 @@ copyright: true
 
 ```markdown
 ## 视频教程
-<iframe>...</iframe>  # 首屏可见，响应式
+<iframe>...</iframe>  # 首屏可见
 
 ## 视频介绍
-# 作者、时长
+# 作者、时长（从描述提取真实内容）
 
-## 视频章节（如有时间戳）
-- 00:00 章节名
+## 核心亮点
+# 从视频描述提取的关键特性（标记 ✅ 的内容）
 
-## 详细内容
-# YouTube 描述完整内容
-
-## 脚本命令（如有代码块）
-
-## 常见问题（FAQ）  ← v4.0 新增（Google FAQ 富摘要）
-# 自动从描述提取 Q/A 对
-
-## 相关教程推荐  ← v4.0 新增（SEO 内部链接）
-# 按视频主题自动推荐站内相关文章
-
-## 视频信息
-# 标题、UP主、时长
+## 配置示例（如有）
+# 代码块自动提取
 
 ## 参考链接
-- YouTube原视频
-- 博客首页
+- YouTube视频原地址
+- 相关推荐
 ```
 
 ## 📝 文件命名规则
@@ -341,6 +301,82 @@ pip install yt-dlp requests
 ```
 
 ## ⚠️ 注意事项
+
+### 标签管理规则（v3.2 新增）
+
+生成文章时，**必须优先复用已有标签**，保持标签体系的一致性。
+
+#### 核心原则
+
+1. **优先复用** - 从下方「标准标签表」中选择最匹配的标签，禁止随意创建新标签
+2. **每篇 3-5 个** - 标签数量控制在 3-5 个，不要贪多
+3. **禁止中英双语标签** - 不要写 `海外应用-Foreign-Apps` 这种格式，统一用中文
+4. **禁止大小写重复** - 统一用 `Telegram` 而非 `telegram`，`AI工具` 而非 `ai工具`
+
+#### 标准标签表（67 个，按分类）
+
+**AI 相关：** AI、AI工具、AI前沿、LLM、DeepSeek、ChatGPT、Claude、Skills
+
+**支付相关：** 跨境支付、信用卡、Wise、Stripe、苹果支付、加密货币
+
+**网络相关：** VPN、VPS、Cloudflare、网络工具、网络安全、ip属性
+
+**手机相关：** eSIM、Apple ID、App Store、iOS
+
+**工具相关：** 在线工具、效率工具、开发工具、开源项目、无需安装、剪映
+
+**教程相关：** 教程、视频教程
+
+**生活/资源：** 免费资源、学习资源、知识分享、播客推荐、网赚项目
+
+**账号相关：** 账号注册、账号管理、邮箱
+
+**其他：** 海外应用、软件安装、软件汉化、本地部署、域名、数据安全、文件传输、跨平台工具、即时通讯、社交软件、微信、Telegram、Google、闲谈、技术交流、技术支持、客户支持、故障处理、苹果、公司注册、CPA配置、建站、SEO、PairDrop、个人资料、性别设置、地区设置
+
+#### 标签选择逻辑
+
+```
+输入: 视频主题内容
+  ↓
+1. 先查标准标签表，找到最匹配的 3-5 个标签
+  ↓
+2. 如果主题确实不在标准标签表中 → 允许创建新标签
+   但新标签必须符合命名规范：
+   - 中文为主（如「云存储」而非「Cloud Storage」）
+   - 不超过 6 个字
+   - 不含特殊字符（|、-、/）
+  ↓
+3. 输出 tags 列表
+```
+
+#### 禁止的标签格式
+
+```yaml
+# ❌ 错误：中英双语
+tags:
+  - 海外应用-Foreign-Apps
+  - AI工具 | AI Tools
+
+# ❌ 错误：大小写不一致
+tags:
+  - telegram    # 应为 Telegram
+  - ai工具      # 应为 AI工具
+  - cloudflare  # 应为 Cloudflare
+
+# ❌ 错误：过于细分
+tags:
+  - 免费VPS     # 应为 VPS
+  - 虚拟信用卡  # 应为 信用卡
+  - 深度学习    # 应为 AI
+  - 零基础教程  # 应为 教程
+
+# ✅ 正确：复用标准标签
+tags:
+  - 视频教程
+  - VPS
+  - VPN
+  - 教程
+```
 
 ### SEO 最佳实践
 
@@ -441,38 +477,13 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ## 🆕 更新日志
 
-### v4.0 - SEO 全站规则沉淀版 (2026-04-11)
+### v3.2 - 标签管理规范版 (2026-04-19)
 
-基于全站 SEO 审计的规则沉淀，确保每篇新文章默认达到审计后的优化标准：
-
-- ✅ **description 净化** - 自动去除 emoji 和 `**` 格式，输出纯文字（Google snippet 更友好）
-- ✅ **keywords 格式标准化** - 改为 `"词1, 词2, 词3"` 引号字符串格式（与 scaffold 对齐）
-- ✅ **分类自动检测** - 按标题/标签关键词匹配博客 `category_map`（教程/技术/工具等）
-- ✅ **FAQ 章节自动提取** - 检测描述中 Q/A 对，生成 `## 常见问题` 章节，可触发 Google FAQ 富摘要
-- ✅ **智能内部链接区块** - 按视频主题自动生成 `## 相关教程推荐` 区块（Wise、VPS、Telegram 等系列互链）
-- ✅ **参考链接更新** - `[更多教程]` 改为更明确的 `[869hr.uk 博客首页]`
-- ✅ **dedupe 兼容性** - 参考链接去重逻辑更新，兼容新旧两种格式
-
-### v3.5 - 响应式视频 + 完整描述保留版 (2026-04-10)
-
-- ✅ **响应式 iframe** - 用主题 `.video-container` 包裹 iframe，去掉硬编码 `width/height`，跟随页面宽度自适应（16:9 比例）
-- ✅ **完整描述保留** - 重写内容生成逻辑，YouTube 描述中的所有文字、链接、emoji 行均完整保留，不再截取前 20 行
-- ✅ **裸 URL 自动转链接** - 描述里的裸 URL 自动转为 Markdown 可点击链接，用域名作为显示文本
-- ✅ **智能分段** - 按空行分段，自动判断列表行/普通段落，格式更自然
-- ✅ **时间戳章节独立提取** - 识别 `HH:MM - 章节名` 格式，单独生成 `## 视频章节` 区块
-
-### v3.3 - 文件名SEO优化版 (2026-02-20)
-
-- ✅ **SEO 文件名优化** - 文件名包含核心关键词，避免 "video-xxx" 格式
-- ✅ **修复重复参考链接** - 删除文章中重复的参考链接板块
-
-### v3.2 - 详细文章内容版 (2026-02-20)
-
-- ✅ **详细文章内容** - 完整使用 YouTube 视频描述生成文章内容
-- ✅ **提取视频章节** - 自动识别时间戳章节
-- ✅ **提取核心亮点** - 识别并提取 ✅ 标记的内容
-- ✅ **提取脚本命令** - 自动识别代码块作为脚本命令
-- ✅ **视频信息卡片** - 文章末尾添加视频信息（时长、UP主等）
+- ✅ **标准标签表** - 定义 67 个标准标签，覆盖所有博客内容分类
+- ✅ **标签复用规则** - 生成文章时必须优先复用已有标签，禁止随意创建新标签
+- ✅ **命名规范** - 禁止中英双语标签、大小写不一致、过于细分
+- ✅ **数量控制** - 每篇文章 3-5 个标签
+- ✅ **tag_map 同步** - 标签变更同步更新 `_config.yml` 中的 tag_map
 
 ### v3.1 - 本地配置 + 自动部署版 (2026-02-13)
 
@@ -512,6 +523,6 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ---
 
-**版本**: 4.0 SEO 全站规则沉淀版
-**更新日期**: 2026-04-11
+**版本**: 3.2.0 Tag Management
+**更新日期**: 2026-04-19
 **状态**: ✅ 已测试并上线

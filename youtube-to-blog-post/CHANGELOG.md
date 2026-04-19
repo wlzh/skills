@@ -1,639 +1,362 @@
-# v4.0 Changelog - SEO 全站规则沉淀版
+# v3.2 Changelog - 标签管理规范版
 
-**版本**: 4.0
-**发布日期**: 2026-04-11
-**类型**: SEO 功能增强
-
----
-
-## 背景
-
-基于对博客全站的 SEO 审计（108 篇文章）发现的系统性问题，将修复规则沉淀到生成器，确保未来每篇新文章默认达到优化标准，无需手动补救。
-
----
-
-## 新功能
-
-### 1. FAQ 章节自动提取（`generate_faq_section()`）
-
-**为什么重要：** Google 可以从文章中提取 FAQ schema 展示富摘要，显著提升 SERP 点击率。
-
-**实现：**
-- 检测视频描述中的 `Q：/A：`、`问：/答：` 格式
-- 检测编号问题 + 答案格式（`1. 什么是XXX？\n答：...`）
-- 最多提取 5 组 Q/A，输出 `## 常见问题（FAQ）` 章节
-- 如果描述中没有 Q/A，不输出（不产生空模板）
-
-**输出示例：**
-```markdown
-## 常见问题（FAQ）
-
-**Q：如何申请德国沃达丰 eSIM？**
-
-**A：** 访问 Vodafone 官网，完成 KYC 认证后即可申请。
-
----
-```
-
-### 2. 智能内部链接区块（`generate_related_posts_section()`）
-
-**为什么重要：** 内部链接是 SEO 权重传递的核心，全站审计发现大量文章缺少内链，相关推荐原来只是"最新5篇"的 bug。
-
-**实现：**
-- 按视频标题和标签关键词匹配，覆盖主要内容系列：
-  - Wise/银行/支付 → 链接到 Wise 注册教程
-  - eSIM/Vodafone/保号 → 链接到沃达丰 eSIM 教程
-  - VPS/服务器 → 链接到 VPS 安全加固教程
-  - Cloudflare/域名 → 链接到 Tunnel 教程
-  - Telegram → 链接到中文包教程
-  - Apple ID/App Store → 链接到美区教程
-  - AI/GPT → 链接到 DeepSeek 分析
-- 无匹配时输出注释提示，提醒用户手动添加
-
-### 3. description 净化（`strip_decorative_chars()`）
-
-**为什么重要：** 审计发现大量文章 description 包含 `🚀 **本期视频...`，emoji 和 markdown 格式在 Google SERP snippet 中显示为乱码。
-
-**实现：**
-- 先去除 markdown `**`、`*`、`__`
-- 再清除全 Unicode emoji 范围
-- 净化后再做 160 字符截断
-
-**修复前后：**
-```
-❌ 前：🚀 **本期视频带来【2026最新】"传家宝"级别的羊毛教程
-✅ 后：本期视频带来2026最新"传家宝"级别的羊毛教程，德国沃达丰 eSIM 申请全攻略
-```
-
-### 4. keywords 格式标准化
-
-**为什么重要：** Google SEO 最佳实践建议 keywords 以逗号分隔字符串形式提供；列表格式在某些解析器中会被忽略。同时与博客 scaffold/post.md 模板对齐。
-
-**修复前（列表格式）：**
-```yaml
-keywords:
-  - 核心关键词
-  - 长尾关键词
-```
-
-**修复后（引号字符串格式）：**
-```yaml
-keywords: "核心关键词, 长尾关键词, 相关词"
-```
-
-### 5. 分类自动检测（`auto_detect_category()`）
-
-**为什么重要：** 之前所有文章默认分类 `技术`，导致分类页面文章混杂，`教程` 类文章无法正确聚合。
-
-**实现：**
-- 按标题关键词映射到 `category_map`：`教程/指南/tutorial` → 教程，`VPS/服务器/银行` → 技术，`工具/tool` → 工具
-- 只在用户使用默认值 `技术` 时触发自动检测
-- 用户手动指定 `-c` 参数时不覆盖
-
----
-
-## 影响范围
-
-- `scripts/youtube_to_post.py`
-  - 新增：`strip_decorative_chars()`
-  - 新增：`auto_detect_category()`
-  - 新增：`generate_faq_section()`
-  - 新增：`generate_related_posts_section()`
-  - 更新：`generate_seo_description()` - 集成 emoji 净化
-  - 更新：`generate_post_content()` - 使用自动分类检测 + keywords 字符串格式
-  - 更新：`generate_article_content()` - 末尾加 FAQ + 相关推荐
-  - 更新：`dedupe_reference_sections()` - 兼容新旧格式
-  - 保留：`generate_keywords_yaml()` - 兼容性保留（已不在主流程中使用）
-- `SKILL.md` - 版本更新至 4.0，更新特性列表和文章结构说明
-- `CHANGELOG.md` - 新增本条目
-
----
-
-## 向后兼容
-
-- ✅ 所有 CLI 参数不变
-- ✅ 配置文件格式不变
-- ✅ 输出 Hexo 格式不变
-- ✅ 旧格式参考链接去重仍有效
-
----
-
-# v3.5 Changelog - 响应式视频 + 完整描述保留版
-
-**版本**: 3.5
-**发布日期**: 2026-04-10
-**类型**: 功能修复 + 内容质量
+**版本**: 3.2.0
+**发布日期**: 2026-04-19
+**类型**: 规范更新
 
 ---
 
 ## 概述
 
-修复两个核心问题：视频 iframe 在博客页面中宽高写死导致不适配、YouTube 描述内容被过滤截断导致博客文章信息丢失。同步批量更新了全站 39 篇含视频文章。
+本次更新建立了**标准标签体系**，解决标签膨胀和命名混乱问题。博客标签从 425 个精简为 67 个标准标签，生成文章时强制复用已有标签。
+
+**核心目标：** 统一标签命名，优先复用，杜绝标签膨胀
 
 ---
 
-## 本次升级
+## 新增功能
 
-### 1. 响应式 iframe（`.video-container` 包裹）
+### 1. 标准标签表（67 个）
 
-**问题**：
-- 旧逻辑生成 `<iframe width="560" height="315" ...>`，宽高写死
-- 在窄屏或不同主题下视频溢出页面，不适配页面宽度
+**问题：** 标签从几十个增长到 425 个，存在大量重复、大小写不一致、中英双语标签。
 
-**修复**：
-- 改用主题内置 `.video-container` CSS 类包裹 iframe
-- 去掉 `width`/`height` 属性，由 CSS 控制（`padding-top: 56.25%` + 绝对定位）
-- 视频跟随页面内容区宽度自动缩放，保持 16:9 比例
+**解决方案：**
+- 定义 67 个标准标签，覆盖所有内容分类
+- 按主题分组：AI、支付、网络、手机、工具、教程、生活、账号、其他
+- 每个标准标签映射多个变体（大小写、同义词）
 
-```html
-<!-- 之前 -->
-<iframe width="560" height="315" src="...">
+### 2. 标签标准化函数
 
-<!-- 现在 -->
-<div class="video-container">
-<iframe src="..." ...></iframe>
-</div>
-```
-
-### 2. YouTube 描述完整保留
-
-**问题**：
-- 旧逻辑只取前 20 行（`desc_lines[:20]`）
-- 过滤了以 `http` 开头的行、`💬`/`🔗` emoji 行、社交媒体行
-- 导致联盟链接、社群链接、eSIM 推荐等内容全部丢失
-
-**修复**：
-- 重写 `generate_article_content()`，不过滤任何行
-- 按空行分段，智能识别列表行 vs 普通段落
-- 裸 URL 自动转 Markdown 链接（域名作显示文本）
-- 时间戳章节（`HH:MM - 章节名`）单独识别，生成 `## 视频章节` 区块
-- 新增 `format_description_line()` 辅助函数处理行内 URL
-
-### 3. 批量更新全站文章
-
-- 39 篇含 YouTube 视频的文章重新生成（保留原文件名和 frontmatter）
-- Hexo 重新生成 + 部署 + 源码推送
-
----
-
-## 影响
-
-- ✅ 所有视频在博客页面中自适应宽度
-- ✅ 博客文章包含 YouTube 描述的完整内容（联盟链接、社群、资源等）
-- ✅ 文件名/frontmatter 不变，不影响 SEO 链接
-
----
-
-# v3.7 Changelog - 全站内容质量体检版
-
-**版本**: 3.7
-**发布日期**: 2026-03-28
-**类型**: 质量升级
-
----
-
-## 概述
-
-基于全站 89 篇文章的质量扫描，发现并修复了低质量关键词、过长标题、description 截断等问题，将内容质量守门规则固化到生成器中，确保未来生成的文章直接达到 SEO 标准。
-
----
-
-## 本次升级
-
-### 1. 关键词质量增强
-
-**问题**：
-- 旧逻辑从标题机械拆分，产生无意义片段（如 “风控？联系客服”、”100%”、”ID”）
-- 关键词过长（50+ 字符的标题片段）
-- 包含停止词和通用标签（如”视频教程”、”手把手”）
-
-**改进**：
-- 过滤纯数字、单字、标点符号
-- 过滤包含 `？`、`！`、`。` 的标题碎片
-- 过滤过多标点的片段（可能是拆分错误）
-- 限制关键词长度 2-25 字符（不是 20）
-- 扩展停止词列表，包含”视频教程”、”手把手”、”指南”等
-- 自动去重
-
-### 2. Description 智能截断
-
-**问题**：
-- 旧逻辑：第一句超过 160 字符就跳过，使用 fallback
-- 实际情况：很多 description 第一句本身就超过 160，被截断成 `🚀 **本期视频教大家一个”无意间发现”的黑科技`
-
-**改进**：
-- 如果句子在 20-160 字符：直接使用（完整句子）
-- 如果句子超过 160 字符：智能截断到词边界（不在词语中间截断）
-- 确保截断后至少保留 70% 内容
-- 去除 markdown 格式符号（`**`、`*`）
-
-### 3. iframe title 长度限制
-
-**问题**：
-- 旧限制：100 字符
-- 实际问题：89 篇文章的 iframe title 超过 60 字符
-- 超长 title 可能影响 SEO 和可读性
-
-**改进**：
-- 将默认限制从 100 字符降到 50 字符
-- 如果标题过长，生成简化版
-- 继续保持 HTML 安全清洗（引号、特殊字符）
-
-### 4. 常量优化
-
-- `MAX_KEYWORD_LENGTH`: 20 → 25（允许更长的技术术语）
-- `MAX_IFRAME_TITLE_LENGTH`: 新增，50 字符
-- `STOP_WORDS`: 扩展，包含通用标签
-
----
-
-## 影响范围
-
-- `youtube-to-blog-post/scripts/youtube_to_post.py`
-  - `clean_keywords()`: 增强过滤逻辑
-  - `generate_seo_description()`: 智能截断
-  - `sanitize_for_html_attribute()`: 默认长度 50
-- `youtube-to-blog-post/README.md`
-- `youtube-to-blog-post/SKILL.md`
-- `youtube-to-blog-post/CHANGELOG.md`
-
----
-
-## 验证目标
-
-- 关键词不再包含纯数字、单字、标题碎片
-- Description 完整句子，不在词语中间截断
-- iframe title ≤ 50 字符
-- 所有字段符合 SEO 最佳实践
-
----
-
-## 全站扫描发现的问题（已修复）
-
-### 低质量关键词示例
-
-❌ **修复前**：
-```yaml
-keywords:
-  - 风控？联系客服
-  - 100%
-  - ID
-  - 购买失败？Apple
-  - Card
-```
-
-✅ **修复后**：
-```yaml
-keywords:
-  - Apple Gift Card
-  - 风控解决
-  - 客服联系
-  - 购买失败
-```
-
-### Description 截断示例
-
-❌ **修复前**：
-```yaml
-description: 🚀 **本期视频教大家一个”无意间发现”的黑科技
-```
-
-✅ **修复后**：
-```yaml
-description: 本期视频教大家一个无意间发现的黑科技，利用 Cloudflare Tunnel 和 Docker
-```
-
-### iframe title 过长示例
-
-❌ **修复前**（89 篇文章）：
-```html
-<iframe title=”🔥2026最新窗口期0开卡0月租！德国沃达丰eSIM申请全攻略：国产手机秒变eSIM手机...” ...>
-```
-
-✅ **修复后**：
-```html
-<iframe title=”德国沃达丰 eSIM 申请全攻略教程” ...>
-```
-
----
-
-# v3.6 Changelog - 文章质量守门版
-
-**版本**: 3.6
-**发布日期**: 2026-03-28
-**类型**: 质量升级
-
----
-
-## 概述
-
-把最近博客清理中总结出的合格文章规则正式固化到 `youtube-to-blog-post` skill，确保以后新生成文章默认不会再出现”这个教程”、重复参考链接或 iframe title 风险字符导致的渲染问题。
-
----
-
-## 本次升级
-
-### 1. 保留真实视频标题
-
-- 移除了 humanizer 中把长标题替换成”这个教程”的逻辑
-- `视频信息` 区块始终保留真实标题，不再出现低质量占位文案
-
-### 2. 自动去重参考链接
-
-- 新增 `dedupe_reference_sections()`
-- 自动消除重复的 `## 参考链接` 区块
-- 避免旧模板或 humanizer 处理后生成重复尾部内容
-
-### 3. 延续已有安全规则
-
-- `>` 自动改写为 `》`
-- `<` 自动改写为 `《`
-- iframe `title` 继续走 HTML 属性安全清洗
-- front matter 继续保持 YAML 安全过滤
-
-### 4. 文档同步更新
-
-- `README.md`
-- `SKILL.md`
-- 增补”合格文章规则（默认内置）”说明
-
----
-
-## 默认内置规则
-
-- 不生成”这个教程”之类占位文案
-- 不重复生成 `## 参考链接`
-- iframe `title` 自动做安全清洗，避免 Hexo 渲染失败
-- 标题和描述中的 `<` / `>` 自动改写为 `《` / `》`
-- front matter 默认包含 `description`、`keywords`、`cover`、`thumbnail`
-
----
-
-## 影响范围
-
-- `youtube-to-blog-post/scripts/youtube_to_post.py`
-- `youtube-to-blog-post/README.md`
-- `youtube-to-blog-post/SKILL.md`
-- `youtube-to-blog-post/CHANGELOG.md`
-
----
-
-## 验证目标
-
-- 生成文章中不再出现”这个教程”
-- 文章中只保留一组 `## 参考链接`
-- iframe `title` 安全且可渲染
-- Hexo 生成阶段不因标题特殊字符而报错
-
----
-
-# v3.5 Changelog - YouTube 元数据字符修复版
-
-**版本**: 3.5
-**发布日期**: 2026-03-27
-**类型**: 关键修复
-
----
-
-## 概述
-
-修复了 YouTube 标题和详情里的尖括号字符导致发布失败或内容失真的问题。
-
-**核心规则：** 标题/详情中的 `>` 自动改写成 `》`，`<` 自动改写成 `《`，避免上传和博客生成阶段再次出现非法字符问题。
-
----
-
-## 修复内容
-
-### 1. 新增 `normalize_youtube_text()`
-
-统一在抓取视频信息后先做 YouTube 文本标准化：
-- `>` → `》`
-- `<` → `《`
-- 统一换行格式
-
-### 2. YAML 清洗逻辑调整
-
-不再直接删除 `>`，而是先做字符改写，再执行 YAML 安全过滤，保留原始语义。
-
-### 3. 正文生成修复
-
-- 保留真实视频标题，避免被 humanizer 改成“这个教程”
-- 避免生成重复的“参考链接”区块
-- 博客正文优先使用最新 YouTube 详情内容
-
-### 4. 二次修复
-
-- 删除文章末尾重复的“参考链接”区块
-- 修复 humanizer 误把 `视频标题` 改写成“这个教程”的问题
-
----
-
-## 影响范围
-
-- `youtube-to-blog-post/scripts/youtube_to_post.py`
-- 文章 front matter
-- 正文详情提取
-- iframe title 安全处理
-
----
-
-## 验证案例
-
-| 输入 | 输出 |
-|------|------|
-| `Bybit 充值 > 加密货币 > USDT` | `Bybit 充值 》 加密货币 》 USDT` |
-| `A < B` | `A 《 B` |
-
----
-
-
-**版本**: 3.4
-**发布日期**: 2026-03-21
-**类型**: 关键修复
-
----
-
-## 概述
-
-修复了 iframe title 属性中包含特殊字符导致 Hexo 渲染失败的严重问题。
-
-**核心问题：** 中文引号导致 HTML 解析错误，生成的 index.html 文件为空（0B），页面显示空白。
-
----
-
-## 问题描述
-
-### 症状
-- 生成的 `index.html` 文件大小为 0B
-- Hexo 部署后页面空白
-- 控制台错误：`ERROR Render HTML failed: Parse Error`
-
-### 根本原因
-iframe 标签的 title 属性中包含中文引号（`"` `"`），导致 HTML 解析器无法正确闭合属性值。
-
-**错误示例：**
-```html
-<!-- ❌ 错误：title 中包含引号 -->
-<iframe title="苹果 AppID...拒绝"无法完成购买"！" ...>
-```
-
-解析器将 `拒绝"` 视为属性值结束，导致后续内容解析失败。
-
----
-
-## 解决方案
-
-### 新增函数：`sanitize_for_html_attribute()`
-
-**功能：** 清理 HTML 属性值中的危险字符
-
-**处理内容：**
-1. **移除所有类型的引号**
-   - 中文引号：`"` `"` `「` `」` `『` `』` `《` `》` `【` `】`
-   - 英文引号：`"` `'` `` ` ``
-
-2. **移除 HTML 特殊字符**
-   - `<` `>` `&` 等保留字符
-
-3. **智能截断**
-   - 默认限制 100 字符
-   - 在单词边界处截断，保持可读性
-
-**代码实现：**
+**新增 `normalize_tag(tag)` 函数：**
 ```python
-def sanitize_for_html_attribute(text, max_length=100):
-    """
-    Sanitize text for HTML attributes (e.g., iframe title)
-    Remove characters that can break HTML parsing
-    """
-    if not text:
-        return ""
-
-    # Remove all types of quotes
-    text = re.sub(r'[""\'`「」『』《》【】]', '', text)
-
-    # Remove other HTML special characters
-    text = re.sub(r'[<>&]', '', text)
-
-    # Collapse multiple spaces
-    text = re.sub(r'\s+', ' ', text)
-
-    # Trim and limit length
-    text = text.strip()
-    if len(text) > max_length:
-        text = text[:max_length].rsplit(' ', 1)[0]
-
-    return text
+def normalize_tag(tag):
+    """将任意标签变体映射到标准标签"""
+    for standard, variants in STANDARD_TAGS.items():
+        for v in variants:
+            if tag.lower() == v.lower():
+                return standard
+    return tag  # 新标签保留原样
 ```
 
-### 修改点
+**效果：**
+- `ai工具` → `AI工具`
+- `telegram` → `Telegram`
+- `免费VPS` → `VPS`
+- `虚拟信用卡` → `信用卡`
 
-**文件：** `youtube_to_post.py`
+### 3. 标签生成规则
 
-**修改位置：** iframe 标签生成（约第469行）
+| 规则 | 说明 |
+|------|------|
+| 优先复用 | 从标准标签表选择，禁止随意创建新标签 |
+| 数量控制 | 每篇 3-5 个标签 |
+| 命名规范 | 中文为主，不含特殊字符 |
+| 禁止双语 | 不写 `海外应用-Foreign-Apps` |
+| 禁止细分 | 不写 `免费VPS`，用 `VPS` |
+
+---
+
+## 改进内容
+
+### SKILL.md 更新
+
+- 新增「标签管理规则」章节
+- 新增标准标签表（完整 67 个标签）
+- 新增标签选择逻辑流程图
+- 新增禁止标签格式示例
+
+### youtube_to_post.py 更新
+
+- 新增 `STANDARD_TAGS` 常量（67 个标准标签及其变体）
+- 新增 `normalize_tag()` 函数
+- 标签生成时自动标准化
+
+---
+
+## 标签整理统计
+
+| 指标 | 整理前 | 整理后 | 变化 |
+|------|--------|--------|------|
+| 唯一标签数 | 425 | 67 | -84% |
+| 仅1篇文章使用的标签 | ~250 | 6 | -97% |
+| 重复/同义标签 | ~100 | 0 | -100% |
+| 中英双语标签 | ~40 | 0 | -100% |
+
+---
+
+## 兼容性
+
+- ✅ 向后兼容 v3.1 的所有功能
+- ✅ 命令行参数不变
+- ✅ 配置文件格式不变
+- ✅ 生成的文章格式不变（仅标签更规范）
+
+---
+
+**版本**: 3.2.0
+**更新日期**: 2026-04-19
+
+---
+
+# v3.1 Changelog - 本地配置 + 自动部署版
+
+**版本**: 3.1
+**发布日期**: 2026-02-13
+**类型**: 功能更新
+
+---
+
+## 概述
+
+本次更新添加了**本地配置文件支持**和**自动 Git 部署功能**，使博客生成流程更加自动化和便捷。
+
+**核心目标：** 一次配置，自动生成并部署博客文章
+
+---
+
+## 新增功能
+
+### 1. 本地配置文件 (~/.youtube-blog-config.json)
+
+**问题：** 之前每次运行都需要指定博客路径，不够便捷。
+
+**解决方案：**
+- 支持在用户主目录创建配置文件 `~/.youtube-blog-config.json`
+- 配置文件**不会被提交到 Skills 的 git 仓库**
+- 优先级最高，覆盖其他配置方式
+
+**配置文件格式：**
+```json
+{
+  "blog_dir": "/path/to/your/blog",
+  "posts_dir": "source/_posts",
+  "default_category": "技术",
+  "default_tags": ["视频教程"],
+  "author": "M.",
+  "image_cdn": "https://img.869hr.uk",
+  "auto_deploy": true,
+  "deploy_branch": "main"
+}
+```
+
+**配置优先级：**
+1. `~/.youtube-blog-config.json` (本地用户配置)
+2. `--config` 指定的配置文件
+3. 博客目录下的 `youtube-blog-config.json`
+
+### 2. 自动 Git 部署
+
+**问题：** 生成文章后需要手动提交和推送代码。
+
+**解决方案：**
+- 新增 `--deploy` 参数，自动执行 git 操作
+- 配置文件支持 `auto_deploy` 选项，默认启用自动部署
+- 自动执行：git add → git commit → git push
+
+**部署流程：**
+```bash
+# 自动部署
+python scripts/youtube_to_post.py "URL" --deploy
+
+# 或在配置文件中设置 auto_deploy: true
+python scripts/youtube_to_post.py "URL"  # 自动部署
+```
+
+### 3. 改进的配置加载
+
+**配置文件搜索路径：**
+```python
+# 优先级 1: 用户主目录配置（个人设置）
+~/.youtube-blog-config.json
+
+# 优先级 2: 命令行指定的配置
+--config /path/to/config.json
+
+# 优先级 3: 博客目录配置
+/blog/dir/youtube-blog-config.json
+```
+
+---
+
+## 改进内容
+
+### 1. 博客路径自动识别
 
 **之前：**
-```python
-video_iframe = f"""## 视频教程
-
-<iframe ... title="{title}" ...>
+```bash
+# 每次都需要指定博客路径
+python scripts/youtube_to_post.py "URL" -b /path/to/blog
 ```
 
 **之后：**
+```bash
+# 配置一次，自动使用
+python scripts/youtube_to_post.py "URL"
+```
+
+### 2. 命令行参数
+
+**新增参数：**
+```bash
+--deploy    # 自动部署到 git 仓库
+```
+
+### 3. 输出信息优化
+
+**新的输出示例：**
+```
+📹 Video: 标题
+👤 Uploader: 作者
+📂 Blog: /Users/m/document/QNSZ/project/Hexo-BLog/myblog
+📝 Filename: post-name.md
+🔄 Applying AI writing removal...
+✅ Content humanized
+✅ Blog post created: /path/to/post.md
+
+🚀 Auto-deploying to git...
+📤 Adding changes to git...
+💾 Committing changes...
+🚀 Pushing to remote...
+✅ Successfully pushed to git repository
+```
+
+---
+
+## 技术细节
+
+### 新增函数
+
+#### `deploy_to_git(blog_dir, branch='main')`
+
+**功能：** 自动执行 git 操作
+
+**流程：**
+1. 检查是否为 git 仓库
+2. 执行 `git add .`
+3. 检查是否有更改需要提交
+4. 执行 `git commit -m "docs: add new blog post"`
+5. 执行 `git push origin <branch>`
+
+### 配置加载逻辑更新
+
 ```python
-# Sanitize title for HTML attribute to prevent parsing errors
-safe_title = sanitize_for_html_attribute(title)
-video_iframe = f"""## 视频教程
+def load_config(config_path=None, blog_dir=None):
+    # 优先级 1: 用户主目录配置
+    home_config = os.path.expanduser("~/.youtube-blog-config.json")
+    if os.path.exists(home_config):
+        config.update(json.load(open(home_config)))
 
-<iframe ... title="{safe_title}" ...>
+    # 优先级 2: 命令行配置
+    if config_path and os.path.exists(config_path):
+        config.update(json.load(open(config_path)))
+
+    # 优先级 3: 博客目录配置
+    elif blog_dir:
+        blog_config = os.path.join(blog_dir, "youtube-blog-config.json")
+        if os.path.exists(blog_config):
+            config.update(json.load(open(blog_config)))
 ```
 
 ---
 
-## 测试验证
+## 使用示例
 
-### 测试用例
+### 基本用法（使用本地配置）
 
-| 输入 | 输出 | 结果 |
-|------|------|------|
-| `拒绝"无法完成购买"` | `拒绝无法完成购买` | ✅ 引号已移除 |
-| `Test "quotes" in title` | `Test quotes in title` | ✅ 引号已移除 |
-| `包含《书名号》的标题` | `包含书名号的标题` | ✅ 书名号已移除 |
-| 长标题（>100字符） | 截断至95字符 | ✅ 智能截断 |
+```bash
+# 1. 创建配置文件
+cat > ~/.youtube-blog-config.json << EOF
+{
+  "blog_dir": "/Users/m/document/QNSZ/project/Hexo-BLog/myblog",
+  "auto_deploy": true
+}
+EOF
 
-### 实际案例
-
-**原视频标题：**
-```
-苹果 AppID 充值或者Apple Gift Card 购买失败？Apple ID 风控？联系客服 100% 解锁教程！拒绝"无法完成购买"！
-```
-
-**处理后的 iframe title：**
-```
-苹果 AppID 充值或者Apple Gift Card 购买失败？Apple ID 风控？联系客服 100% 解锁教程！拒绝无法完成购买！
+# 2. 直接运行，自动使用配置
+python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
+  "https://youtu.be/VIDEO_ID"
 ```
 
-**结果：**
-- ✅ 生成的 HTML 文件大小正常（31KB）
-- ✅ Hexo 渲染成功
-- ✅ 页面正常显示
+### 手动指定部署
+
+```bash
+python scripts/youtube_to_post.py "URL" --deploy
+```
+
+### 查看部署信息
+
+```bash
+# 自动部署时会显示详细过程
+python scripts/youtube_to_post.py "URL"
+
+# 输出：
+# 🚀 Auto-deploying to git...
+# 📤 Adding changes to git...
+# 💾 Committing changes...
+# 🚀 Pushing to remote...
+# ✅ Successfully pushed to git repository
+```
 
 ---
 
-## 影响范围
+## 兼容性
 
-### 受影响的功能
-- YouTube 视频转博客文章
-- iframe 标签生成
-- Hexo 静态文件生成
-
-### 不受影响的功能
-- 其他所有功能（仅修改 iframe title 生成逻辑）
-- SEO 优化（标题在文章 H1/H2 中保持原样）
+- ✅ 向后兼容 v3.0 的所有功能
+- ✅ 配置文件格式向下兼容
+- ✅ 命令行参数向后兼容
+- ✅ 不使用配置文件时行为与之前相同
 
 ---
 
-## 最佳实践
+## 已知问题
 
-### HTML 属性安全规则
+### 1. Git 配置要求
 
-1. **总是使用转义函数**
-   ```python
-   # ✅ 正确
-   safe_title = sanitize_for_html_attribute(title)
+**问题：** 需要预先配置好 git 用户信息和远程仓库。
 
-   # ❌ 错误
-   title = video_info['title']  # 可能包含特殊字符
-   ```
+**解决方案：**
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"
+```
 
-2. **保持属性简洁**
-   - iframe title 建议长度 < 100 字符
-   - 完整标题放在文章 H1/H2 中
+### 2. SSH 密钥
 
-3. **避免的字符**
-   - 所有类型的引号
-   - HTML 保留字符（`<` `>` `&`）
-   - 其他可能影响解析的字符
+**问题：** 如果使用 SSH 方式推送，需要配置 SSH 密钥。
 
-### 部署检查清单
-
-**部署前：**
-- [ ] 检查生成的 HTML 文件大小 > 0
-- [ ] 查看 `hexo generate` 是否有错误
-- [ ] 确认没有 `Parse Error` 警告
-
-**部署后：**
-- [ ] 访问文章 URL 确认非空白
-- [ ] 检查视频 iframe 正常显示
-- [ ] 验证自定义域名访问正常
+**解决方案：** 确保 SSH 密钥已添加到 GitHub/GitLab。
 
 ---
 
-## 相关链接
+## 未来规划
 
-- **问题报告：** https://869hr.uk/2026/tech/appid-apple-gift-card-id-100-tutorial/ 空白页问题
-- **修复提交：** 2026-03-21 23:30
+### v3.2 计划
+
+- [ ] 支持自动部署到 Hexo（hexo cl && hexo g && hexo d）
+- [ ] 支持配置多个博客目录
+- [ ] 添加部署前钩子（pre-deploy hooks）
+
+### v4.0 计划
+
+- [ ] AI 分析视频音频内容
+- [ ] 自动生成结构化摘要（TOC）
+- [ ] 多语言支持
+
+---
+
+## 贡献
+
+本次更新由用户反馈驱动：
+
+- 本地配置文件的需求
+- 自动部署功能的需求
+- 简化工作流程的需求
+
+---
+
+**版本**: 3.1
+**更新日期**: 2026-02-13
+**维护者**: YouTube to Blog Post Team
 
 ---
 
