@@ -371,6 +371,9 @@ async function uploadVideo(
     }
   }
 
+  if (!response) {
+    throw new Error("Upload failed after all retries");
+  }
   const videoId = response.data.id!;
   const videoUrl = `https://youtu.be/${videoId}`;
 
