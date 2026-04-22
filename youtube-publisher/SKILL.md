@@ -188,3 +188,18 @@ On success, returns:
 - Title max: 100 characters
 - Description max: 5,000 characters
 - Tags max: 500 characters total
+
+## Changelog
+
+### v1.1 - Resumable Upload + Retry (2026-04-22)
+
+- Fixed EPIPE error on large file uploads by switching to resumable upload with progress tracking
+- Added automatic retry (up to 3 attempts) for transient network errors (EPIPE, ETIMEDOUT, ECONNRESET)
+- Added upload progress logging (every 10%)
+- Added `media.mimeType` for better upload compatibility
+
+### v1.0 - Initial Release
+
+- Basic video upload with metadata
+- Thumbnail, subtitle, playlist support
+- OAuth2 authentication

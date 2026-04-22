@@ -329,14 +329,47 @@ async function uploadVideo(
 
   console.log("\nUploading... (this may take a while for large files)");
 
-  // Upload video
-  const response = await youtube.videos.insert({
-    part: ["snippet", "status"],
-    requestBody: videoMetadata,
-    media: {
-      body: fs.createReadStream(options.video),
-    },
-  });
+  // Upload video with resumable upload for better reliability
+  const maxRetries = 3;
+  let response;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      response = await youtube.videos.insert(
+        {
+          part: ["snippet", "status"],
+          requestBody: videoMetadata,
+          media: {
+            mimeType: "video/mp4",
+            body: fs.createReadStream(options.video),
+          },
+        },
+        {
+          onUploadProgress: (evt: { bytesRead: number }) => {
+            const progress = (evt.bytesRead / stats.size) * 100;
+            if (progress % 10 < 1 || progress >= 99.9) {
+              console.log(`Upload progress: ${progress.toFixed(1)}%`);
+            }
+          },
+        }
+      );
+      break;
+    } catch (err: any) {
+      const isRetryable =
+        err.message?.includes("EPIPE") ||
+        err.message?.includes("ETIMEDOUT") ||
+        err.message?.includes("ECONNRESET") ||
+        err.message?.includes("socket hang up");
+      if (isRetryable && attempt < maxRetries) {
+        console.log(
+          `\nUpload failed (attempt ${attempt}/${maxRetries}): ${err.message}`
+        );
+        console.log(`Retrying in ${attempt * 5} seconds...`);
+        await new Promise((r) => setTimeout(r, attempt * 5000));
+      } else {
+        throw err;
+      }
+    }
+  }
 
   const videoId = response.data.id!;
   const videoUrl = `https://youtu.be/${videoId}`;
