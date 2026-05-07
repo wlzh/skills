@@ -328,6 +328,24 @@ text-to-speech script.txt --voice female_3
 
 ---
 
+## 📦 相关项目
+
+### prd-manager
+统一管理和生成版本化需求文档的 Skill 工具，辅助 Vibe Coding 提升开发准确性。
+
+**核心能力**：
+- 📝 完整文档链路 - PRD、设计、开发、计划、运维、测试、变更日志、AI 协作
+- 🔄 语义化版本管理 - 自动识别变更类型并更新版本号
+- ✅ 测试驱动开发 - 强制代码变更同步更新测试
+- 🚀 运维自动化 - 部署、监控、故障排查、回滚流程
+- 📊 事故记录与复盘 - 沉淀经验、防止重复发生
+
+**版本**: v2.0.0
+
+**仓库地址**：[wlzh/prd-manager](https://github.com/wlzh/prd-manager)
+
+---
+
 ## 📝 License
 
 MIT License - 查看 [LICENSE](./LICENSE) 文件了解详情。
