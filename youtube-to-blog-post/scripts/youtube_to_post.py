@@ -12,7 +12,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 import subprocess
-
+import shutil
 try:
     import yt_dlp
 except ImportError:
@@ -456,9 +456,22 @@ def generate_post_content(video_info, config, category, tags):
         if normalized not in tag_list:
             tag_list.append(normalized)
 
-    # Build cover image URL from YouTube thumbnail
-    # Use high-quality thumbnail (maxresdefault)
-    cover_image = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+    # Build cover image URL with 3-level fallback:
+    # 1. Local custom thumbnail (if provided via --thumbnail arg)
+    # 2. YouTube maxresdefault.jpg (if accessible)
+    # 3. YouTube sddefault.jpg (always available fallback)
+    local_thumbnail = config.get('local_thumbnail', '')
+    maxres_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+    sd_url = f"https://img.youtube.com/vi/{video_id}/sddefault.jpg"
+
+    if local_thumbnail:
+        cover_image = local_thumbnail
+    else:
+        try:
+            resp = requests.head(maxres_url, timeout=5, allow_redirects=True)
+            cover_image = maxres_url if resp.status_code == 200 else sd_url
+        except Exception:
+            cover_image = sd_url
 
     # Build front matter with SEO fields
     front_matter = f"""---
@@ -488,7 +501,7 @@ copyright: true
     # Generate video iframe with SEO attributes
     video_iframe = f"""## 视频教程
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/{video_id}" title="{title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div class="video-container"><iframe src="https://www.youtube.com/embed/{video_id}" title="{title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
 
 """
 
@@ -821,6 +834,7 @@ def main():
     parser.add_argument('--dry-run', action='store_true', help='Generate content but don\'t save')
     parser.add_argument('--no-humanizer', action='store_true', help='Skip AI writing removal (humanizer)')
     parser.add_argument('--deploy', action='store_true', help='Auto deploy to git after saving post')
+    parser.add_argument('--thumbnail', help='Local custom thumbnail image path (copied to blog source/images/)')
 
     args = parser.parse_args()
 
@@ -853,6 +867,20 @@ def main():
     video_id = extract_video_id(args.url) or video_info['id']
     filename = generate_english_filename(video_info['title'], video_id)
     print(f"📝 Filename: {filename}.md")
+
+    # Handle local thumbnail: copy to blog source/images/ if provided
+    if args.thumbnail and blog_dir:
+        thumb_src = os.path.expanduser(args.thumbnail)
+        if os.path.isfile(thumb_src):
+            thumb_name = f"{filename}-cover{os.path.splitext(thumb_src)[1]}"
+            images_dir = os.path.join(blog_dir, 'source', 'images')
+            os.makedirs(images_dir, exist_ok=True)
+            thumb_dst = os.path.join(images_dir, thumb_name)
+            shutil.copy2(thumb_src, thumb_dst)
+            config['local_thumbnail'] = f"/images/{thumb_name}"
+            print(f"🖼️ Thumbnail copied: source/images/{thumb_name}")
+        else:
+            print(f"⚠️ Thumbnail not found: {thumb_src}, falling back to YouTube thumbnail")
 
     # Generate post content
     content = generate_post_content(video_info, config, args.category, args.tags)
