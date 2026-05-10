@@ -1,7 +1,7 @@
 ---
 name: youtube-to-blog-post
 description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, and optimized metadata. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
-version: 3.2.0
+version: 3.3.0
 ---
 
 # YouTube to Blog Post - SEO 优化版
@@ -14,7 +14,7 @@ version: 3.2.0
 - ✅ **自动 YAML 安全过滤** - 100% 部署成功，无特殊字符错误
 - ✅ **描述优化** - 自动生成 160 字符内的高质量描述
 - ✅ **智能关键词** - 自动提取 5-8 个高价值关键词
-- ✅ **封面图** - 自动使用 YouTube 高清缩略图
+- ✅ **封面图** - 三级回退：本地自定义封面 → YouTube maxresdefault → sddefault
 - ✅ **长尾词覆盖** - 自动添加同义词和相关词
 - ✅ **内部链接** - 自动添加相关推荐链接
 - ✅ **结构化内容** - H1-H3 层次清晰，利于 SEO
@@ -54,7 +54,7 @@ python scripts/youtube_to_post.py "https://www.youtube.com/watch?v=VIDEO_ID"
 1. ✅ 获取视频信息（标题、描述、时长、缩略图）
 2. ✅ 生成 SEO 优化的描述（≤160 字符）
 3. ✅ 提取高质量关键词（5-8 个）
-4. ✅ 添加 YouTube 封面图
+4. ✅ 自动选择最佳封面图（三级回退）
 5. ✅ 从描述提取真实内容（亮点、代码示例）
 6. ✅ 创建英文文件名（kebab-case）
 7. ✅ 生成结构化文章内容
@@ -176,14 +176,7 @@ copyright: true
 ### 视频嵌入（SEO 优化）
 
 ```html
-<iframe width="560" height="315"
-        src="https://www.youtube.com/embed/VIDEO_ID"
-        title="详细描述视频内容"  # ✅ Alt 文本优化
-        frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media;
-               gyroscope; picture-in-picture; web-share"
-        referrerpolicy="strict-origin-when-cross-origin"
-        allowfullscreen></iframe>
+<div class="video-container"><iframe src="https://www.youtube.com/embed/VIDEO_ID" title="详细描述视频内容" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
 ```
 
 ### 文章结构（层次清晰）
@@ -276,10 +269,27 @@ hexo cl && hexo g && hexo d
 | `--dry-run` | 预览模式，不保存 | `--dry-run` |
 | `--no-humanizer` | 跳过 AI 写作去除 | `--no-humanizer` |
 | `--deploy` | 自动部署到 git | `--deploy` |
+| `--thumbnail` | 本地封面图路径（自动复制到 blog source/images/） | `--thumbnail /path/to/cover.jpg` |
 
 **注意**:
 - 默认启用自动去 AI 化（humanizer），使用 `--no-humanizer` 可跳过此步骤
 - 可在配置文件中设置 `auto_deploy: true` 启用自动部署
+
+### 封面图三级回退（v3.3 新增）
+
+生成文章时，cover/thumbnail 按以下优先级选择：
+
+1. **本地自定义封面图** — 传 `--thumbnail /path/to/cover.jpg`，自动复制到 `source/images/`，最稳定可靠
+2. **YouTube maxresdefault.jpg** — 未传 `--thumbnail` 时，HEAD 检查 maxresdefault 是否可访问（200）
+3. **YouTube sddefault.jpg** — maxresdefault 返回 404 时的兜底方案
+
+```bash
+# 推荐：带本地封面图（Twitter 缩略图一定可用）
+python scripts/youtube_to_post.py "URL" -b /path/to/blog --thumbnail /path/to/cover.jpg
+
+# 不带封面图：自动回退到 YouTube 缩略图
+python scripts/youtube_to_post.py "URL" -b /path/to/blog
+```
 
 ## 🌐 支持的 URL 格式
 
@@ -477,6 +487,12 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ## 🆕 更新日志
 
+### v3.3 - 封面图三级回退版 (2026-05-10)
+
+- ✅ **三级回退逻辑** - 本地封面图 → YouTube maxresdefault → sddefault，确保 Twitter 缩略图始终可用
+- ✅ **`--thumbnail` 参数** - 传入本地封面图自动复制到 `source/images/`
+- ✅ **iframe 响应式** - 使用 `video-container` 包裹，不再写死 560x315
+
 ### v3.2 - 标签管理规范版 (2026-04-19)
 
 - ✅ **标准标签表** - 定义 67 个标准标签，覆盖所有博客内容分类
@@ -523,6 +539,6 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ---
 
-**版本**: 3.2.0 Tag Management
-**更新日期**: 2026-04-19
+**版本**: 3.3.0 Cover Image Fallback
+**更新日期**: 2026-05-10
 **状态**: ✅ 已测试并上线
