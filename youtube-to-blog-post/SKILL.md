@@ -1,7 +1,7 @@
 ---
 name: youtube-to-blog-post
 description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and canonical 5-8 keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
-version: 4.2.0
+version: 4.3.0
 ---
 
 # YouTube to Blog Post - SEO 优化版
@@ -77,7 +77,7 @@ cd /path/to/myblog
 # 生成文章 + 部署上线
 python ~/.claude/skills/youtube-to-blog-post/scripts/youtube_to_post.py \
   "YouTube_URL" && \
-  hexo cl && hexo g && hexo d
+  hexo g && hexo d
 ```
 
 ### 自定义选项
@@ -285,8 +285,11 @@ for url in $(cat youtube_urls.txt); do
   python scripts/youtube_to_post.py "$url"
 done
 
-# 部署
-hexo cl && hexo g && hexo d
+# 部署（增量编译，只生成变更文件）
+hexo g && hexo d
+
+# 如需全量重建（改了配置/主题时才用）
+# hexo cl && hexo g && hexo d
 ```
 
 ## 🔧 命令行参数
@@ -561,6 +564,14 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ## 🆕 更新日志
 
+### v4.3 - 增量部署优化版 (2026-05-12)
+
+- ✅ **增量编译部署** - 默认 `hexo g && hexo d`，跳过 `hexo cl`，只生成变更文件
+- ✅ **全量重建降级** - `hexo cl && hexo g && hexo d` 仅在改配置/主题时使用
+- ✅ **IndexNow 增量提交** - 只提交本次新增或修改的文章 URL，而非全部 140 篇
+- ✅ **IndexNow 容错** - git 不可用时自动回退到全量提交
+- ✅ **CLAUDE.md 同步更新** - 部署命令说明与实际流程对齐
+
 ### v4.2 - 合并版 (2026-05-12)
 
 - ✅ **封面图三级回退** - 本地自定义封面 → YouTube maxresdefault → sddefault
@@ -627,6 +638,6 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ---
 
-**版本**: 4.2.0 Merged Structured SEO + Metadata Injection
+**版本**: 4.3.0 Incremental Deploy Optimization
 **更新日期**: 2026-05-12
 **状态**: ✅ 已测试并上线

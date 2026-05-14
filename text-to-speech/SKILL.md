@@ -50,9 +50,9 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 使用 `--list-voices` 查看完整列表（102 个）。
 
 ### 推荐声音
-- `zf_094` - 女声（默认，自然温柔）
+- `zm_009` - 男声（默认）
+- `zf_094` - 女声（自然温柔）
 - `zf_001` - 女声
-- `zm_009` - 男声
 - `zm_050` - 男声
 
 ### 英文声音
