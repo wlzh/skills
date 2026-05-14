@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 通用图片生成 Skill
-支持多种 AI 模型（ModelScope、Gemini 等）
+支持多种 AI 模型（ModelScope、Gemini、RunningHub 等）
 可被其他 Skills 导入调用
 """
 
@@ -32,7 +32,7 @@ class ImageGenerator:
         初始化图片生成器
 
         Args:
-            api_type: API 类型 ("modelscope" 或 "gemini")
+            api_type: API 类型 ("modelscope"、"gemini" 或 "runninghub")
             config_path: 配置文件路径
         """
         self.api_type = api_type
@@ -65,6 +65,14 @@ class ImageGenerator:
                 "api_key": "",
                 "model": "gemini-2.0-flash",
                 "timeout": 60
+            },
+            "runninghub": {
+                "base_url": "https://www.runninghub.cn/openapi/v2",
+                "api_key": "",
+                "model": "rhart-image-n-g31-flash/text-to-image",
+                "timeout": 300,
+                "poll_interval": 5,
+                "resolution": "2k"
             },
             "output_dir": str(Path.home() / "Downloads/shell/work/generated_images"),
             "image_format": "jpg",
@@ -109,6 +117,10 @@ class ImageGenerator:
             )
         elif self.api_type == "gemini":
             return self._generate_gemini(
+                prompt, output_path, model, size, quality, style, timeout, max_retries
+            )
+        elif self.api_type == "runninghub":
+            return self._generate_runninghub(
                 prompt, output_path, model, size, quality, style, timeout, max_retries
             )
         else:
@@ -250,6 +262,136 @@ class ImageGenerator:
                 logger.error(f"❌ 轮询失败: {e}")
                 raise
 
+    def _size_to_aspect_ratio(self, size: str) -> str:
+        """Convert size string like '7680x4320' to aspect ratio like '16:9'."""
+        try:
+            w, h = map(int, size.lower().split("x"))
+            from math import gcd
+            g = gcd(w, h)
+            return f"{w // g}:{h // g}"
+        except Exception:
+            return "1:1"
+
+    def _generate_runninghub(
+        self,
+        prompt: str,
+        output_path: Optional[str] = None,
+        model: Optional[str] = None,
+        size: str = "1024x1024",
+        quality: str = "standard",
+        style: Optional[str] = None,
+        timeout: Optional[int] = None,
+        max_retries: int = 3
+    ) -> str:
+        """使用 RunningHub API 生成图片（文生图）"""
+
+        base_url = self.api_config.get("base_url", "https://www.runninghub.cn/openapi/v2").rstrip("/")
+        api_key = self.api_config.get("api_key")
+        model = model or self.api_config.get("model")
+        timeout = timeout or self.api_config.get("timeout", 300)
+        poll_interval = self.api_config.get("poll_interval", 5)
+        aspect_ratio = self._size_to_aspect_ratio(size)
+        resolution = self.api_config.get("resolution", "2k")
+
+        if not api_key:
+            raise ValueError("RunningHub API Key 未配置")
+
+        api_url = f"{base_url}/{model}"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        request_body = {
+            "prompt": prompt,
+            "aspectRatio": aspect_ratio,
+            "resolution": resolution,
+        }
+
+        logger.info(f"📝 开始生成图片: {prompt[:50]}...")
+        logger.info(f"   模型: {model}, 画面比例: {aspect_ratio} ({size}), 清晰度: {resolution}")
+
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    api_url,
+                    headers=headers,
+                    data=json.dumps(request_body, ensure_ascii=False).encode("utf-8"),
+                    timeout=30,
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                task_id = data.get("taskId")
+                status = (data.get("status") or "").upper()
+                if not task_id:
+                    raise RuntimeError(
+                        f"RunningHub 未返回 taskId。响应: {json.dumps(data, ensure_ascii=False)[:500]}"
+                    )
+
+                logger.info(f"✅ 任务已提交: {task_id} ({status})")
+                return self._poll_runninghub_task(
+                    task_id=task_id,
+                    headers=headers,
+                    base_url=base_url,
+                    timeout=timeout,
+                    poll_interval=poll_interval,
+                    output_path=output_path,
+                )
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"⚠️  生成失败，重试 ({attempt + 1}/{max_retries}): {e}")
+                    time.sleep(2)
+                else:
+                    raise
+
+    def _poll_runninghub_task(
+        self,
+        task_id: str,
+        headers: Dict[str, str],
+        base_url: str,
+        timeout: int,
+        poll_interval: int,
+        output_path: Optional[str] = None,
+    ) -> str:
+        """轮询 RunningHub 异步任务直到完成"""
+        start_time = time.time()
+        task_url = f"{base_url}/query"
+
+        while True:
+            elapsed = time.time() - start_time
+            if elapsed > timeout:
+                raise TimeoutError(f"RunningHub 生成超时 ({timeout}秒)")
+
+            result = requests.post(
+                task_url,
+                headers=headers,
+                data=json.dumps({"taskId": task_id}, ensure_ascii=False).encode("utf-8"),
+                timeout=30,
+            )
+            result.raise_for_status()
+            data = result.json()
+            status = (data.get("status") or "").upper()
+
+            if status == "SUCCESS":
+                results = data.get("results")
+                if results and isinstance(results, list) and len(results) > 0:
+                    image_url = results[0].get("url")
+                    if image_url:
+                        logger.info("✅ 图片生成成功")
+                        return self._save_image(image_url, output_path)
+                raise RuntimeError(
+                    f"RunningHub 任务成功但未返回图片: {json.dumps(data, ensure_ascii=False)[:500]}"
+                )
+
+            if status in {"FAILED", "FAIL", "ERROR", "CANCELLED", "CANCELED"}:
+                raise RuntimeError(
+                    f"RunningHub 任务失败: {json.dumps(data, ensure_ascii=False)[:500]}"
+                )
+
+            logger.info(f"⏳ RunningHub 生成中... ({elapsed:.0f}s, {status})")
+            time.sleep(poll_interval)
+
     def _generate_gemini(
         self,
         prompt: str,
@@ -357,7 +499,7 @@ def main():
     )
     parser.add_argument("prompt", help="图片描述")
     parser.add_argument("--output", help="输出路径")
-    parser.add_argument("--api-type", default="modelscope", help="API 类型 (modelscope/gemini)")
+    parser.add_argument("--api-type", default="modelscope", help="API 类型 (modelscope/gemini/runninghub)")
     parser.add_argument("--model", help="指定模型")
     parser.add_argument("--size", default="1024x1024", help="图片尺寸")
     parser.add_argument("--quality", default="standard", help="生成质量")

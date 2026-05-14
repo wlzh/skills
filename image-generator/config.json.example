@@ -15,6 +15,14 @@
     "size": "1024x1024",
     "quality": "standard"
   },
+  "runninghub": {
+    "base_url": "https://www.runninghub.cn/openapi/v2",
+    "api_key": "your-runninghub-api-key-here",
+    "model": "rhart-image-n-g31-flash/text-to-image",
+    "timeout": 300,
+    "poll_interval": 5,
+    "resolution": "2k"
+  },
   "output_dir": "~/Downloads/shell/work/generated_images",
   "image_format": "jpg",
   "quality": 95

@@ -1,6 +1,6 @@
 ---
 name: image-generator
-description: 通用图片生成 Skill，支持多种 AI 模型（ModelScope、Gemini 等），可被其他 Skills 调用
+description: 通用图片生成 Skill，支持多种 AI 模型（ModelScope、Gemini、RunningHub 等），可被其他 Skills 调用
 version: 1.1.0
 author: M.
 ---
@@ -11,10 +11,10 @@ author: M.
 
 ## 功能特性
 
-- 🎨 支持多种 AI 模型（ModelScope、Gemini 等）
+- 🎨 支持多种 AI 模型（ModelScope、Gemini、RunningHub 等）
 - 📦 可作为库被其他 Skills 导入调用
 - ⚙️ 灵活的配置系统
-- 🔄 异步任务支持（ModelScope）
+- 🔄 异步任务支持（ModelScope、RunningHub）
 - 💾 自动保存生成的图片
 - 🛡️ 错误处理和重试机制
 - 🧪 测试模式支持（无需 API Key）
@@ -29,6 +29,11 @@ python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat"
 
 # 指定 API 类型
 python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --api-type modelscope
+
+# RunningHub 文生图
+python3 ~/.claude/skills/image-generator/generate_image.py \
+  "一只金色的猫在阳光下打盹" \
+  --api-type runninghub
 
 # 指定输出路径
 python3 ~/.claude/skills/image-generator/generate_image.py "A golden cat" --output /path/to/image.jpg
@@ -64,6 +69,17 @@ image_path = generator.generate(
 print(f"图片已生成: {image_path}")
 ```
 
+```python
+# RunningHub 文生图示例
+from generate_image import ImageGenerator
+
+generator = ImageGenerator(api_type="runninghub")
+image_path = generator.generate(
+    prompt="一只金色的猫在阳光下打盹",
+    output_path="/path/to/output.jpg"
+)
+```
+
 ## 配置
 
 ### 首次使用配置
@@ -95,6 +111,14 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
     "size": "1024x1024",
     "quality": "standard"
   },
+  "runninghub": {
+    "base_url": "https://www.runninghub.cn/openapi/v2",
+    "api_key": "your-runninghub-api-key-here",
+    "model": "rhart-image-n-g31-flash/text-to-image",
+    "timeout": 300,
+    "poll_interval": 5,
+    "resolution": "2k"
+  },
   "output_dir": "~/Downloads/shell/work/generated_images",
   "image_format": "jpg",
   "quality": 95
@@ -104,7 +128,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 ### 配置参数说明
 
 **通用配置**：
-- `default_api`: 默认使用的 API（`modelscope` 或 `gemini`）
+- `default_api`: 默认使用的 API（`modelscope`、`gemini` 或 `runninghub`）
 - `output_dir`: 图片输出目录
 - `image_format`: 图片格式（`jpg`、`png`、`webp`）
 - `quality`: 图片质量（1-100）
@@ -124,6 +148,14 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 - `size`: 图片尺寸（如 `1024x1024`）
 - `quality`: 生成质量（`standard` 或 `high`）
 
+**RunningHub 配置**：
+- `base_url`: RunningHub OpenAPI 地址
+- `api_key`: RunningHub API Key
+- `model`: 使用的模型路径（如 `rhart-image-n-g31-flash/text-to-image`）
+- `timeout`: 请求超时时间（秒）
+- `poll_interval`: 轮询间隔（秒）
+- `resolution`: 默认分辨率（如 `2k`）
+
 **注意**：
 - `config.json` 包含敏感的 API Key，已被 `.gitignore` 忽略
 - 不要将包含真实 API Key 的配置文件提交到版本库
@@ -139,6 +171,10 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 ### Gemini
 - `gemini-3-pro-image-preview` - Gemini 3 Pro 图片生成
 - 其他 Gemini 支持的模型
+
+### RunningHub
+- `rhart-image-n-g31-flash/text-to-image` - 文生图（2K 分辨率）
+- 其他 RunningHub OpenAPI 兼容模型
 
 ## API 参数
 
@@ -240,6 +276,7 @@ def generate_article_cover(title):
 3. **生成时间**：
    - ModelScope 通常需要 10-30 秒
    - Gemini 通常需要 5-15 秒
+   - RunningHub 通常需要 15-30 秒
 
 4. **成本考虑**：
    - 某些 API 可能产生费用
