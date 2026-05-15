@@ -119,6 +119,23 @@ Kokoro TTS / Edge TTS 语音合成
 输出 MP3 文件
 ```
 
+## 代理绕过（重要）
+
+Kokoro TTS 运行在 `localhost:8880`。如果系统配置了 HTTP 代理（`http_proxy`/`https_proxy`），请求 localhost 会被代理拦截导致连接失败（curl 返回 HTTP 000）。
+
+**规则**：
+- Python 脚本已内置 `os.environ.setdefault("no_proxy", "localhost,127.0.0.1")`，通过脚本调用无需额外处理
+- 如果 AI 需要直接用 `curl` 测试或调用 Kokoro API，**必须**加 `--noproxy localhost,127.0.0.1` 或设置 `no_proxy=localhost,127.0.0.1`
+- 禁止不加代理绕过直接 curl localhost
+
+```bash
+# 正确：绕过代理
+curl --noproxy localhost,127.0.0.1 -X POST http://localhost:8880/v1/audio/speech ...
+
+# 错误：走了代理，返回 HTTP 000
+curl -X POST http://localhost:8880/v1/audio/speech ...
+```
+
 ## 依赖
 
 - Kokoro TTS: Docker（容器运行在 localhost:8880）
