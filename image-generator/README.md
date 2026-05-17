@@ -44,8 +44,8 @@ sys.path.insert(0, str(Path.home() / ".claude/skills/image-generator"))
 
 from generate_image import ImageGenerator
 
-# 创建生成器
-generator = ImageGenerator(api_type="modelscope")
+# 创建生成器（不传 api_type 时从 config.json 的 default_api 读取）
+generator = ImageGenerator()
 
 # 生成图片
 image_path = generator.generate(
@@ -69,7 +69,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 
 ```json
 {
-  "default_api": "gemini",
+  "default_api": "runninghub",
   "modelscope": {
     "base_url": "https://api-inference.modelscope.cn/",
     "api_key": "your-modelscope-token-here",
@@ -93,7 +93,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 
 ### 配置说明
 
-- `default_api`: 默认使用的 API（`modelscope` 或 `gemini`）
+- `default_api`: 默认使用的 API（`modelscope`、`gemini` 或 `runninghub`）
 - `modelscope.api_key`: ModelScope API Token（从 https://modelscope.cn 获取）
 - `gemini.api_key`: Google Gemini API Key（从 https://ai.google.dev 获取）
 - `gemini.model`: Gemini 模型名称（如 `gemini-3-pro-image-preview`）
@@ -181,7 +181,7 @@ python3 ~/.claude/skills/image-generator/examples.py --example 5
 
 ```python
 class ImageGenerator:
-    def __init__(self, api_type: str = "modelscope", config_path: Optional[Path] = None)
+    def __init__(self, api_type: Optional[str] = None, config_path: Optional[Path] = None)
 
     def generate(
         self,

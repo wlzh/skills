@@ -57,8 +57,8 @@ sys.path.insert(0, str(image_gen_path))
 
 from generate_image import ImageGenerator
 
-# 创建生成器实例
-generator = ImageGenerator(api_type="modelscope")
+# 创建生成器实例（不传 api_type 时从 config.json 的 default_api 读取）
+generator = ImageGenerator()
 
 # 生成图片
 image_path = generator.generate(
@@ -95,7 +95,7 @@ cp ~/.claude/skills/image-generator/config.json.example ~/.claude/skills/image-g
 
 ```json
 {
-  "default_api": "gemini",
+  "default_api": "runninghub",
   "modelscope": {
     "base_url": "https://api-inference.modelscope.cn/",
     "api_key": "your-modelscope-token-here",
