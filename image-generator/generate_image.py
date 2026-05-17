@@ -10,6 +10,7 @@ import time
 import json
 import sys
 import argparse
+import base64
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
@@ -27,16 +28,25 @@ logger = logging.getLogger(__name__)
 class ImageGenerator:
     """通用图片生成器"""
 
-    def __init__(self, api_type: str = "modelscope", config_path: Optional[Path] = None):
+    def __init__(self, api_type: Optional[str] = None, config_path: Optional[Path] = None):
         """
         初始化图片生成器
 
         Args:
-            api_type: API 类型 ("modelscope"、"gemini" 或 "runninghub")
+            api_type: API 类型 ("modelscope"、"gemini" 或 "runninghub")。
+                      为 None 时从 config.json 的 default_api 字段读取。
             config_path: 配置文件路径
         """
-        self.api_type = api_type
         self.config = self._load_config(config_path)
+        if api_type is None:
+            default = self.config.get("default_api")
+            if not default:
+                raise ValueError(
+                    "config.json 缺少 default_api 字段。请在配置文件中指定默认 API 类型，"
+                    "例如: \"default_api\": \"runninghub\""
+                )
+            api_type = default
+        self.api_type = api_type
         self.api_config = self.config.get(api_type, {})
 
         if not self.api_config:
@@ -47,37 +57,14 @@ class ImageGenerator:
         if config_path is None:
             config_path = Path.home() / ".claude/skills/image-generator/config.json"
 
-        if config_path.exists():
-            with open(config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        if not config_path.exists():
+            raise FileNotFoundError(
+                f"image-generator 配置文件不存在: {config_path}\n"
+                f"请创建配置文件，参考: {config_path}.example"
+            )
 
-        # 返回默认配置
-        return {
-            "default_api": "modelscope",
-            "modelscope": {
-                "base_url": "https://api-inference.modelscope.cn/",
-                "api_key": "",
-                "model": "Tongyi-MAI/Z-Image-Turbo",
-                "timeout": 300,
-                "poll_interval": 5
-            },
-            "gemini": {
-                "api_key": "",
-                "model": "gemini-2.0-flash",
-                "timeout": 60
-            },
-            "runninghub": {
-                "base_url": "https://www.runninghub.cn/openapi/v2",
-                "api_key": "",
-                "model": "rhart-image-n-g31-flash/text-to-image",
-                "timeout": 300,
-                "poll_interval": 5,
-                "resolution": "2k"
-            },
-            "output_dir": str(Path.home() / "Downloads/shell/work/generated_images"),
-            "image_format": "jpg",
-            "quality": 95
-        }
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
 
     def generate(
         self,
@@ -272,6 +259,135 @@ class ImageGenerator:
         except Exception:
             return "1:1"
 
+    def _gemini_image_size(self, size: str) -> str:
+        """Map concrete dimensions to Gemini image_size presets."""
+        try:
+            w, h = map(int, size.lower().split("x"))
+        except Exception:
+            return "IMAGE_SIZE_1K"
+
+        longest_edge = max(w, h)
+        if longest_edge >= 4096:
+            return "IMAGE_SIZE_4K"
+        if longest_edge >= 2048:
+            return "IMAGE_SIZE_2K"
+        return "IMAGE_SIZE_1K"
+
+    def _save_gemini_generated_image(self, generated_image: Any, output_path: Optional[str] = None) -> str:
+        """Save a google.genai GeneratedImage object."""
+        image_bytes = None
+        image = getattr(generated_image, "image", None)
+        if image is not None:
+            raw_bytes = getattr(image, "image_bytes", None)
+            if raw_bytes:
+                image_bytes = raw_bytes
+            else:
+                data = getattr(image, "data", None)
+                if data:
+                    try:
+                        image_bytes = base64.b64decode(data)
+                    except Exception:
+                        image_bytes = data if isinstance(data, (bytes, bytearray)) else None
+
+        if not image_bytes:
+            raise RuntimeError("Gemini 返回了结果，但未包含可保存的图片数据")
+
+        pil_image = Image.open(BytesIO(image_bytes))
+        return self._save_image_from_pil(pil_image, output_path)
+
+    def _save_gemini_content_response_image(self, response: Any, output_path: Optional[str] = None) -> str:
+        """Save image bytes from a Gemini generateContent response."""
+        candidates = getattr(response, "candidates", None) or []
+        for candidate in candidates:
+            content = getattr(candidate, "content", None)
+            parts = getattr(content, "parts", None) or []
+            for part in parts:
+                inline_data = getattr(part, "inline_data", None)
+                data = getattr(inline_data, "data", None) if inline_data is not None else None
+                if data:
+                    pil_image = Image.open(BytesIO(data))
+                    return self._save_image_from_pil(pil_image, output_path)
+        raise RuntimeError("Gemini generateContent 未返回可保存的图片数据")
+
+    def _generate_gemini(
+        self,
+        prompt: str,
+        output_path: Optional[str] = None,
+        model: Optional[str] = None,
+        size: str = "1024x1024",
+        quality: str = "standard",
+        style: Optional[str] = None,
+        timeout: Optional[int] = None,
+        max_retries: int = 3
+    ) -> str:
+        """使用 Gemini API 生成图片"""
+
+        api_key = self.api_config.get("api_key")
+        model = model or self.api_config.get("model")
+        timeout = timeout or self.api_config.get("timeout", 60)
+
+        if not api_key:
+            raise ValueError("Gemini API Key 未配置")
+
+        if not model:
+            raise ValueError("Gemini 模型未配置")
+
+        normalized_model = model if str(model).startswith("models/") else f"models/{model}"
+        use_generate_images = "imagen" in normalized_model.lower()
+        use_generate_content_image = not use_generate_images
+
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=api_key)
+        aspect_ratio = self._size_to_aspect_ratio(size)
+        image_size = self._gemini_image_size(size)
+        output_mime_type = "image/png" if str(output_path or "").lower().endswith(".png") else "image/jpeg"
+        config = types.GenerateImagesConfig(
+            number_of_images=1,
+            aspect_ratio=aspect_ratio,
+            output_mime_type=output_mime_type,
+            safety_filter_level="BLOCK_ONLY_HIGH",
+        )
+        if use_generate_images:
+            config.image_size = image_size
+
+        logger.info(f"📝 开始生成图片: {prompt[:50]}...")
+        logger.info(f"   模型: {normalized_model}, 画面比例: {aspect_ratio} ({size}), 输出尺寸档位: {image_size}")
+
+        for attempt in range(max_retries):
+            try:
+                if use_generate_images:
+                    response = client.models.generate_images(
+                        model=normalized_model,
+                        prompt=prompt,
+                        config=config,
+                    )
+                    generated_images = getattr(response, "generated_images", None) or []
+                    if not generated_images:
+                        raise RuntimeError("Gemini/Imagen 未返回 generated_images")
+                    logger.info("✅ 图片生成成功")
+                    return self._save_gemini_generated_image(generated_images[0], output_path)
+
+                if use_generate_content_image:
+                    response = client.models.generate_content(
+                        model=normalized_model,
+                        contents=f"Create an image: {prompt}\n\nReturn the image directly. Do not return a text prompt, explanation, or markdown.",
+                        config=types.GenerateContentConfig(response_modalities=["IMAGE"]),
+                    )
+                    logger.info("✅ 图片生成成功")
+                    return self._save_gemini_content_response_image(response, output_path)
+
+                raise RuntimeError("不支持的 Gemini 图片生成模式")
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"⚠️  生成失败，重试 ({attempt + 1}/{max_retries}): {e}")
+                    time.sleep(2)
+                else:
+                    raise
+
+
     def _generate_runninghub(
         self,
         prompt: str,
@@ -392,54 +508,6 @@ class ImageGenerator:
             logger.info(f"⏳ RunningHub 生成中... ({elapsed:.0f}s, {status})")
             time.sleep(poll_interval)
 
-    def _generate_gemini(
-        self,
-        prompt: str,
-        output_path: Optional[str] = None,
-        model: Optional[str] = None,
-        size: str = "1024x1024",
-        quality: str = "standard",
-        style: Optional[str] = None,
-        timeout: Optional[int] = None,
-        max_retries: int = 3
-    ) -> str:
-        """使用 Gemini API 生成图片"""
-
-        api_key = self.api_config.get("api_key")
-        model = model or self.api_config.get("model")
-        timeout = timeout or self.api_config.get("timeout", 60)
-
-        if not api_key:
-            raise ValueError("Gemini API Key 未配置")
-
-        import google.generativeai as genai
-
-        genai.configure(api_key=api_key)
-
-        logger.info(f"📝 开始生成图片: {prompt[:50]}...")
-        logger.info(f"   模型: {model}")
-
-        for attempt in range(max_retries):
-            try:
-                response = genai.ImageGenerationModel(model).generate_images(
-                    prompt=prompt,
-                    number_of_images=1,
-                    safety_filter_level="block_none",
-                    aspect_ratio="1:1",
-                    quality_tier="standard"
-                )
-
-                logger.info("✅ 图片生成成功")
-                image = response.images[0]
-                return self._save_image_from_pil(image, output_path)
-
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    logger.warning(f"⚠️  生成失败，重试 ({attempt + 1}/{max_retries}): {e}")
-                    time.sleep(2)
-                else:
-                    raise
-
     def _save_image(self, image_url: str, output_path: Optional[str] = None) -> str:
         """保存图片"""
 
@@ -486,7 +554,15 @@ class ImageGenerator:
 
         # 保存图片
         quality = self.config.get("quality", 95)
-        image.save(str(output_path), quality=quality)
+        save_kwargs = {}
+        if image.mode not in ("RGB", "RGBA"):
+            image = image.convert("RGB")
+        suffix = output_path.suffix.lower()
+        if suffix in {".jpg", ".jpeg"}:
+            if image.mode == "RGBA":
+                image = image.convert("RGB")
+            save_kwargs["quality"] = quality
+        image.save(str(output_path), **save_kwargs)
 
         logger.info(f"💾 图片已保存: {output_path}")
         return str(output_path)
@@ -499,7 +575,7 @@ def main():
     )
     parser.add_argument("prompt", help="图片描述")
     parser.add_argument("--output", help="输出路径")
-    parser.add_argument("--api-type", default="modelscope", help="API 类型 (modelscope/gemini/runninghub)")
+    parser.add_argument("--api-type", default=None, help="API 类型 (modelscope/gemini/runninghub)，未传时从 config.json 的 default_api 读取")
     parser.add_argument("--model", help="指定模型")
     parser.add_argument("--size", default="1024x1024", help="图片尺寸")
     parser.add_argument("--quality", default="standard", help="生成质量")

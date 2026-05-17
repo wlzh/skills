@@ -119,6 +119,11 @@ class TextToSpeech:
         print(f"   语速: {speed}")
         print(f"🔊 正在合成语音...")
 
+        # Bypass proxy for localhost Kokoro API — os.environ.setdefault("no_proxy")
+        # at module level is not always honored by requests when http_proxy is set.
+        is_local = "localhost" in api_url or "127.0.0.1" in api_url
+        proxies = {"http": "", "https": ""} if is_local else None
+
         try:
             resp = requests.post(
                 api_url,
@@ -130,6 +135,7 @@ class TextToSpeech:
                     "speed": speed,
                 },
                 timeout=120,
+                proxies=proxies,
             )
             resp.raise_for_status()
             with open(output_file, 'wb') as f:
