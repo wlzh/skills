@@ -1,7 +1,10 @@
 ---
 name: text-to-speech
 description: 文本转语音工具 - 支持 Edge TTS 和 Kokoro TTS (v1.1-zh) 双引擎，102 个中文音色
-version: 3.0.0
+version: 3.1.0
+changelog:
+  - 2026-05-17: v3.1.0 强化 localhost Kokoro 代理绕过规则——curl/requests 直连本地服务默认必须 NO_PROXY，不允许先走代理失败后重试
+
 author: M.
 ---
 
@@ -126,7 +129,8 @@ Kokoro TTS 运行在 `localhost:8880`。如果系统配置了 HTTP 代理（`htt
 **规则**：
 - Python 脚本已内置 `os.environ.setdefault("no_proxy", "localhost,127.0.0.1")`，通过脚本调用无需额外处理
 - 如果 AI 需要直接用 `curl` 测试或调用 Kokoro API，**必须**加 `--noproxy localhost,127.0.0.1` 或设置 `no_proxy=localhost,127.0.0.1`
-- 禁止不加代理绕过直接 curl localhost
+- 如果 AI 直接写 Python `requests.post("http://localhost:8880/...")`，必须设置 `proxies={"http": None, "https": None}`，或使用 `requests.Session(); session.trust_env = False`，并设置 `NO_PROXY/no_proxy=localhost,127.0.0.1,::1`
+- 禁止不加代理绕过直接 curl/requests localhost；不要先走代理失败再重试，localhost Kokoro 请求默认就必须绕过代理
 
 ```bash
 # 正确：绕过代理
