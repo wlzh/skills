@@ -1,8 +1,22 @@
 ---
 name: youtube-publisher
 description: "Upload and publish videos to YouTube with title, description, tags, thumbnail and subtitles. Use for: youtube upload, publish video, share on youtube."
+version: 1.0.1
 setup_complete: true
 setup: "./SETUP.md"
+changelog:
+  - 2026-05-23: v1.0.1 Strict Execution Rule — added "🔴 Strict Execution Rule (Highest Priority)" section to enforce exact script execution, no step skipping, and complete metadata validation
+---
+
+## 🔴 Strict Execution Rule (Highest Priority)
+
+Every instruction, step, and check in this SKILL.md must be **followed exactly as written** — no deviations allowed.
+
+- **Scripts must be actually executed**: The `youtube-upload.ts` script must be run with all required parameters. Do not simulate or manually construct API calls.
+- **Steps must not be skipped or merged**: Execute authentication, metadata sanitization, and upload in the defined order. Each step must succeed before the next begins.
+- **Checks must not be omitted**: All metadata validation (title ≤100 chars, description ≤5000 chars, tags ≤500 chars) and upload verification must be fully executed.
+- **Config must be read from files**: OAuth credentials and default settings must be read from the configured files. Do not hardcode.
+
 ---
 
 # YouTube Publisher
