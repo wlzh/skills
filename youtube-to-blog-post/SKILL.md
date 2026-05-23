@@ -1,8 +1,9 @@
 ---
 name: youtube-to-blog-post
 description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and canonical 5-8 keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
-version: 4.3.1
+version: 4.3.2
 changelog:
+  - 2026-05-23: v4.3.2 YAML 安全转义——新增 yaml_safe_string() 对 front matter 的 title/description 字段做双引号包裹+内部转义，防止 **bold** 和 [links] 被 YAML 误解析为 alias 或 sequence；iframe title 属性同步做 HTML 引号转义
   - 2026-05-23: v4.3.1 严格执行规则——新增「🔴 严格执行规则（最高优先级）」章节于 SKILL.md 顶部，强制 AI 严格按文档执行每一步、实跑 youtube_to_post.py 脚本、不跳过 SEO 优化步骤、部署后必须验证
 ---
 

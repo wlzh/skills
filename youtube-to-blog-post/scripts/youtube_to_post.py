@@ -116,6 +116,18 @@ STANDARD_TAGS = {
     'SEO': ['SEO', '搜索引擎优化'],
 }
 
+def yaml_safe_string(value: str) -> str:
+    """Wrap a string in double quotes and escape internal backslashes/quotes.
+
+    Prevents YAML from misinterpreting *, [, ], {, }, &, !, |, >, % as
+    YAML syntax tokens, aliases, anchors, or block scalars.
+    """
+    if not value:
+        return '""'
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 def normalize_tag(tag):
     """Normalize a tag to its standard form using the STANDARD_TAGS mapping."""
     tag_stripped = tag.strip()
@@ -693,12 +705,12 @@ def generate_post_content(video_info, config, category, tags):
 
     # Build front matter with SEO fields
     front_matter = f"""---
-title: {title}
-subtitle: {title}
+title: {yaml_safe_string(title)}
+subtitle: {yaml_safe_string(title)}
 date: {date_str}
 updated: {date_str}
 author: {config['author']}
-description: {post_description}
+description: {yaml_safe_string(post_description)}
 categories:
   - {category}
 {generate_tags_yaml(tag_list)}
@@ -719,7 +731,7 @@ copyright: true
     # Generate video iframe with responsive wrapper
     video_iframe = f"""## 视频教程
 
-<div class="video-container"><iframe src="https://www.youtube.com/embed/{video_id}" title="{title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+<div class="video-container"><iframe src="https://www.youtube.com/embed/{video_id}" title="{title.replace(chr(34), '&quot;')}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
 
 """
 
