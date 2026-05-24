@@ -16,6 +16,7 @@ Promo files location: temp/要共享的文件 (FID: 87b3b2740c284ada8e513d59ce81
 
 import argparse
 import asyncio
+import ast
 import json
 import sys
 from pathlib import Path
@@ -24,6 +25,23 @@ from typing import List
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "QuarkPanTool"))
 
 import httpx
+
+
+def parse_cookies(cookies_str: str) -> str:
+    """Parse cookies from either JSON or Python literal format."""
+    try:
+        # 尝试 JSON 格式
+        cookies_list = json.loads(cookies_str)
+    except json.JSONDecodeError:
+        try:
+            # 尝试 Python 字面量格式
+            cookies_list = ast.literal_eval(cookies_str)
+        except:
+            # 已经是字符串格式
+            return cookies_str.strip()
+    
+    # 转换为 cookie 字符串
+    return '; '.join([f"{c['name']}={c['value']}" for c in cookies_list])
 
 
 class QuarkPromoCopier:
@@ -128,9 +146,6 @@ class QuarkPromoCopier:
                     results["skipped"].append(name)
 
         return results
-                    results["skipped"].append(name)
-
-        return results
 
 
 async def copy_promo_files(batch_json_path: str, cookies: str, headers: dict = None) -> dict:
@@ -170,7 +185,8 @@ async def main():
         print(f"[ERROR] Cookies 文件不存在: {cookies_path}")
         return
     
-    cookies = cookies_path.read_text().strip()
+    cookies_raw = cookies_path.read_text().strip()
+    cookies = parse_cookies(cookies_raw)
 
     # 执行复制
     results = await copy_promo_files(args.batch_json, cookies)

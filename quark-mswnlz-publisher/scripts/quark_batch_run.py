@@ -27,7 +27,7 @@ from datetime import datetime
 from pathlib import Path
 
 # 自动加载 secrets.env（如果存在）
-SECRETS_ENV = Path(__file__).parent.parent.parent / "QuarkPanTool/config/secrets.env"
+SECRETS_ENV = Path(__file__).resolve().parent.parent.parent.parent / "QuarkPanTool" / "config" / "secrets.env"
 if SECRETS_ENV.exists():
     for line in SECRETS_ENV.read_text().splitlines():
         line = line.strip()
