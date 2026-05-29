@@ -148,15 +148,24 @@ def make_commit_message(items: List[str]) -> str:
     return "\n".join(lines)
 
 
-def send_telegram_group_notification(updated_repos: List[str], total_items: int):
+def send_telegram_group_notification(updated_repos: List[str], total_items: int, by_repo: Dict[str, List[Tuple[str, str]]], month: str):
     """发送统一的群组通知（只发一条）"""
     import urllib.parse
     
     if not updated_repos:
         return
     
+    # 构建资源列表
+    item_lines = []
+    for repo in updated_repos:
+        items = by_repo.get(repo, [])
+        for name, url in items:
+            item_lines.append(f"增加 {name}")
+    
     repos_str = "、".join(updated_repos)
-    text = f"📝 资源更新\n\n已更新仓库：{repos_str}\n共 {total_items} 项资源\n\n📦 https://t.me/dabaziyuan"
+    items_text = "\n\n".join(item_lines)
+    
+    text = f"📦 新增资源推送\n\n{items_text}\n\n已更新仓库：{repos_str}\n\n🔗 查看详情：https://doc.869hr.uk/{updated_repos[0]}/{month}\n🌐 资料总站：https://doc.869hr.uk\n📦 资料频道：https://t.me/dabaziyuan"
     
     for group in TELEGRAM_GROUPS:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -274,7 +283,7 @@ def main():
     # 统一发送群组通知（只发一条）
     if updated_repos:
         print(f"\n[TG] 发送群组汇总通知...")
-        send_telegram_group_notification(updated_repos, total_items)
+        send_telegram_group_notification(updated_repos, total_items, by_repo, args.month)
 
     # 触发网站更新
     if updated_repos:

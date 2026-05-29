@@ -5,11 +5,14 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.4.2
+**版本**: v1.4.3
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v1.4.3 (2026-05-29)
+- 🎨 统一群组通知格式：与频道通知风格对齐，包含资源名称、更新仓库、查看详情链接、资料总站、资料频道
 
 ### v1.4.2 (2026-03-15)
 - 🐛 修复：脚本启动时自动加载 `secrets.env` 环境变量，无需手动 export
@@ -189,7 +192,7 @@ export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
 
 ### 群组通知（tgmShare 话题5、tgmShareAI 话题2）
 - **批量更新只发一条汇总消息**
-- 包含：已更新仓库列表 + 资源数量 + 频道链接
+- 格式与频道风格对齐：📦 新增资源推送 + 资源名称 + 更新仓库 + 查看详情 + 资料总站 + 资料频道
 - 由 Skills 脚本统一发送，避免刷屏
 
 ### 夸克群组消息 🆕

@@ -17,6 +17,29 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
+
+/**
+ * Fetch URL using curl (respects system proxy)
+ */
+async function fetchWithCurl(url, timeoutMs = 8000) {
+  const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+  let cmd = `curl -s -m ${Math.ceil(timeoutMs / 1000)} "${url}"`;
+  
+  if (proxy) {
+    cmd = `curl -s -m ${Math.ceil(timeoutMs / 1000)} -x "${proxy}" "${url}"`;
+  }
+  
+  try {
+    const stdout = execSync(cmd, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
+    return { ok: true, text: () => Promise.resolve(stdout) };
+  } catch (err) {
+    if (err.status === null || err.status === undefined) {
+      throw new Error(`Timeout fetching ${url}`);
+    }
+    throw new Error(`HTTP ${err.status} fetching ${url}`);
+  }
+}
 
 const STATE_DIR = path.resolve(__dirname, '..', 'state');
 const CONFIG_PATH = path.join(STATE_DIR, 'config.json');
@@ -141,19 +164,13 @@ function parseRSS(xml) {
 /**
  * Fetch RSS feed for a channel
  */
-async function fetchChannelRSS(channelId) {
+async function fetchChannelRSS(channelId, timeoutMs = 8000) {
   const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
   
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; YouTube-RSS-Tracker/1.0)',
-      'Accept': 'application/xml, application/rss+xml, text/xml, */*'
-    }
-  });
+  const res = await fetchWithCurl(url, timeoutMs);
   
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} fetching RSS for ${channelId}`);
+    throw new Error(`HTTP fetching RSS for ${channelId}`);
   }
   
   const xml = await res.text();
@@ -363,38 +380,43 @@ async function main() {
 
     console.error(`检查 ${cfg.channels.length} 个频道...`);
 
-    for (const c of cfg.channels) {
-      try {
-        const vids = await fetchChannelRSS(c.channelId);
-        
-        for (const v of vids) {
-          if (seenSet.has(v.videoId)) continue;
+    // Process channels in batches of 5 to avoid overwhelming the network
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < cfg.channels.length; i += BATCH_SIZE) {
+      const batch = cfg.channels.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (c) => {
+        try {
+          const vids = await fetchChannelRSS(c.channelId);
+          
+          for (const v of vids) {
+            if (seenSet.has(v.videoId)) continue;
 
-          // Baseline filter: do not announce videos published before/at the time the channel was added.
-          if (c.addedAt && v.publishedAt) {
-            const added = Date.parse(c.addedAt);
-            const pub = Date.parse(v.publishedAt);
-            if (!Number.isNaN(added) && !Number.isNaN(pub) && pub <= added) {
-              seenSet.add(v.videoId);
-              newlySeen.push(v.videoId);
-              continue;
+            // Baseline filter: do not announce videos published before/at the time the channel was added.
+            if (c.addedAt && v.publishedAt) {
+              const added = Date.parse(c.addedAt);
+              const pub = Date.parse(v.publishedAt);
+              if (!Number.isNaN(added) && !Number.isNaN(pub) && pub <= added) {
+                seenSet.add(v.videoId);
+                newlySeen.push(v.videoId);
+                continue;
+              }
             }
+
+            seenSet.add(v.videoId);
+            newlySeen.push(v.videoId);
+
+            const chName = c.title || v.channelTitle || c.channelId;
+            const line = [
+              `频道：${chName}`,
+              `标题：${v.title}`,
+              `链接：${v.link || videoUrl(v.videoId)}`,
+            ].join('\n');
+            newLines.push(line);
           }
-
-          seenSet.add(v.videoId);
-          newlySeen.push(v.videoId);
-
-          const chName = c.title || v.channelTitle || c.channelId;
-          const line = [
-            `频道：${chName}`,
-            `标题：${v.title}`,
-            `链接：${v.link || videoUrl(v.videoId)}`,
-          ].join('\n');
-          newLines.push(line);
+        } catch (err) {
+          errors.push(`${c.title}: ${err.message}`);
         }
-      } catch (err) {
-        errors.push(`${c.title}: ${err.message}`);
-      }
+      }));
     }
 
     if (newlySeen.length) {

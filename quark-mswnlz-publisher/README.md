@@ -1,6 +1,6 @@
 # quark-mswnlz-publisher
 
-**版本**: v1.4.1
+**版本**: v1.4.3
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -111,7 +111,7 @@
 
 ### 群组通知（tgmShare 话题5、tgmShareAI 话题2）
 - **批量更新只发一条汇总消息**
-- 包含：已更新仓库列表 + 资源数量 + 频道链接
+- 格式与频道风格对齐：📦 新增资源推送 + 资源名称 + 更新仓库 + 查看详情 + 资料总站 + 资料频道
 - 由 Skills 脚本统一发送，避免刷屏
 
 ### 示例消息
@@ -122,18 +122,22 @@
 
 增加 2026.3.3小说合集推荐
 
-🔗 资料总站：https://doc.869hr.uk
-📂 GitHub：https://github.com/mswnlz/book/commit/xxx
+🔗 查看详情：https://doc.869hr.uk/book/202603
+🌐 资料总站：https://doc.869hr.uk
+📦 资料频道：https://t.me/dabaziyuan
 ```
 
 **群组汇总消息**：
 ```
-📝 资源更新
+📦 新增资源推送
 
-已更新仓库：book、movies
-共 3 项资源
+增加 2026.3.3小说合集推荐
 
-📦 https://t.me/dabaziyuan
+已更新仓库：book
+
+🔗 查看详情：https://doc.869hr.uk/book/202603
+🌐 资料总站：https://doc.869hr.uk
+📦 资料频道：https://t.me/dabaziyuan
 ```
 
 ---
@@ -321,6 +325,9 @@ quark-mswnlz-publisher/
 ---
 
 ## 更新日志
+
+### v1.4.3 (2026-05-29)
+- 🎨 统一群组通知格式：与频道通知风格对齐，包含资源名称、更新仓库、查看详情链接、资料总站、资料频道
 
 ### v1.4.1 (2026-03-14)
 - 修复：推广文件复制判断逻辑（空文件夹也被正确识别为文件夹）
