@@ -132,6 +132,7 @@
 📦 新增资源推送
 
 增加 2026.3.3小说合集推荐
+🔗 夸克链接：https://pan.quark.cn/s/xxx?pwd=xxx
 
 已更新仓库：book
 

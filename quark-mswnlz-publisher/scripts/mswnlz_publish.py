@@ -160,7 +160,7 @@ def send_telegram_group_notification(updated_repos: List[str], total_items: int,
     for repo in updated_repos:
         items = by_repo.get(repo, [])
         for name, url in items:
-            item_lines.append(f"增加 {name}")
+            item_lines.append(f"增加 {name}\n🔗 夸克链接：{url}")
     
     repos_str = "、".join(updated_repos)
     items_text = "\n\n".join(item_lines)
