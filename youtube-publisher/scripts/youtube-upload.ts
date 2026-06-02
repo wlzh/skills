@@ -223,6 +223,7 @@ async function authenticate(): Promise<any> {
 
     console.log("\n=== YouTube Authentication ===");
     console.log("Opening browser for authentication...\n");
+    console.log("Auth URL:", authUrl, "\n");
 
     // Create local server to receive callback
     const server = http.createServer(async (req, res) => {
