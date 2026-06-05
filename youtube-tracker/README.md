@@ -3,6 +3,14 @@
 A script-backed skill to track YouTube channels and get notified of new uploads.
 
 ## Version History
+### v2.1.0 (2026-06-05) - Proxy Support
+**Fix**: Added automatic proxy support for YouTube RSS feeds.
+- YouTube is inaccessible from China without proxy
+- All HTTP requests now route through proxy automatically
+- Auto-detects from `HTTPS_PROXY` / `HTTP_PROXY` env vars, falls back to `http://127.0.0.1:10808`
+- Replaced `fetch()` calls with `curl` for consistent proxy routing
+- 55 channels check in ~100s (within 180s cron timeout)
+
 ### v2.0.1 (2026-03-17) - Bugfix
 **Fix**: Increased seen video ID limit from 500 to 2000
 - With 54+ channels, 500 IDs was too small

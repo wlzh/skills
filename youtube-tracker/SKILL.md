@@ -1,12 +1,21 @@
 ---
 name: youtube-tracker
 description: "Track YouTube channels for new uploads. Supports both RSS mode (no API key needed, unlimited quota) and API mode. Use when: add/remove/list tracked YouTube channels, check for new videos, or run scheduled YouTube channel monitoring."
-version: "2.0.1"
+version: "2.1.0"
 ---
 
 # youtube-tracker
 
 A script-backed Skill to maintain a list of tracked YouTube channels and periodically check for **new uploads**.
+
+## v2.1.0 - Proxy Support (2026-06-05)
+
+**Fix**: Added automatic proxy support for YouTube RSS feeds.
+- YouTube is inaccessible from China without proxy; all HTTP requests now route through proxy
+- Auto-detects proxy from `HTTPS_PROXY` / `HTTP_PROXY` env vars, falls back to `http://127.0.0.1:10808`
+- Replaced `fetch()` API calls with `curl` via `execSync` for consistent proxy routing
+- Increased batch size from 5 to 10 for faster checking
+- 55 channels now check in ~100s (within 180s cron timeout)
 
 ## v2.0.1 - Bugfix (2026-03-17)
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
  * youtube-tracker-rss skill script
+ * v2.1.0 - Proxy support for YouTube RSS feeds
  *
  * Uses YouTube RSS feeds instead of API - no quota limits!
+ * Auto-detects proxy from env vars or falls back to common local proxies.
  *
  * Commands:
  *   add <channelId|@handle|url>
@@ -19,32 +21,31 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-/**
- * Fetch URL using curl (respects system proxy)
- */
-async function fetchWithCurl(url, timeoutMs = 8000) {
-  const proxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
-  let cmd = `curl -s -m ${Math.ceil(timeoutMs / 1000)} "${url}"`;
-  
-  if (proxy) {
-    cmd = `curl -s -m ${Math.ceil(timeoutMs / 1000)} -x "${proxy}" "${url}"`;
-  }
-  
-  try {
-    const stdout = execSync(cmd, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 });
-    return { ok: true, text: () => Promise.resolve(stdout) };
-  } catch (err) {
-    if (err.status === null || err.status === undefined) {
-      throw new Error(`Timeout fetching ${url}`);
-    }
-    throw new Error(`HTTP ${err.status} fetching ${url}`);
-  }
-}
+// ── Proxy ──────────────────────────────────────────────────────────
+// Priority: HTTPS_PROXY > HTTPS_PROXY > http_proxy > http://127.0.0.1:10808 (fallback)
+const PROXY = process.env.HTTPS_PROXY || process.env.https_proxy ||
+              process.env.HTTP_PROXY || process.env.http_proxy ||
+              'http://127.0.0.1:10808';
 
 const STATE_DIR = path.resolve(__dirname, '..', 'state');
 const CONFIG_PATH = path.join(STATE_DIR, 'config.json');
 const SEEN_PATH = path.join(STATE_DIR, 'seen.json');
 
+// ── HTTP with proxy ────────────────────────────────────────────────
+/**
+ * Fetch URL using curl with proxy. Always uses proxy for YouTube domains.
+ * Returns the response body text.
+ */
+function httpGet(url, timeoutMs = 15000) {
+  const cmd = `curl -sS -m ${Math.ceil(timeoutMs / 1000)} -x "${PROXY}" -L "${url}"`;
+  try {
+    return execSync(cmd, { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024, timeout: timeoutMs + 5000 });
+  } catch (err) {
+    throw new Error(`Fetch failed: ${url} - ${err.message}`);
+  }
+}
+
+// ── State I/O ──────────────────────────────────────────────────────
 function ensureStateDir() {
   fs.mkdirSync(STATE_DIR, { recursive: true });
 }
@@ -72,14 +73,13 @@ function nowIso() {
 
 function getConfig() {
   ensureStateDir();
-  const cfg = readJson(CONFIG_PATH, { apiKey: '', channels: [] });
+  const cfg = readJson(CONFIG_PATH, { channels: [] });
   if (!cfg.channels) cfg.channels = [];
   return cfg;
 }
 
 function saveConfig(cfg) {
   ensureStateDir();
-  // Remove apiKey if present (no longer needed for RSS)
   delete cfg.apiKey;
   writeJson(CONFIG_PATH, cfg);
 }
@@ -97,6 +97,7 @@ function saveSeen(seen) {
   writeJson(SEEN_PATH, seen);
 }
 
+// ── Input parsing ──────────────────────────────────────────────────
 function parseArgs() {
   const [, , cmd, ...rest] = process.argv;
   return { cmd, rest };
@@ -106,13 +107,9 @@ function normalizeChannelInput(input) {
   const s = String(input || '').trim();
   if (!s) return { kind: 'unknown', value: '' };
 
-  // channelId
   if (/^UC[\w-]{20,}$/.test(s)) return { kind: 'channelId', value: s };
-
-  // @handle
   if (s.startsWith('@')) return { kind: 'handle', value: s.replace(/^@+/, '') };
 
-  // url patterns
   try {
     const u = new URL(s);
     const p = u.pathname;
@@ -129,16 +126,11 @@ function normalizeChannelInput(input) {
   return { kind: 'unknown', value: s };
 }
 
-/**
- * Parse YouTube RSS feed (XML)
- * Returns array of video entries
- */
+// ── RSS parsing ────────────────────────────────────────────────────
 function parseRSS(xml) {
   const entries = [];
-  
-  // Simple XML parsing without external dependencies
   const entryMatches = xml.match(/<entry[\s\S]*?<\/entry>/gi) || [];
-  
+
   for (const entryXml of entryMatches) {
     const videoIdMatch = entryXml.match(/<yt:videoId>([^<]+)<\/yt:videoId>/i);
     const titleMatch = entryXml.match(/<title>([^<]*)<\/title>/i);
@@ -146,7 +138,7 @@ function parseRSS(xml) {
     const authorMatch = entryXml.match(/<author>[\s\S]*?<name>([^<]*)<\/name>[\s\S]*?<\/author>/i);
     const linkMatch = entryXml.match(/<link[^>]*href="([^"]+)"[^>]*rel="alternate"[^>]*>/i) ||
                       entryXml.match(/<link[^>]*rel="alternate"[^>]*href="([^"]+)"[^>]*>/i);
-    
+
     if (videoIdMatch) {
       entries.push({
         videoId: videoIdMatch[1],
@@ -157,95 +149,49 @@ function parseRSS(xml) {
       });
     }
   }
-  
+
   return entries;
 }
 
-/**
- * Fetch RSS feed for a channel
- */
-async function fetchChannelRSS(channelId, timeoutMs = 8000) {
+// ── YouTube API (all via proxy) ────────────────────────────────────
+function fetchChannelRSS(channelId) {
   const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
-  
-  const res = await fetchWithCurl(url, timeoutMs);
-  
-  if (!res.ok) {
-    throw new Error(`HTTP fetching RSS for ${channelId}`);
-  }
-  
-  const xml = await res.text();
+  const xml = httpGet(url);
   return parseRSS(xml);
 }
 
-/**
- * Resolve handle to channelId using YouTube oEmbed (works without API)
- * Falls back to scraping if needed
- */
-async function resolveHandleToChannelId(handle) {
+function resolveHandleToChannelId(handle) {
   const handleClean = handle.replace(/^@/, '');
-  
-  // Try oEmbed API (doesn't require auth, but may not work for all handles)
-  try {
-    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/@${handleClean}&format=json`;
-    const res = await fetch(oembedUrl);
-    if (res.ok) {
-      const data = await res.json();
-      // oEmbed doesn't return channelId directly, so we need another approach
-    }
-  } catch {}
-  
+
   // Try fetching the channel page and extracting channelId
   try {
     const channelUrl = `https://www.youtube.com/@${handleClean}`;
-    const res = await fetch(channelUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-      }
-    });
-    
-    if (res.ok) {
-      const html = await res.text();
-      
-      // Look for channelId in various places
-      const patterns = [
-        /"channelId":"(UC[\w-]{22})"/,
-        /"externalId":"(UC[\w-]{22})"/,
-        /channel_id=(UC[\w-]{22})/,
-        /<meta itemprop="channelId" content="(UC[\w-]{22})">/
-      ];
-      
-      for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match) {
-          return match[1];
-        }
-      }
+    const html = httpGet(channelUrl);
+
+    const patterns = [
+      /"channelId":"(UC[\w-]{22})"/,
+      /"externalId":"(UC[\w-]{22})"/,
+      /channel_id=(UC[\w-]{22})/,
+      /<meta itemprop="channelId" content="(UC[\w-]{22})">/
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) return match[1];
     }
   } catch {}
-  
+
   throw new Error(`无法解析频道 @${handleClean}，请直接提供 channelId（以 UC 开头的字符串）`);
 }
 
-/**
- * Get channel title from RSS feed
- */
-async function getChannelInfo(channelId) {
+function getChannelInfo(channelId) {
   try {
     const url = `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; YouTube-RSS-Tracker/1.0)'
-      }
-    });
-    
-    if (!res.ok) return null;
-    
-    const xml = await res.text();
-    
-    // Extract channel title from feed
+    const xml = httpGet(url);
+
     const titleMatch = xml.match(/<title>([^<]*)<\/title>/i);
-    const authorMatch = xml.match(/<author>[\s\S]*?<name>([^<]*)<\/name>/i);
-    
+    const authorMatch = xml.match(/<author>[\s\S]*?<name>([^<]*)<\/name>[\s\S]*?<\/author>/i);
+
     return {
       title: authorMatch ? authorMatch[1] : (titleMatch ? titleMatch[1] : channelId),
       channelId: channelId
@@ -255,26 +201,11 @@ async function getChannelInfo(channelId) {
   }
 }
 
-function summarize(desc) {
-  const s = String(desc || '').replace(/\s+/g, ' ').trim();
-  if (!s) return '';
-  return s.length > 120 ? s.slice(0, 120) + '…' : s;
-}
-
 function videoUrl(videoId) {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
-async function readStdin() {
-  return new Promise(resolve => {
-    let data = '';
-    process.stdin.setEncoding('utf8');
-    process.stdin.on('data', chunk => (data += chunk));
-    process.stdin.on('end', () => resolve(data));
-    process.stdin.resume();
-  });
-}
-
+// ── Main ───────────────────────────────────────────────────────────
 async function main() {
   const { cmd, rest } = parseArgs();
   if (!cmd) {
@@ -293,13 +224,13 @@ async function main() {
 
     if (parsed.kind === 'channelId') {
       channelId = parsed.value;
-      const info = await getChannelInfo(channelId);
+      const info = getChannelInfo(channelId);
       if (info) title = info.title;
     } else if (parsed.kind === 'handle') {
       console.error(`正在解析 @${parsed.value}...`);
       try {
-        channelId = await resolveHandleToChannelId(parsed.value);
-        const info = await getChannelInfo(channelId);
+        channelId = resolveHandleToChannelId(parsed.value);
+        const info = getChannelInfo(channelId);
         if (info) title = info.title;
       } catch (err) {
         die(err.message);
@@ -332,16 +263,14 @@ async function main() {
     if (parsed.kind === 'channelId') {
       channelId = parsed.value;
     } else if (parsed.kind === 'handle') {
-      // Try to find by handle first
-      const found = cfg.channels.find(c => 
+      const found = cfg.channels.find(c =>
         c.handle && c.handle.toLowerCase() === `@${parsed.value}`.toLowerCase()
       );
       if (found) {
         channelId = found.channelId;
       } else {
-        // Try to resolve handle to channelId
         try {
-          channelId = await resolveHandleToChannelId(parsed.value);
+          channelId = resolveHandleToChannelId(parsed.value);
         } catch (err) {
           die(err.message);
         }
@@ -369,7 +298,7 @@ async function main() {
   }
 
   if (cmd === 'check') {
-    if (!cfg.channels.length) return; // silent
+    if (!cfg.channels.length) return;
 
     const seen = getSeen();
     const seenSet = new Set(seen.seenVideoIds);
@@ -378,20 +307,19 @@ async function main() {
     const newlySeen = [];
     const errors = [];
 
-    console.error(`检查 ${cfg.channels.length} 个频道...`);
+    console.error(`检查 ${cfg.channels.length} 个频道... (proxy: ${PROXY})`);
 
-    // Process channels in batches of 5 to avoid overwhelming the network
-    const BATCH_SIZE = 5;
+    // Process channels in batches of 10 for speed
+    const BATCH_SIZE = 10;
     for (let i = 0; i < cfg.channels.length; i += BATCH_SIZE) {
       const batch = cfg.channels.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(async (c) => {
+      const results = batch.map(c => {
         try {
-          const vids = await fetchChannelRSS(c.channelId);
-          
+          const vids = fetchChannelRSS(c.channelId);
+
           for (const v of vids) {
             if (seenSet.has(v.videoId)) continue;
 
-            // Baseline filter: do not announce videos published before/at the time the channel was added.
             if (c.addedAt && v.publishedAt) {
               const added = Date.parse(c.addedAt);
               const pub = Date.parse(v.publishedAt);
@@ -413,10 +341,15 @@ async function main() {
             ].join('\n');
             newLines.push(line);
           }
+          return null;
         } catch (err) {
-          errors.push(`${c.title}: ${err.message}`);
+          return `${c.title}: ${err.message}`;
         }
-      }));
+      });
+
+      for (const e of results) {
+        if (e) errors.push(e);
+      }
     }
 
     if (newlySeen.length) {
@@ -433,15 +366,15 @@ async function main() {
 
     if (!newLines.length) {
       console.error('无新视频');
-      return; // silent exit
+      return;
     }
-    
+
     console.error(`发现 ${newLines.length} 个新视频!\n`);
     process.stdout.write(newLines.join('\n\n') + '\n');
     return;
   }
 
-  die(`Unknown command: ${cmd}\nRun: node scripts/youtube-tracker-rss.js (without args for help)`);
+  die(`Unknown command: ${cmd}`);
 }
 
 main().catch(err => {

@@ -24,7 +24,8 @@
 ## ✅ 依赖
 
 - Node.js 18+（建议 Node 20+）
-- YouTube Data API v3 的 **API Key**
+- `curl` 命令行工具（用于 HTTP 请求）
+- **代理**（中国大陆必须，自动检测 `HTTPS_PROXY`/`HTTP_PROXY` 环境变量，默认回退 `http://127.0.0.1:10808`）
 
 ---
 
