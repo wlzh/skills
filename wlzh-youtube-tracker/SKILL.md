@@ -1,5 +1,5 @@
 ---
-name: youtube-tracker
+name: wlzh-youtube-tracker
 description: "Track YouTube channels for new uploads. Supports both RSS mode (no API key needed, unlimited quota) and API mode. Use when: add/remove/list tracked YouTube channels, check for new videos, or run scheduled YouTube channel monitoring."
 version: "3.0.0"
 ---
