@@ -1,4 +1,4 @@
-# 发票识别 Skill
+# wlzh-invoice-scanner Skill
 
 > 仓库地址: https://github.com/wlzh/skills
 > 版本: v3.3.0
@@ -30,17 +30,17 @@
 
 ```bash
 # 扫描指定目录
-/invoice-scanner ./发票文件夹
+/wlzh-invoice-scanner ./发票文件夹
 
 # 扫描 ZIP 文件
-/invoice-scanner ./receipts.zip
+/wlzh-invoice-scanner ./receipts.zip
 
 # 扫描当前目录
-/invoice-scanner .
+/wlzh-invoice-scanner .
 
 # 扫描包含 ZIP 文件的目录（自动解压）
 # 如果目录中有 ZIP 文件，会自动解压并识别所有发票
-/invoice-scanner ./mixed-invoices
+/wlzh-invoice-scanner ./mixed-invoices
 ```
 
 ### 自动解压与文件清理

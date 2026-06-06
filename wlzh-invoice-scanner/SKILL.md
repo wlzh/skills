@@ -1,5 +1,5 @@
 ---
-name: invoice-scanner
+name: wlzh-invoice-scanner
 description: 扫描目录识别所有类型发票（交通、住宿、餐饮等），提取关键信息并生成分类统计报告
 version: 3.3.0
 author: M.
@@ -18,8 +18,8 @@ changelog:
 ## 用法示例
 
 ```
-/invoice-scanner ./发票文件夹
-/invoice-scanner ./receipts.zip
+/wlzh-invoice-scanner ./发票文件夹
+/wlzh-invoice-scanner ./receipts.zip
 ```
 
 ## 工作流程
