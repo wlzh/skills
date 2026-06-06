@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * youtube-tracker-rss skill script
- * v3.0.0 - Parallel fetching + notify mode (no LLM needed for cron)
+ * wlzh-youtube-tracker skill script
+ * v3.1.0 - Self-contained notify: sends Telegram directly, marks seen only on success
  *
  * Uses YouTube RSS feeds instead of API - no quota limits!
  * Auto-detects proxy from env vars or falls back to common local proxies.
@@ -10,24 +10,27 @@
  *   add <channelId|@handle|url>   添加频道
  *   remove <channelId|@handle|url> 移除频道
  *   list                          列出所有频道
- *   check                         检查新视频（原样输出）
- *   notify                        检查新视频并输出 Telegram 格式消息
+ *   check                         检查新视频（原样输出，立即标记 seen）
+ *   notify                        检查新视频 → 直接发 Telegram → 发送成功才标记 seen
  *
  * State files (relative to this script):
  *   ../state/config.json  { channels: Array<{channelId, title, handle?, addedAt}> }
  *   ../state/seen.json    { seenVideoIds: string[], updatedAt }
  *
+ * v3.1.0 changes:
+ *   - notify 命令直接调 Telegram Bot API 发送消息
+ *   - 发送成功才标记 seen，失败的视频下次自动重试
+ *   - Cron 只需 exec 脚本，不需要 LLM 中转
+ *   - 从 openclaw.json 自动读取 bot token
+ *
  * v3.0.0 changes:
  *   - Parallel HTTP fetching (all channels concurrent via async curl)
- *   - New `notify` command: outputs Telegram-ready message, exit code signals result
- *     exit 0 + stdout: new videos found, stdout is the message
- *     exit 0 + no stdout: no new videos
- *     exit 1: error
  *   - ~10x faster: 55 channels now check in ~5-8s (was ~45s with serial curl)
  */
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync, exec: execAsync } = require('child_process');
 const { promisify } = require('util');
 
@@ -42,10 +45,56 @@ const STATE_DIR = path.resolve(__dirname, '..', 'state');
 const CONFIG_PATH = path.join(STATE_DIR, 'config.json');
 const SEEN_PATH = path.join(STATE_DIR, 'seen.json');
 
-// ── HTTP with proxy (async parallel) ───────────────────────────────
+// ── Telegram config (read from openclaw.json) ──────────────────────
+const OPENCLAW_CONFIG_PATH = path.join(os.homedir(), '.openclaw', 'openclaw.json');
+const TG_CHAT_ID = '-1003831627871';
+const TG_TOPIC_ID = '1016';
+
+function loadBotToken() {
+  try {
+    const cfg = JSON.parse(fs.readFileSync(OPENCLAW_CONFIG_PATH, 'utf8'));
+    const token = cfg?.channels?.telegram?.accounts?.default?.botToken;
+    if (!token) throw new Error('botToken not found in openclaw.json');
+    return token;
+  } catch (err) {
+    console.error(`无法读取 Telegram Bot Token: ${err.message}`);
+    console.error(`请确认 ${OPENCLAW_CONFIG_PATH} 中 channels.telegram.accounts.default.botToken 存在`);
+    return null;
+  }
+}
+
 /**
- * Fetch URL using curl with proxy (async, for parallel execution).
+ * Send a message to Telegram via Bot API.
+ * Returns true on success, false on failure.
  */
+async function sendTelegram(botToken, text) {
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  const body = JSON.stringify({
+    chat_id: TG_CHAT_ID,
+    message_thread_id: TG_TOPIC_ID,
+    text: text,
+    parse_mode: 'HTML',
+    disable_web_page_preview: false,
+  });
+
+  const cmd = `curl -sS -m 15 -x "${PROXY}" -X POST -H "Content-Type: application/json" -d '${body.replace(/'/g, "'\\''")}' "${url}"`;
+
+  try {
+    const { stdout } = await execPromise(cmd, { encoding: 'utf-8', timeout: 20000 });
+    const resp = JSON.parse(stdout);
+    if (resp.ok) {
+      return true;
+    } else {
+      console.error(`Telegram API error: ${resp.description || JSON.stringify(resp)}`);
+      return false;
+    }
+  } catch (err) {
+    console.error(`Telegram send failed: ${err.message}`);
+    return false;
+  }
+}
+
+// ── HTTP with proxy (async parallel) ───────────────────────────────
 async function httpGetAsync(url, timeoutMs = 15000) {
   const cmd = `curl -sS -m ${Math.ceil(timeoutMs / 1000)} -x "${PROXY}" -L "${url}"`;
   const { stdout } = await execPromise(cmd, {
@@ -56,9 +105,6 @@ async function httpGetAsync(url, timeoutMs = 15000) {
   return stdout;
 }
 
-/**
- * Fetch URL using curl with proxy (sync, for one-off calls like add/remove).
- */
 function httpGetSync(url, timeoutMs = 15000) {
   const cmd = `curl -sS -m ${Math.ceil(timeoutMs / 1000)} -x "${PROXY}" -L "${url}"`;
   try {
@@ -69,12 +115,8 @@ function httpGetSync(url, timeoutMs = 15000) {
 }
 
 // ── Parallel channel fetcher ───────────────────────────────────────
-/**
- * Fetch multiple channels' RSS feeds in parallel.
- * Returns array of { channel, videos, error } objects.
- */
 async function fetchAllChannelsParallel(channels) {
-  const concurrency = 15; // curl handles connections well, 15 concurrent is safe
+  const concurrency = 15;
   const results = [];
 
   for (let i = 0; i < channels.length; i += concurrency) {
@@ -96,7 +138,6 @@ async function fetchAllChannelsParallel(channels) {
       if (r.status === 'fulfilled') {
         results.push(r.value);
       } else {
-        // Should not happen since we catch inside, but just in case
         results.push({ channel: null, videos: [], error: r.reason?.message || String(r.reason) });
       }
     }
@@ -155,6 +196,19 @@ function saveSeen(seen) {
   ensureStateDir();
   seen.updatedAt = nowIso();
   writeJson(SEEN_PATH, seen);
+}
+
+/**
+ * Add video IDs to seen list and persist.
+ * Deduplicates and trims to max 2000 entries.
+ */
+function markAsSeen(videoIds) {
+  if (!videoIds.length) return;
+  const seen = getSeen();
+  const merged = (seen.seenVideoIds || []).concat(videoIds);
+  const unique = Array.from(new Set(merged));
+  const trimmed = unique.slice(Math.max(0, unique.length - 2000));
+  saveSeen({ seenVideoIds: trimmed, updatedAt: nowIso() });
 }
 
 // ── Input parsing ──────────────────────────────────────────────────
@@ -264,18 +318,20 @@ function videoUrl(videoId) {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
-// ── Shared check logic ─────────────────────────────────────────────
+// ── Core check logic ───────────────────────────────────────────────
 /**
- * Core check logic used by both `check` and `notify` commands.
- * Returns { newVideos: Array<{channel, video}>, errors: string[] }
+ * Detect new (unseen) videos across all channels.
+ * Does NOT write to seen.json — caller decides when to mark as seen.
+ *
+ * Returns { newVideos: Array<{channel, video}>, skippedOld: string[], errors: string[] }
  */
-async function doCheck(cfg) {
-  if (!cfg.channels.length) return { newVideos: [], errors: [] };
+async function detectNewVideos(cfg) {
+  if (!cfg.channels.length) return { newVideos: [], skippedOld: [], errors: [] };
 
   const seen = getSeen();
   const seenSet = new Set(seen.seenVideoIds);
   const newVideos = [];
-  const newlySeen = [];
+  const skippedOld = [];
   const errors = [];
 
   console.error(`检查 ${cfg.channels.length} 个频道... (proxy: ${PROXY}, parallel: 15)`);
@@ -292,43 +348,60 @@ async function doCheck(cfg) {
     for (const v of videos) {
       if (seenSet.has(v.videoId)) continue;
 
-      // Baseline: skip videos published before channel was added
+      // Skip videos published before channel was added
       if (channel.addedAt && v.publishedAt) {
         const added = Date.parse(channel.addedAt);
         const pub = Date.parse(v.publishedAt);
         if (!Number.isNaN(added) && !Number.isNaN(pub) && pub <= added) {
-          seenSet.add(v.videoId);
-          newlySeen.push(v.videoId);
+          skippedOld.push(v.videoId);
           continue;
         }
       }
 
-      seenSet.add(v.videoId);
-      newlySeen.push(v.videoId);
-
-      newVideos.push({
-        channel: channel,
-        video: v,
-      });
+      newVideos.push({ channel, video: v });
     }
   }
 
-  // Persist seen IDs
-  if (newlySeen.length) {
-    const merged = (seen.seenVideoIds || []).concat(newlySeen);
-    const unique = Array.from(new Set(merged));
-    const trimmed = unique.slice(Math.max(0, unique.length - 2000));
-    saveSeen({ seenVideoIds: trimmed, updatedAt: nowIso() });
-  }
+  return { newVideos, skippedOld, errors };
+}
+
+/**
+ * Legacy check: detect + immediately mark all as seen (for `check` command).
+ * Used when we just want to see what's new without Telegram sending.
+ */
+async function doCheckAndMark(cfg) {
+  const { newVideos, skippedOld, errors } = await detectNewVideos(cfg);
+
+  // Mark everything as seen immediately (legacy behavior)
+  const allNewIds = newVideos.map(v => v.video.videoId).concat(skippedOld);
+  if (allNewIds.length) markAsSeen(allNewIds);
 
   return { newVideos, errors };
+}
+
+// ── Format helpers ─────────────────────────────────────────────────
+function formatVideoNotify({ channel, video }) {
+  const chName = channel.title || video.channelTitle || channel.channelId;
+  return `📺 ${chName}\n🎬 ${video.title}\n🔗 ${video.link || videoUrl(video.videoId)}`;
+}
+
+function formatVideoCheck({ channel, video }) {
+  const chName = channel.title || video.channelTitle || channel.channelId;
+  return `频道：${chName}\n标题：${video.title}\n链接：${video.link || videoUrl(video.videoId)}`;
 }
 
 // ── Main ───────────────────────────────────────────────────────────
 async function main() {
   const { cmd, rest } = parseArgs();
   if (!cmd) {
-    die('Usage: node scripts/youtube-tracker-rss.js <add|remove|list|check|notify> ...\n\nCommands:\n  add <channelId|@handle|url>  添加频道\n  remove <id|@handle|url>     移除频道\n  list                        列出所有频道\n  check                       检查新视频\n  notify                      检查新视频（Telegram 消息格式）');
+    die(`Usage: node scripts/youtube-tracker-rss.js <add|remove|list|check|notify> ...
+
+Commands:
+  add <channelId|@handle|url>  添加频道
+  remove <id|@handle|url>     移除频道
+  list                        列出所有频道
+  check                       检查新视频（输出到 stdout，立即标记 seen）
+  notify                      检查新视频 → 发 Telegram → 成功才标记 seen`);
   }
 
   const cfg = getConfig();
@@ -416,9 +489,9 @@ async function main() {
     return;
   }
 
-  // ── check command: original output format (backwards compatible) ──
+  // ── check command: detect + output + mark seen immediately ───────
   if (cmd === 'check') {
-    const { newVideos, errors } = await doCheck(cfg);
+    const { newVideos, errors } = await doCheckAndMark(cfg);
 
     if (errors.length) {
       console.error(`\n警告: ${errors.length} 个频道获取失败:`);
@@ -432,51 +505,76 @@ async function main() {
 
     console.error(`发现 ${newVideos.length} 个新视频!\n`);
 
-    const lines = newVideos.map(({ channel, video }) => {
-      const chName = channel.title || video.channelTitle || channel.channelId;
-      return [
-        `频道：${chName}`,
-        `标题：${video.title}`,
-        `链接：${video.link || videoUrl(video.videoId)}`,
-      ].join('\n');
-    });
-
+    const lines = newVideos.map(formatVideoCheck);
     process.stdout.write(lines.join('\n\n') + '\n');
     return;
   }
 
-  // ── notify command: Telegram-ready output for cron ────────────────
+  // ── notify command: detect → send Telegram → mark seen on success ─
   if (cmd === 'notify') {
-    const { newVideos, errors } = await doCheck(cfg);
+    const { newVideos, skippedOld, errors } = await detectNewVideos(cfg);
 
     if (errors.length) {
       console.error(`警告: ${errors.length} 个频道获取失败: ${errors.join('; ')}`);
-      // Don't exit with error - still report any new videos found
+    }
+
+    // Mark old videos (pre-add date) as seen immediately — they're not meant to be notified
+    if (skippedOld.length) {
+      markAsSeen(skippedOld);
     }
 
     if (!newVideos.length) {
-      // No new videos - exit silently (stdout empty)
       console.error('无新视频');
+      // Exit 0, no stdout — cron handler knows this means nothing to send
       return;
     }
 
-    // Format: one message per video, suitable for Telegram
-    // Each video gets its own block so they can be sent individually
-    const messages = newVideos.map(({ channel, video }) => {
-      const chName = channel.title || video.channelTitle || channel.channelId;
-      const lines = [];
-      lines.push(`📺 ${chName}`);
-      lines.push(`🎬 ${video.title}`);
-      lines.push(`🔗 ${video.link || videoUrl(video.videoId)}`);
-      return lines.join('\n');
-    });
+    console.error(`发现 ${newVideos.length} 个新视频，开始发送 Telegram...`);
 
-    // Output all as a single block, separated by blank lines
-    // The cron systemEvent handler can split on \n\n if needed
-    const output = messages.join('\n\n');
-    process.stdout.write(output + '\n');
+    // Load bot token
+    const botToken = loadBotToken();
+    if (!botToken) {
+      // Cannot send — output to stdout as fallback so LLM can still relay
+      console.error('Bot token 不可用，回退到 stdout 输出模式');
+      const messages = newVideos.map(formatVideoNotify);
+      process.stdout.write(messages.join('\n\n') + '\n');
+      // Still mark as seen to avoid re-detecting forever (better to lose once than spam)
+      markAsSeen(newVideos.map(v => v.video.videoId));
+      return;
+    }
 
-    console.error(`发现 ${newVideos.length} 个新视频，已输出到 stdout`);
+    // Send each video as a separate Telegram message
+    let sentOk = 0;
+    let sentFail = 0;
+    const sentIds = [];
+
+    for (const nv of newVideos) {
+      const text = formatVideoNotify(nv);
+      const ok = await sendTelegram(botToken, text);
+
+      if (ok) {
+        sentOk++;
+        sentIds.push(nv.video.videoId);
+        console.error(`✅ 已发送: ${nv.video.title}`);
+      } else {
+        sentFail++;
+        console.error(`❌ 发送失败: ${nv.video.title} (${nv.video.videoId}) — 下次重试`);
+      }
+    }
+
+    // Only mark successfully sent videos as seen
+    if (sentIds.length) {
+      markAsSeen(sentIds);
+    }
+
+    // Summary
+    console.error(`\n发送完成: ✅ ${sentOk} 成功, ❌ ${sentFail} 失败`);
+    if (sentFail > 0) {
+      console.error(`失败的视频未被标记为 seen，下次 cron 会自动重试`);
+      // Exit with code 1 to signal partial failure (cron can track this)
+      process.exit(1);
+    }
+
     return;
   }
 

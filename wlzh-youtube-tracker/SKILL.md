@@ -1,23 +1,41 @@
 ---
 name: wlzh-youtube-tracker
 description: "Track YouTube channels for new uploads. Supports both RSS mode (no API key needed, unlimited quota) and API mode. Use when: add/remove/list tracked YouTube channels, check for new videos, or run scheduled YouTube channel monitoring."
-version: "3.0.0"
+version: "3.1.0"
 ---
 
 # wlzh-youtube-tracker
 
 A script-backed Skill to maintain a list of tracked YouTube channels and periodically check for **new uploads**.
 
+## v3.1.0 - Self-contained Telegram Sending (2026-06-06)
+
+**Critical reliability fix** — script now sends Telegram directly, no LLM relay needed.
+
+### Changes
+- **`notify` sends Telegram directly**: Script calls Telegram Bot API itself, no LLM relay
+- **Atomic seen marking**: Only marks video as seen AFTER successful Telegram send
+- **Auto-retry on failure**: Failed sends stay "unseen", next cron cycle retries automatically
+- **Reads bot token from `~/.openclaw/openclaw.json`**: No extra config needed
+- **Fallback mode**: If bot token unavailable, falls back to stdout output for LLM relay
+
+### Bug fix
+- v3.0.0 had a critical bug: `notify` marked videos as seen immediately upon detection,
+  but Telegram sending was done by LLM. If LLM failed (rate limit/timeout), videos were
+  lost forever — marked as seen but never sent. v3.1.0 fixes this completely.
+
+---
+
 ## v3.0.0 - Parallel Fetching + Notify Mode (2026-06-06)
 
-**Major performance optimization** — designed to work with OpenClaw cron without LLM overhead.
+**Major performance optimization** — parallel fetching, ~10x faster.
 
 ### Changes
 - **Parallel HTTP fetching**: All channels now fetch concurrently (15 parallel curl processes)
 - **~10x faster**: 55 channels check in ~4-5 seconds (was ~45 seconds with serial curl)
 - **New `notify` command**: Outputs Telegram-ready formatted messages (📺🎬🔗 format)
-- **Cron optimization**: Changed from `agentTurn` (needs LLM) to `systemEvent` (direct exec)
-  - Eliminates API rate limit failures (the #1 failure cause)
+
+---
   - Eliminates timeout failures (the #2 failure cause)
   - No more ~24k tokens consumed per check
   - Success rate expected: ~99% (was ~64%)
@@ -64,7 +82,7 @@ node scripts/youtube-tracker-rss.js add "UCddiUEpeqJcYeBxX1IVBKvQ"
 node scripts/youtube-tracker-rss.js list
 node scripts/youtube-tracker-rss.js remove "UCddiUEpeqJcYeBxX1IVBKvQ"
 node scripts/youtube-tracker-rss.js check    # original output format
-node scripts/youtube-tracker-rss.js notify   # Telegram-ready format
+node scripts/youtube-tracker-rss.js notify   # Auto-sends to Telegram, marks seen on success
 
 # API mode (legacy, requires API key)
 node scripts/youtube-tracker.js set-key "YOUR_YT_API_KEY"
@@ -80,8 +98,10 @@ node scripts/youtube-tracker.js check
 Uses `notify` command + `systemEvent` cron target — no LLM needed per check.
 
 ```
-Cron payload (systemEvent):
-  执行 `cd .../wlzh-youtube-tracker && node scripts/youtube-tracker-rss.js notify`
+Cron payload (isolated agentTurn):
+  Execute `cd /Users/m./Documents/QNSZ/project/skills/wlzh-youtube-tracker && node scripts/youtube-tracker-rss.js notify`
+  Script auto-sends new videos to Telegram topic 1016 via Bot API.
+  Only marks seen on successful send — failed videos retry next cycle.
   stdout 有内容 → 逐条发到 Telegram
   stdout 为空 → HEARTBEAT_OK
 ```
@@ -91,7 +111,7 @@ Cron payload (systemEvent):
 Previous approach using isolated LLM session. Higher overhead, subject to API rate limits.
 
 ```
-Cron payload (agentTurn):
+Legacy (agentTurn with LLM relay — not recommended):
   Run `cd .../wlzh-youtube-tracker && node scripts/youtube-tracker-rss.js check`
   Interpret stdout, send if "发现" found
 ```
