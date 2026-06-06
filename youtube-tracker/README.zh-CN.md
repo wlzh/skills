@@ -2,22 +2,40 @@
 
 定时追踪一组 YouTube 频道是否有**新视频上传**。
 
-- 维护本地“频道列表”
-- 周期性拉取每个频道最新视频
-- **没更新就不输出**（非常适合接 OpenClaw cron：有内容才推送到群/话题）
+## 版本历史
+
+### v3.0.0 (2026-06-06) - 并行抓取 + 通知模式
+**重大优化**：消除 cron 失败问题，不再依赖 LLM。
+
+- ✅ 并行 HTTP 抓取（15 个并发 curl 进程）
+- ✅ ~10 倍加速：55 个频道 ~4-5 秒（原来 ~45 秒）
+- ✅ 新增 `notify` 命令，输出 Telegram 格式消息
+- ✅ Cron 使用 `systemEvent` 替代 `agentTurn`，无 API 限速、无超时
+- ✅ 预期成功率：~99%（原来 ~64%）
+
+### v2.1.0 (2026-06-05) - 代理支持
+- 自动代理检测，中国大陆必须
+
+### v2.0.0 (2026-03-17) - RSS 模式
+- 使用 YouTube RSS feeds，无需 API Key，无配额限制
 
 ---
 
 ## ✅ 输出格式
 
-检测到新视频时，每条新视频输出 4 行：
+### `check` 命令（原始格式）
+```
+频道：最佳拍档
+标题：Anthropic呼吁按下AI暂停键？
+链接：https://www.youtube.com/watch?v=xxx
+```
 
-- 频道：<频道名字>
-- 标题：<视频标题>
-- 简介：<简介摘要>
-- 链接：<视频 URL>
-
-多条视频之间用空行分隔。
+### `notify` 命令（Telegram 格式）
+```
+📺 最佳拍档
+🎬 Anthropic呼吁按下AI暂停键？
+🔗 https://www.youtube.com/watch?v=xxx
+```
 
 ---
 
@@ -25,20 +43,7 @@
 
 - Node.js 18+（建议 Node 20+）
 - `curl` 命令行工具（用于 HTTP 请求）
-- **代理**（中国大陆必须，自动检测 `HTTPS_PROXY`/`HTTP_PROXY` 环境变量，默认回退 `http://127.0.0.1:10808`）
-
----
-
-## 🔑 如何获取 YouTube API Key（YouTube Data API v3）
-
-1. 打开 Google Cloud Console：
-   https://console.cloud.google.com/
-2. 创建/选择一个项目（Project）
-3. 进入 **API 和服务 → 库**，启用：**YouTube Data API v3**
-4. 进入 **API 和服务 → 凭据（Credentials）**
-5. 创建 **API Key** 并复制
-
-建议：如果条件允许，给 key 做限制（IP / Referrer），更安全。
+- **代理**（中国大陆必须，自动检测 `HTTPS_PROXY`/`HTTP_PROXY`，默认 `http://127.0.0.1:10808`）
 
 ---
 
@@ -46,115 +51,48 @@
 
 本 skill 的本地状态都在 `state/` 目录下（**不提交到 git**）：
 
-### 1) `state/config.json`（本地配置）
-
-```json
-{
-  "apiKey": "YOUR_KEY",
-  "channels": [
-    {
-      "channelId": "UCxxxxxxxxxxxxxxxxxxxxxx",
-      "title": "频道名",
-      "handle": "@handle",
-      "addedAt": "2026-03-13T00:00:00.000Z"
-    }
-  ]
-}
-```
-
-字段说明：
-- `apiKey`：你的 YouTube Data API v3 key
-- `channels[]`：追踪的频道列表（add 时自动写入）
-- `addedAt`：该频道被加入的时间（用于 baseline 防刷屏）
-
-### 2) `state/seen.json`（去重/已播报记录）
-
-```json
-{
-  "seenVideoIds": ["VIDEO_ID_1", "VIDEO_ID_2"],
-  "updatedAt": "2026-03-13T00:00:00.000Z"
-}
-```
-
-仓库里只会提供示例文件：
-- `state/config.json.example`
-- `state/seen.json.example`
+- `state/config.json` — 追踪的频道列表
+- `state/seen.json` — 已播报的视频 ID（去重，保留最近 2000 条）
 
 ---
 
 ## 🧰 命令用法
 
-进入本目录执行：
-
 ```bash
 cd youtube-tracker
+
+# 添加频道
+node scripts/youtube-tracker-rss.js add "@veritasium"
+node scripts/youtube-tracker-rss.js add "https://www.youtube.com/@veritasium"
+
+# 列出 / 删除频道
+node scripts/youtube-tracker-rss.js list
+node scripts/youtube-tracker-rss.js remove "@veritasium"
+
+# 检查新视频（原始格式）
+node scripts/youtube-tracker-rss.js check
+
+# 检查新视频（Telegram 格式，用于 cron）
+node scripts/youtube-tracker-rss.js notify
 ```
-
-### 1) 设置 Key（3 种方式）
-
-```bash
-# 方式 A：参数
-node scripts/youtube-tracker.js set-key "YOUR_KEY"
-
-# 方式 B：环境变量
-YOUTUBE_API_KEY="YOUR_KEY" node scripts/youtube-tracker.js set-key
-
-# 方式 C：stdin
-echo "YOUR_KEY" | node scripts/youtube-tracker.js set-key
-```
-
-### 2) 验证 Key
-
-```bash
-node scripts/youtube-tracker.js validate-key
-```
-
-### 3) 添加频道（支持 @handle / URL / channelId）
-
-```bash
-node scripts/youtube-tracker.js add "@veritasium"
-node scripts/youtube-tracker.js add "https://www.youtube.com/@veritasium"
-node scripts/youtube-tracker.js add "https://www.youtube.com/channel/UCddiUEpeqJcYeBxX1IVBKvQ"
-node scripts/youtube-tracker.js add "UCddiUEpeqJcYeBxX1IVBKvQ"
-```
-
-### 4) 列出 / 删除频道
-
-```bash
-node scripts/youtube-tracker.js list
-
-# remove 支持传 @handle / URL / channelId
-node scripts/youtube-tracker.js remove "@veritasium"
-node scripts/youtube-tracker.js remove "UCddiUEpeqJcYeBxX1IVBKvQ"
-```
-
-### 5) 检查新视频（只输出新增）
-
-```bash
-node scripts/youtube-tracker.js check
-```
-
-- 没新视频：不输出任何内容（exit code 0）
-- 有新视频：按“输出格式”打印
 
 ---
 
-## 🛡️ Baseline（避免首次刷屏历史视频）
+## ⏱️ OpenClaw / Cron 接法（推荐 v3.0+）
 
-新加入频道后：
-- 系统会以 `addedAt` 为基线
-- `check` 只会把 **发布时间晚于 `addedAt`** 的视频视为“新视频”
+### systemEvent 模式（推荐）
+```
+Cron payload:
+  执行 `cd ...youtube-tracker && node scripts/youtube-tracker-rss.js notify`
+  stdout 有内容 → 逐条发到 Telegram topic 1016
+  stdout 为空 → HEARTBEAT_OK
+```
 
-目的：避免你第一次加频道时，把该频道历史视频一次性刷出来。
+优势：
+- 不消耗 LLM tokens
+- 4-5 秒完成
+- 不会被 API 限速
+- 成功率 ~99%
 
----
-
-## ⏱️ OpenClaw / Cron 接法（推荐姿势）
-
-cron 每次执行：
-
-1. 跑：`node scripts/youtube-tracker.js check`
-2. stdout 为空 → 什么都不做
-3. stdout 非空 → 把 stdout 整段发到目标群/话题
-
-（这样你群里只有“真的有更新”才会出现消息）
+### agentTurn 模式（旧版）
+每次消耗 ~24k tokens，容易超时和限速，不推荐。

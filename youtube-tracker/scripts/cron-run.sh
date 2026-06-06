@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This runner is designed for cron usage.
-# - It runs the check.
-# - If output is empty -> exit 0 with no stdout.
-# - If output is non-empty -> print it to stdout.
+# youtube-tracker cron runner (v3.0+)
+# - Runs `notify` command (parallel, Telegram-ready output)
+# - If stdout is empty -> exit 0 with no output (no new videos)
+# - If stdout has content -> print it (new videos found)
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$DIR"
 
-OUT="$(node scripts/youtube-tracker.js check 2>/dev/null || true)"
-
-# Only print when there is real content
-if [ -n "${OUT//[[:space:]]/}" ]; then
-  echo "$OUT"
-fi
+node scripts/youtube-tracker-rss.js notify 2>/dev/null || true
