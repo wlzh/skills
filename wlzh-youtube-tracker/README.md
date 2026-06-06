@@ -1,4 +1,4 @@
-# YouTube Tracker
+# wlzh-youtube-tracker
 
 A script-backed skill to track YouTube channels and get notified of new uploads.
 

@@ -1,4 +1,4 @@
-# youtube-tracker（YouTube 频道新视频追踪）
+# wlzh-youtube-tracker（YouTube 频道新视频追踪）
 
 定时追踪一组 YouTube 频道是否有**新视频上传**。
 
@@ -59,7 +59,7 @@
 ## 🧰 命令用法
 
 ```bash
-cd youtube-tracker
+cd wlzh-youtube-tracker
 
 # 添加频道
 node scripts/youtube-tracker-rss.js add "@veritasium"
@@ -83,7 +83,7 @@ node scripts/youtube-tracker-rss.js notify
 ### systemEvent 模式（推荐）
 ```
 Cron payload:
-  执行 `cd ...youtube-tracker && node scripts/youtube-tracker-rss.js notify`
+  执行 `cd .../wlzh-youtube-tracker && node scripts/youtube-tracker-rss.js notify`
   stdout 有内容 → 逐条发到 Telegram topic 1016
   stdout 为空 → HEARTBEAT_OK
 ```

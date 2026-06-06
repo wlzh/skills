@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# youtube-tracker cron runner (v3.0+)
+# wlzh-youtube-tracker cron runner (v3.0+)
 # - Runs `notify` command (parallel, Telegram-ready output)
 # - If stdout is empty -> exit 0 with no output (no new videos)
 # - If stdout has content -> print it (new videos found)

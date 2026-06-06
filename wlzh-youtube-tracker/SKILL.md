@@ -4,7 +4,7 @@ description: "Track YouTube channels for new uploads. Supports both RSS mode (no
 version: "3.0.0"
 ---
 
-# youtube-tracker
+# wlzh-youtube-tracker
 
 A script-backed Skill to maintain a list of tracked YouTube channels and periodically check for **new uploads**.
 
@@ -81,7 +81,7 @@ Uses `notify` command + `systemEvent` cron target — no LLM needed per check.
 
 ```
 Cron payload (systemEvent):
-  执行 `cd ...youtube-tracker && node scripts/youtube-tracker-rss.js notify`
+  执行 `cd .../wlzh-youtube-tracker && node scripts/youtube-tracker-rss.js notify`
   stdout 有内容 → 逐条发到 Telegram
   stdout 为空 → HEARTBEAT_OK
 ```
@@ -92,7 +92,7 @@ Previous approach using isolated LLM session. Higher overhead, subject to API ra
 
 ```
 Cron payload (agentTurn):
-  Run `node scripts/youtube-tracker-rss.js check`
+  Run `cd .../wlzh-youtube-tracker && node scripts/youtube-tracker-rss.js check`
   Interpret stdout, send if "发现" found
 ```
 
