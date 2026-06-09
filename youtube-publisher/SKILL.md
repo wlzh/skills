@@ -1,10 +1,11 @@
 ---
 name: youtube-publisher
 description: "Upload and publish videos to YouTube with title, description, tags, thumbnail and subtitles. Use for: youtube upload, publish video, share on youtube."
-version: 1.0.1
+version: 1.1.0
 setup_complete: true
 setup: "./SETUP.md"
 changelog:
+  - 2026-06-09: v1.1.0 Shared OAuth2 module — new `authenticate.ts` public module used by all 4 TS scripts (youtube-upload, upload-captions, fix-thumbnails, youtube-update-description). Unified token refresh: triggers refresh when `expiry_date` is missing OR expired; auto-computes `expiry_date` from `expires_in` when Google omits it. youtube-update-description.ts v1.2 adds post-write GET verification (retries 3x on mismatch).
   - 2026-05-23: v1.0.1 Strict Execution Rule — added "🔴 Strict Execution Rule (Highest Priority)" section to enforce exact script execution, no step skipping, and complete metadata validation
 ---
 
