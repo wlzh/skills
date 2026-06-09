@@ -3,6 +3,9 @@
  * post-write verification and robust token refresh.
  *
  * Changelog:
+ *  v1.2  2026-06-09  Refactor: use shared authenticate.ts module
+ *    - Remove inline authenticate() function; import from ./authenticate.
+ *    - Remove dotenv/TOKEN_PATH/google auth imports (handled by shared module).
  *  v1.1  2026-06-09  Post-write verification + token refresh fix
  *    - After videos.update, immediately GET to verify description matches.
  *    - If mismatch, retry up to 3 times with 5s delay.
@@ -12,73 +15,17 @@
  *      (compute from expires_in if Google omits it).
  */
 
-import { google } from "googleapis";
 import * as fs from "fs";
-import * as path from "path";
-import * as dotenv from "dotenv";
-
-dotenv.config({ path: path.join(__dirname, ".env") });
-
-const TOKEN_PATH = path.join(__dirname, ".youtube-token.json");
+import { authenticate } from "./authenticate";
 
 const MAX_VERIFY_RETRIES = 3;
 const VERIFY_RETRY_DELAY_MS = 5000;
 
-async function authenticate(): Promise<any> {
-  const clientId = process.env.YOUTUBE_CLIENT_ID;
-  const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    console.error("Error: Missing YOUTUBE_CLIENT_ID or YOUTUBE_CLIENT_SECRET in .env");
-    process.exit(1);
-  }
-
-  const oauth2Client = new google.auth.OAuth2(
-    clientId,
-    clientSecret,
-    process.env.YOUTUBE_REDIRECT_URI || "http://localhost:3333/oauth2callback"
-  );
-
-  if (!fs.existsSync(TOKEN_PATH)) {
-    console.error("Error: No token found. Run youtube-upload.ts --auth first.");
-    process.exit(1);
-  }
-
-  const tokenData = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"));
-  oauth2Client.setCredentials(tokenData);
-
-  // Refresh when: expiry_date is missing OR token is expired.
-  // Previously only refreshed when expiry_date existed AND was expired,
-  // which meant a missing expiry_date caused us to use a stale token silently.
-  const isExpired = !tokenData.expiry_date || tokenData.expiry_date <= Date.now();
-
-  if (isExpired && tokenData.refresh_token) {
-    try {
-      const { credentials } = await oauth2Client.refreshAccessToken();
-      const creds = credentials as Record<string, any>;
-      // Ensure expiry_date is present — Google sometimes omits it from the response.
-      if (!creds.expiry_date && creds.expires_in) {
-        creds.expiry_date = Date.now() + creds.expires_in * 1000;
-      }
-      oauth2Client.setCredentials(credentials);
-      fs.writeFileSync(TOKEN_PATH, JSON.stringify(credentials, null, 2));
-      console.log("Token refreshed successfully");
-    } catch {
-      console.error("Token refresh failed. Run youtube-upload.ts --auth first.");
-      process.exit(1);
-    }
-  }
-
-  return oauth2Client;
-}
-
 async function updateDescription(
-  auth: any,
+  youtube: any,
   videoId: string,
   newDescription: string
 ): Promise<void> {
-  const youtube = google.youtube({ version: "v3", auth });
-
   // Get current snippet to preserve required fields
   const videoResponse = await youtube.videos.list({
     id: [videoId],
@@ -199,8 +146,8 @@ Usage:
 
 async function main() {
   const { videoId, description } = parseArgs();
-  const auth = await authenticate();
-  await updateDescription(auth, videoId, description);
+  const { youtube } = await authenticate();
+  await updateDescription(youtube, videoId, description);
 }
 
 main().catch((err) => {
