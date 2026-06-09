@@ -1,13 +1,28 @@
+/**
+ * youtube-update-description.ts — Update a YouTube video description with
+ * post-write verification and robust token refresh.
+ *
+ * Changelog:
+ *  v1.1  2026-06-09  Post-write verification + token refresh fix
+ *    - After videos.update, immediately GET to verify description matches.
+ *    - If mismatch, retry up to 3 times with 5s delay.
+ *    - Token refresh: always refresh when expiry_date is missing OR expired
+ *      (previously skipped refresh when expiry_date was absent).
+ *    - After refresh, ensure expiry_date is present in saved token file
+ *      (compute from expires_in if Google omits it).
+ */
+
 import { google } from "googleapis";
 import * as fs from "fs";
 import * as path from "path";
-import open from "open";
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 
-// Load environment variables (same .env as youtube-upload.ts)
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 const TOKEN_PATH = path.join(__dirname, ".youtube-token.json");
+
+const MAX_VERIFY_RETRIES = 3;
+const VERIFY_RETRY_DELAY_MS = 5000;
 
 async function authenticate(): Promise<any> {
   const clientId = process.env.YOUTUBE_CLIENT_ID;
@@ -32,18 +47,25 @@ async function authenticate(): Promise<any> {
   const tokenData = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf-8"));
   oauth2Client.setCredentials(tokenData);
 
-  // Try to refresh if expired
-  if (tokenData.expiry_date && tokenData.expiry_date <= Date.now()) {
-    if (tokenData.refresh_token) {
-      try {
-        const { credentials } = await oauth2Client.refreshAccessToken();
-        oauth2Client.setCredentials(credentials);
-        fs.writeFileSync(TOKEN_PATH, JSON.stringify(credentials, null, 2));
-        console.log("Token refreshed successfully");
-      } catch {
-        console.error("Token refresh failed. Run youtube-upload.ts --auth first.");
-        process.exit(1);
+  // Refresh when: expiry_date is missing OR token is expired.
+  // Previously only refreshed when expiry_date existed AND was expired,
+  // which meant a missing expiry_date caused us to use a stale token silently.
+  const isExpired = !tokenData.expiry_date || tokenData.expiry_date <= Date.now();
+
+  if (isExpired && tokenData.refresh_token) {
+    try {
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      const creds = credentials as Record<string, any>;
+      // Ensure expiry_date is present — Google sometimes omits it from the response.
+      if (!creds.expiry_date && creds.expires_in) {
+        creds.expiry_date = Date.now() + creds.expires_in * 1000;
       }
+      oauth2Client.setCredentials(credentials);
+      fs.writeFileSync(TOKEN_PATH, JSON.stringify(credentials, null, 2));
+      console.log("Token refreshed successfully");
+    } catch {
+      console.error("Token refresh failed. Run youtube-upload.ts --auth first.");
+      process.exit(1);
     }
   }
 
@@ -73,24 +95,56 @@ async function updateDescription(
   // Strip angle brackets — YouTube rejects them in descriptions
   const cleanDescription = newDescription.replace(/<[^>]*>/g, "").replace(/[<>]/g, "");
 
-  // Send only the snippet fields the API requires on update.
-  // Avoid any status or contentDetails fields that cause "invalid" errors.
-  await youtube.videos.update({
-    part: ["snippet"],
-    requestBody: {
-      id: videoId,
-      snippet: {
-        title: cur.title,
-        description: cleanDescription,
-        categoryId: cur.categoryId,
-        tags: cur.tags,
-        defaultLanguage: cur.defaultLanguage,
-        defaultAudioLanguage: cur.defaultAudioLanguage,
-      },
-    },
-  });
+  // Build the snippet update payload
+  const snippetPayload = {
+    title: cur.title,
+    description: cleanDescription,
+    categoryId: cur.categoryId,
+    tags: cur.tags,
+    defaultLanguage: cur.defaultLanguage,
+    defaultAudioLanguage: cur.defaultAudioLanguage,
+  };
 
-  console.log(`Description updated for video ${videoId}`);
+  // Update + verify loop
+  for (let attempt = 1; attempt <= MAX_VERIFY_RETRIES; attempt++) {
+    await youtube.videos.update({
+      part: ["snippet"],
+      requestBody: {
+        id: videoId,
+        snippet: snippetPayload,
+      },
+    });
+
+    // Verify: GET the video again and compare description
+    const verifyResponse = await youtube.videos.list({
+      id: [videoId],
+      part: ["snippet"],
+    });
+
+    const actualDesc = verifyResponse.data.items?.[0]?.snippet?.description || "";
+
+    if (actualDesc === cleanDescription) {
+      console.log(`Description updated and verified for video ${videoId}`);
+      return;
+    }
+
+    // Mismatch — log details and decide whether to retry
+    console.error(
+      `Verify mismatch (attempt ${attempt}/${MAX_VERIFY_RETRIES}): ` +
+      `expected ${cleanDescription.length} chars, got ${actualDesc.length} chars`
+    );
+
+    if (attempt < MAX_VERIFY_RETRIES) {
+      console.error(`Retrying in ${VERIFY_RETRY_DELAY_MS / 1000}s...`);
+      await new Promise((resolve) => setTimeout(resolve, VERIFY_RETRY_DELAY_MS));
+    }
+  }
+
+  // All retries exhausted
+  console.error(
+    `Error: Description verification failed after ${MAX_VERIFY_RETRIES} attempts for video ${videoId}`
+  );
+  process.exit(1);
 }
 
 function parseArgs(): { videoId: string; description: string; descriptionFile: string } {
