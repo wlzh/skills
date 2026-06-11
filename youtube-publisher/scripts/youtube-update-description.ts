@@ -3,6 +3,10 @@
  * post-write verification and robust token refresh.
  *
  * Changelog:
+ *  v1.3  2026-06-11  Fix verify mismatch caused by trailing newline
+ *    - YouTube API strips trailing newlines on storage, causing the exact
+ *      string comparison to always fail (off by 1 char).
+ *    - Fix: trimEnd() both sides before comparing.
  *  v1.2  2026-06-09  Refactor: use shared authenticate.ts module
  *    - Remove inline authenticate() function; import from ./authenticate.
  *    - Remove dotenv/TOKEN_PATH/google auth imports (handled by shared module).
@@ -70,7 +74,8 @@ async function updateDescription(
 
     const actualDesc = verifyResponse.data.items?.[0]?.snippet?.description || "";
 
-    if (actualDesc === cleanDescription) {
+    // YouTube API strips trailing newlines on storage — trim both before comparing
+    if (actualDesc.trimEnd() === cleanDescription.trimEnd()) {
       console.log(`Description updated and verified for video ${videoId}`);
       return;
     }
@@ -78,7 +83,7 @@ async function updateDescription(
     // Mismatch — log details and decide whether to retry
     console.error(
       `Verify mismatch (attempt ${attempt}/${MAX_VERIFY_RETRIES}): ` +
-      `expected ${cleanDescription.length} chars, got ${actualDesc.length} chars`
+      `expected ${cleanDescription.trimEnd().length} chars, got ${actualDesc.trimEnd().length} chars`
     );
 
     if (attempt < MAX_VERIFY_RETRIES) {
