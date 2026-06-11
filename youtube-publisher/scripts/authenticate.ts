@@ -27,7 +27,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import * as http from "http";
-import * as open from "open";
+import open = require("open");
 
 // Load .env from the same directory as this script
 dotenv.config({ path: path.join(__dirname, ".env") });
