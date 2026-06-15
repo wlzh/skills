@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.7.0 - 2026-06-16
+
+### 🐛 改进
+
+- ✅ **启动时依赖预检** — 新增 `check_method_dependencies()`，在变声前验证方法所需 Python 包是否可用（pedalboard/RVC 环境），失败时提前明确报错而非深层报错后上层丢弃
+- ✅ **错误透传保障** — 上层调用者（youtube-to-xiaoyuzhou）现会打印子进程完整 stdout/stderr，不再只打"变声失败"吞掉根因
+
 ## v1.6.0 - 2026-02-20
 
 ### ✨ 新功能

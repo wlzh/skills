@@ -467,6 +467,37 @@ def change_voice_rvc(input_audio, output_audio, voice_config):
         print(f"❌ RVC 处理出错: {e}")
         return False
 
+def check_method_dependencies(method, voice_config=None):
+    """
+    预检指定方法所需的 Python 依赖是否可用。
+    
+    Returns:
+        (ok: bool, message: str) — ok=True 表示依赖满足
+    """
+    if method == 'pedalboard':
+        try:
+            from pedalboard import Pedalboard, PitchShift
+            from pedalboard.io import AudioFile
+            return True, "pedalboard 可用"
+        except ImportError as e:
+            return False, f"pedalboard 未安装 ({e})\\n   安装: pip install pedalboard"
+    elif method == 'rvc':
+        # 检查 RVC Python 环境
+        script_dir = Path(__file__).parent
+        skill_dir = script_dir.parent
+        rvc_env_310 = skill_dir / 'models' / 'rvc_env_310' / 'bin' / 'python3'
+        rvc_env = skill_dir / 'models' / 'rvc_env' / 'bin' / 'python3'
+        if rvc_env_310.exists():
+            return True, f"RVC 环境就绪 ({rvc_env_310})"
+        elif rvc_env.exists():
+            return True, f"RVC 环境就绪 ({rvc_env})"
+        else:
+            return False, f"RVC Python 环境未安装，请运行: bash {skill_dir / 'install_dependencies.sh'}"
+    elif method == 'simple':
+        return True, "FFmpeg 方法无需额外依赖"
+    else:
+        return False, f"未知方法: {method}"
+
 def main():
     parser = argparse.ArgumentParser(description='音频变声处理工具')
     parser.add_argument('input_audio', help='输入音频文件路径')
@@ -571,6 +602,14 @@ def main():
         method_source = "配置文件"
 
     print(f"处理方法: {method} ({method_source})")
+
+    # 启动时预检方法依赖（快速失败，明确报错）
+    dep_ok, dep_msg = check_method_dependencies(method, voice_config)
+    if not dep_ok:
+        print(f"❌ 依赖检查失败: {dep_msg}")
+        print("   请安装所需依赖后重试")
+        sys.exit(1)
+    print(f"   ✅ 依赖检查通过")
 
     # 获取实际的 pitch_shift（RVC 用 f0up_key）
     pitch_shift = voice_config.get('f0up_key') or voice_config.get('pitch_shift', 5)

@@ -1,7 +1,7 @@
 ---
 name: voice-changer
 description: 音频变声处理工具 - 使用 RVC AI 模型进行真实的声音转换，支持视频直接输入
-version: 1.6.0
+version: 1.7.0
 author: M.
 ---
 
