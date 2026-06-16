@@ -603,13 +603,20 @@ def main():
 
     print(f"处理方法: {method} ({method_source})")
 
-    # 启动时预检方法依赖（快速失败，明确报错）
+    # 启动时预检方法依赖（仅告警，不阻断流程）
     dep_ok, dep_msg = check_method_dependencies(method, voice_config)
     if not dep_ok:
-        print(f"❌ 依赖检查失败: {dep_msg}")
-        print("   请安装所需依赖后重试")
-        sys.exit(1)
-    print(f"   ✅ 依赖检查通过")
+        if method == 'pedalboard':
+            # pedalboard 是默认方法，缺失属于环境问题 → 报错退出
+            print(f"❌ 依赖检查失败: {dep_msg}")
+            print("   请安装所需依赖后重试")
+            sys.exit(1)
+        else:
+            # RVC 等非默认方法缺失 → 仅告警，让后续处理自行降级
+            print(f"⚠️  依赖告警: {dep_msg}")
+            print("   将尝试继续处理，如失败会降级到原始音频")
+    else:
+        print(f"   ✅ 依赖检查通过")
 
     # 获取实际的 pitch_shift（RVC 用 f0up_key）
     pitch_shift = voice_config.get('f0up_key') or voice_config.get('pitch_shift', 5)
