@@ -1,0 +1,15 @@
+{
+  "summary_dir": "/Users/yourname/Documents/baoxiao/",
+  "summary_file": "报销汇总.md",
+  "_说明": "summary_dir 是汇总文件所在目录，summary_file 是汇总 Markdown 文件名；将需要使用的示例路径复制到顶层 summary_dir。",
+  "_windows_examples": {
+    "forward_slashes": {
+      "summary_dir": "C:/Users/Alice/Documents/报销/",
+      "summary_file": "报销汇总.md"
+    },
+    "escaped_backslashes": {
+      "summary_dir": "C:\\Users\\Alice\\Documents\\报销\\",
+      "summary_file": "报销汇总.md"
+    }
+  }
+}
