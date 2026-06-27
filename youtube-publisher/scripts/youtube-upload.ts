@@ -17,6 +17,8 @@ interface UploadOptions {
   subtitles?: string;
   subtitleLang?: string;
   subtitleName?: string;
+  subtitlesOnly?: boolean;  // --subtitles-only: upload subtitles to an existing video
+  videoId?: string;          // --video-id: target video ID for --subtitles-only
 }
 
 function sanitizeYouTubeMetadata(text: string = ""): string {
@@ -107,6 +109,13 @@ function parseArgs(): { auth: boolean; options: UploadOptions } {
         options.subtitleName = next;
         i++;
         break;
+      case "--subtitles-only":
+        options.subtitlesOnly = true;
+        break;
+      case "--video-id":
+        options.videoId = next;
+        i++;
+        break;
       case "--help":
       case "-h":
         printHelp();
@@ -136,6 +145,8 @@ Options:
   --subtitles <path>      Subtitle file path (SRT/VTT)
   --subtitle-lang <code>  Subtitle language code (default: zh)
   --subtitle-name <name>  Subtitle display name (default: 中文)
+  --subtitles-only        Upload subtitles only (requires --video-id)
+  --video-id <id>         Target video ID for --subtitles-only mode
   --playlist <id>         Add to playlist
   --short                 Mark as YouTube Short
   --dry-run               Preview without uploading
@@ -285,6 +296,7 @@ async function uploadVideo(
   console.log(`URL: ${videoUrl}`);
 
   // Upload thumbnail if provided
+  let thumbnailUploaded = false;
   if (options.thumbnail && fs.existsSync(options.thumbnail)) {
     console.log("\nUploading thumbnail...");
     try {
@@ -295,16 +307,17 @@ async function uploadVideo(
         },
       });
       console.log("Thumbnail uploaded!");
+      thumbnailUploaded = true;
     } catch (err: any) {
-      console.error("Thumbnail upload failed:", err.message);
+      console.error("THUMBNAIL_UPLOAD_FAILED:", err.message);
     }
   }
 
   // Upload subtitles if provided
+  let subtitlesUploaded = false;
   if (options.subtitles && fs.existsSync(options.subtitles)) {
     console.log("\nUploading subtitles...");
     try {
-      // First, need to get the track ID from the snippet
       await youtube.captions.insert({
         part: ["snippet"],
         requestBody: {
@@ -320,8 +333,9 @@ async function uploadVideo(
         },
       });
       console.log("Subtitles uploaded!");
+      subtitlesUploaded = true;
     } catch (err: any) {
-      console.error("Subtitles upload failed:", err.message);
+      console.error("SUBTITLES_UPLOAD_FAILED:", err.message);
     }
   } else if (options.subtitles) {
     console.error(`Subtitle file not found: ${options.subtitles}`);
@@ -349,6 +363,18 @@ async function uploadVideo(
     }
   }
 
+  // Print structured summary for pipeline to parse
+  console.log(`\n=== Upload Summary ===`);
+  console.log(`VIDEO_UPLOADED: ${videoId}`);
+  console.log(`THUMBNAIL_UPLOADED: ${thumbnailUploaded}`);
+  console.log(`SUBTITLES_UPLOADED: ${subtitlesUploaded}`);
+
+  // Subtitles failure is a hard error — pipeline needs to know
+  if (options.subtitles && fs.existsSync(options.subtitles) && !subtitlesUploaded) {
+    console.error("\nFATAL: Subtitles upload failed but video was uploaded. Pipeline should retry subtitles separately.");
+    process.exit(2);  // exit 2 = video ok, subtitles failed
+  }
+
   return { videoId, url: videoUrl };
 }
 
@@ -363,6 +389,68 @@ async function main() {
     return;
   }
 
+  // --- Subtitles-only mode ---
+  // Upload subtitles (and optionally thumbnail) to an existing video.
+  // Used by pipeline when --youtube-url recovery skipped the initial upload
+  // but subtitles/thumbnail were never uploaded.
+  if (options.subtitlesOnly) {
+    if (!options.videoId) {
+      console.error("Error: --subtitles-only requires --video-id");
+      process.exit(1);
+    }
+    if (!options.subtitles || !fs.existsSync(options.subtitles)) {
+      console.error("Error: --subtitles-only requires a valid --subtitles file");
+      process.exit(1);
+    }
+
+    const { oauth2Client: auth } = await authenticate(true);
+    const youtube = google.youtube({ version: "v3", auth });
+    const videoId = options.videoId;
+
+    console.log(`\n=== Subtitles-Only Upload ===`);
+    console.log(`Video ID: ${videoId}`);
+
+    // Upload thumbnail if provided
+    if (options.thumbnail && fs.existsSync(options.thumbnail)) {
+      console.log("\nUploading thumbnail...");
+      try {
+        await youtube.thumbnails.set({
+          videoId: videoId,
+          media: { body: fs.createReadStream(options.thumbnail) },
+        });
+        console.log("Thumbnail uploaded!");
+        console.log("THUMBNAIL_UPLOADED: true");
+      } catch (err: any) {
+        console.error("THUMBNAIL_UPLOAD_FAILED:", err.message);
+      }
+    }
+
+    // Upload subtitles
+    console.log("\nUploading subtitles...");
+    try {
+      await youtube.captions.insert({
+        part: ["snippet"],
+        requestBody: {
+          snippet: {
+            videoId: videoId,
+            language: options.subtitleLang || "zh",
+            name: options.subtitleName || "中文",
+            isDraft: false,
+          },
+        },
+        media: { body: fs.createReadStream(options.subtitles) },
+      });
+      console.log("Subtitles uploaded!");
+      console.log("SUBTITLES_UPLOADED: true");
+      console.log(`https://youtu.be/${videoId}`);
+    } catch (err: any) {
+      console.error("SUBTITLES_UPLOAD_FAILED:", err.message);
+      process.exit(1);
+    }
+    return;
+  }
+
+  // --- Normal upload mode ---
   // Validate required options
   if (!options.video) {
     console.error("Error: --video is required");
