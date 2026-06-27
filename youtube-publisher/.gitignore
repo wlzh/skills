@@ -1,2 +1,3 @@
 .youtube-token.json
 token.json
+*.youtube-token.json*

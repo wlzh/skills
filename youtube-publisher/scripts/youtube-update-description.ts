@@ -3,6 +3,10 @@
  * post-write verification and robust token refresh.
  *
  * Changelog:
+ *  v1.4  2026-06-27  Network error retry for API calls
+ *    - Wrap videos.list and videos.update in retry-with-backoff (3 attempts,
+ *      5s delay) to handle transient "Premature close" / ECONNRESET errors.
+ *    - Separate from the verify-mismatch retry loop which already existed.
  *  v1.3  2026-06-11  Fix verify mismatch caused by trailing newline
  *    - YouTube API strips trailing newlines on storage, causing the exact
  *      string comparison to always fail (off by 1 char).
@@ -24,6 +28,41 @@ import { authenticate } from "./authenticate";
 
 const MAX_VERIFY_RETRIES = 3;
 const VERIFY_RETRY_DELAY_MS = 5000;
+const MAX_NETWORK_RETRIES = 3;
+const NETWORK_RETRY_DELAY_MS = 5000;
+
+/**
+ * Retry wrapper for transient network errors (Premature close, ECONNRESET, etc.).
+ * Distinct from the verify-mismatch retry loop.
+ */
+async function withNetworkRetry<T>(
+  fn: () => Promise<T>,
+  label: string
+): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_NETWORK_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastErr = err;
+      const isNetwork =
+        err.message?.includes("Premature close") ||
+        err.message?.includes("ECONNRESET") ||
+        err.message?.includes("ETIMEDOUT") ||
+        err.message?.includes("EPIPE") ||
+        err.message?.includes("socket hang up");
+      if (isNetwork && attempt < MAX_NETWORK_RETRIES) {
+        console.error(
+          `${label} network error (attempt ${attempt}/${MAX_NETWORK_RETRIES}): ${err.message}`
+        );
+        await new Promise((r) => setTimeout(r, NETWORK_RETRY_DELAY_MS));
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw lastErr;
+}
 
 async function updateDescription(
   youtube: any,
@@ -31,10 +70,10 @@ async function updateDescription(
   newDescription: string
 ): Promise<void> {
   // Get current snippet to preserve required fields
-  const videoResponse = await youtube.videos.list({
-    id: [videoId],
-    part: ["snippet"],
-  });
+  const videoResponse: any = await withNetworkRetry(
+    () => youtube.videos.list({ id: [videoId], part: ["snippet"] }),
+    "videos.list (get snippet)"
+  );
 
   const video = videoResponse.data.items?.[0];
   if (!video) {
@@ -58,19 +97,22 @@ async function updateDescription(
 
   // Update + verify loop
   for (let attempt = 1; attempt <= MAX_VERIFY_RETRIES; attempt++) {
-    await youtube.videos.update({
-      part: ["snippet"],
-      requestBody: {
-        id: videoId,
-        snippet: snippetPayload,
-      },
-    });
+    await withNetworkRetry(
+      () => youtube.videos.update({
+        part: ["snippet"],
+        requestBody: {
+          id: videoId,
+          snippet: snippetPayload,
+        },
+      }),
+      "videos.update"
+    );
 
     // Verify: GET the video again and compare description
-    const verifyResponse = await youtube.videos.list({
-      id: [videoId],
-      part: ["snippet"],
-    });
+    const verifyResponse: any = await withNetworkRetry(
+      () => youtube.videos.list({ id: [videoId], part: ["snippet"] }),
+      "videos.list (verify)"
+    );
 
     const actualDesc = verifyResponse.data.items?.[0]?.snippet?.description || "";
 

@@ -1,10 +1,11 @@
 ---
 name: youtube-publisher
 description: "Upload and publish videos to YouTube with title, description, tags, thumbnail and subtitles. Use for: youtube upload, publish video, share on youtube."
-version: 1.2.0
+version: 1.3.0
 setup_complete: true
 setup: "./SETUP.md"
 changelog:
+  - 2026-06-27: v1.3.0 (a) authenticate.ts: auto-detect HTTPS_PROXY env var and configure undici ProxyAgent as global dispatcher — prevents intermittent "Premature close" errors when operating behind a proxy. (b) youtube-upload.ts: add "Premature close" to isRetryable patterns; before retrying upload, use search.list to check if video was already created server-side (YouTube sometimes completes upload despite connection drop). (c) youtube-update-description.ts v1.4: wrap all videos.list/videos.update calls in withNetworkRetry (3x retry, 5s delay) for transient network errors.
   - 2026-06-11: v1.2.0 youtube-update-description.ts v1.3 — fix verify mismatch caused by trailing newline. YouTube API strips trailing `\n` on storage, so exact comparison always fails (off by 1 char). Fix: `trimEnd()` both sides before comparing.
   - 2026-06-11: v1.1.1 Fix `open` import in authenticate.ts — `import * as open from "open"` causes TS2349 with open v8.x (CJS module). Changed to `import open = require("open")` for correct callable import.
   - 2026-06-09: v1.1.0 Shared OAuth2 module — new `authenticate.ts` public module used by all 4 TS scripts (youtube-upload, upload-captions, fix-thumbnails, youtube-update-description). Unified token refresh: triggers refresh when `expiry_date` is missing OR expired; auto-computes `expiry_date` from `expires_in` when Google omits it. youtube-update-description.ts v1.2 adds post-write GET verification (retries 3x on mismatch).

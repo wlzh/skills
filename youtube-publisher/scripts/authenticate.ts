@@ -32,9 +32,32 @@ import open = require("open");
 // Load .env from the same directory as this script
 dotenv.config({ path: path.join(__dirname, ".env") });
 
+// --- Proxy support ---
+// googleapis uses node-fetch internally which does NOT respect HTTPS_PROXY
+// by default. If a proxy is set in the environment, configure a global
+// dispatcher so all API calls go through it. This prevents intermittent
+// "Premature close" errors when operating behind a proxy.
+const proxyUrl =
+  process.env.HTTPS_PROXY ||
+  process.env.https_proxy ||
+  process.env.HTTP_PROXY ||
+  process.env.http_proxy;
+if (proxyUrl) {
+  try {
+    const { ProxyAgent, setGlobalDispatcher } = require("undici");
+    setGlobalDispatcher(new ProxyAgent(proxyUrl as string));
+    console.log(`[proxy] Using proxy: ${proxyUrl}`);
+  } catch {
+    // undici not available — googleapis will fall back to default transport.
+    // Proxy may not work but don't crash.
+    console.warn(`[proxy] HTTPS_PROXY set but undici not available; proxy not applied`);
+  }
+}
+
 const TOKEN_PATH = path.join(__dirname, ".youtube-token.json");
 
 const SCOPES = [
+  "https://www.googleapis.com/auth/youtube",
   "https://www.googleapis.com/auth/youtube.upload",
   "https://www.googleapis.com/auth/youtube.force-ssl",
 ];

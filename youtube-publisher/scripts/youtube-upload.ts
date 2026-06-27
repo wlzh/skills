@@ -230,8 +230,39 @@ async function uploadVideo(
         err.message?.includes("EPIPE") ||
         err.message?.includes("ETIMEDOUT") ||
         err.message?.includes("ECONNRESET") ||
-        err.message?.includes("socket hang up");
+        err.message?.includes("socket hang up") ||
+        err.message?.includes("Premature close");
       if (isRetryable && attempt < maxRetries) {
+        // Before retrying, check if the video was actually created server-side
+        // (YouTube sometimes completes the upload even when the connection drops
+        // with "Premature close"). Use search.list to find a recently uploaded
+        // video with the same title.
+        try {
+          const searchResp = await youtube.search.list({
+            part: ["snippet"],
+            forMine: true,
+            maxResults: 1,
+            type: ["video"],
+            q: videoMetadata.snippet?.title || "",
+          });
+          if (searchResp.data.items && searchResp.data.items.length > 0) {
+            const candidate = searchResp.data.items[0];
+            if (candidate.snippet?.title === videoMetadata.snippet?.title) {
+              console.log(`\nUpload succeeded despite error — found video: ${candidate.id}`);
+              // Fetch full video resource (search returns search result, not video)
+              const videoResp = await youtube.videos.list({
+                part: ["snippet", "status"],
+                id: [candidate.id!],
+              });
+              if (videoResp.data.items && videoResp.data.items.length > 0) {
+                response = videoResp;
+                break;
+              }
+            }
+          }
+        } catch {
+          // Search failed, proceed with retry
+        }
         console.log(
           `\nUpload failed (attempt ${attempt}/${maxRetries}): ${err.message}`
         );
