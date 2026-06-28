@@ -45,6 +45,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_GROUPS = [
     {"chat_id": os.environ.get("TG_GROUP_1_ID", ""), "thread_id": os.environ.get("TG_GROUP_1_THREAD", "5")},
     {"chat_id": os.environ.get("TG_GROUP_2_ID", ""), "thread_id": os.environ.get("TG_GROUP_2_THREAD", "2")},
+    {"chat_id": os.environ.get("TG_GROUP_3_ID", ""), "thread_id": None},
 ]
 
 # 频道 ID
@@ -171,9 +172,10 @@ def send_telegram_group_notification(updated_repos: List[str], total_items: int,
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {
             "chat_id": group["chat_id"],
-            "message_thread_id": group["thread_id"],
             "text": text
         }
+        if group.get("thread_id"):
+            data["message_thread_id"] = group["thread_id"]
         
         try:
             req = urllib.request.Request(
