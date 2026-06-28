@@ -5,11 +5,15 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.4.3
+**版本**: v1.4.4
 
 夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v1.4.4 (2026-06-28)
+- ➕ 新增第三个群组 @tgmkno (chat_id=-1002618425984) 到通知列表，非论坛群无 topic
+- 🐛 修复：thread_id 为 None 时不传 message_thread_id 参数，避免非论坛群发送报错
 
 ### v1.4.3 (2026-05-29)
 - 🎨 统一群组通知格式：与频道通知风格对齐，包含资源名称、夸克链接、更新仓库、查看详情链接、资料总站、资料频道
