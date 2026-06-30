@@ -71,21 +71,55 @@ def git_pull(repo_dir: Path):
 
 def fetch_mswnlz_repo_descriptions() -> Dict[str, str]:
     url = "https://api.github.com/users/mswnlz/repos?per_page=100&sort=updated"
-    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
     token = os.environ.get("GITHUB_TOKEN")
+    # Use curl with retry to avoid IncompleteRead errors
+    cmd = ["curl", "-s", "--retry", "3", "--retry-delay", "2", "-H", "Accept: application/vnd.github+json"]
     if token:
-        req.add_header("Authorization", f"Bearer {token}")
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    return {r["name"]: (r.get("description") or "") for r in data}
+        cmd += ["-H", f"Authorization: Bearer {token}"]
+    cmd += [url]
+    import subprocess as _sp
+    r = _sp.run(cmd, capture_output=True, text=True, timeout=30)
+    data = json.loads(r.stdout)
+    return {repo["name"]: (repo.get("description") or "") for repo in data}
 
 
-def classify_item(name: str, repo_desc: Dict[str, str]) -> str:
-    n = name
-    if re.search(r"影视|电影|剧|纪录片|演唱会", n):
+def classify_item(name: str, repo_desc: Dict[str, str], original_title: str = "") -> str:
+    """
+    根据资源名称和原始标题自动归类到 mswnlz 仓库。
+    
+    分层策略：
+      第一关 — 视频/影视类关键词命中 → movies
+      第二关 — 书籍类关键词命中       → book
+      第三关 — 按仓库 description 评分  → 兜底
+    
+    说明：
+      - 原始标题（用户输入的完整名称）辅助判断，弥补 Quark 文件夹名简写的问题
+      - 视频关键词优先（4K、超清、蓝光等分辨率词几乎只用于视频）
+      - "合集"不再直接归 book，防止影视合集误归
+    """
+    n = name + " " + original_title
+
+    # ── 第一关：视频/影视类关键词 ──
+    # 分辨率标识（几乎只用于视频）
+    if re.search(r"\b4K\b|超清|蓝光|高清|1080P|2160P|720P", n, re.IGNORECASE):
         return "movies"
-    if re.search(r"书|书单|新书|杂志|电子书|合集", n):
+    # 影视关键短语
+    if re.search(r"电影|纪录片|纪录[片影视]|演唱会|电视剧|剧集|连续剧|TV版|影视", n):
+        return "movies"
+    # 集数标识（第X集 / 全X集 / X集全）
+    if re.search(r"全\d+集|第\d+集|第.{0,3}集|\d+集全|\d+集完结", n):
+        return "movies"
+    # 常见视频后缀
+    if re.search(r"\.mp4|\.mkv|\.avi|\.rmvb|\.mov|\.ts|\.webm", n, re.IGNORECASE):
+        return "movies"
+
+    # ── 第二关：书籍类关键词 ──
+    # 注意：谨慎使用"合集"（"BBC纪录片合集"不该归书），此处只匹配明确书籍词
+    if re.search(r"书$|书单|新书|电子书|杂志|纯文本|\d+册|\d+本|册全书|全集书", n):
         return "book"
+
+    # ── 第三关（回退）：按仓库描述评分 ──
+    # 当名称和标题都无法明确判断时，用仓库 description 关键词做模糊匹配
 
     # fallback keyword match against descriptions
     candidates = [
@@ -240,13 +274,25 @@ def main():
 
     repo_desc = fetch_mswnlz_repo_descriptions()
 
+    # 构建原始标题映射（按顺序匹配 Quark 文件名与原始标题）
+    items_meta = batch.get("items") or []
+    original_titles = {}
+    for im in items_meta:
+        orig = (im.get("title") or "").strip()
+        if orig:
+            original_titles[orig] = orig
+
     by_repo: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
-    for it in share_results:
+    for idx, it in enumerate(share_results):
         name = it.get("name") or ""
         url = it.get("share_url") or ""
         if not name or not url:
             continue
-        repo = classify_item(name, repo_desc)
+        # 获取原始标题（按顺序匹配）
+        orig_title = ""
+        if idx < len(items_meta):
+            orig_title = items_meta[idx].get("title") or ""
+        repo = classify_item(name, repo_desc, original_title=orig_title)
         by_repo[repo].append((name, url))
 
     updated_repos = []
