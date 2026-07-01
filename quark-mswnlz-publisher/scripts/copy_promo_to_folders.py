@@ -174,28 +174,84 @@ async def copy_promo_files(batch_json_path: str, cookies: str, headers: dict = N
     return await copier.copy_promo_to_all_folders(share_results)
 
 
-async def main():
+def baidu_copy_promo(batch_json_path: str) -> dict:
+    """百度盘推广文件复制：使用 BaiduPCS-Go cp 命令"""
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "QuarkPanTool"))
+    from baidu_client import BaiduPCSClient
+
+    batch = json.loads(Path(batch_json_path).read_text(encoding="utf-8"))
+    share_results = batch.get("share_results", [])
+
+    client = BaiduPCSClient()
+    if not client.load_login():
+        print("[ERROR] 百度登录失败")
+        return {"success": [], "skipped": [], "failed": []}
+
+    results = {"success": [], "skipped": [], "failed": []}
+    for item in share_results:
+        name = item.get("name", "")
+        src_path = item.get("src_path", "")
+        if not src_path:
+            results["skipped"].append(name)
+            continue
+
+        print(f"\n[处理] {name}")
+        promo_files = client.ls("/推广文件")
+        if not promo_files:
+            print(f"  ⚠️ 推广文件目录 /推广文件 为空")
+            results["skipped"].append(name)
+            continue
+
+        success_count = 0
+        for pf in promo_files:
+            pf_name = pf["name"]
+            src = f"/推广文件/{pf_name}"
+            dst = f"{src_path}/{pf_name}"
+            try:
+                if client.cp(src, dst):
+                    success_count += 1
+            except Exception as e:
+                print(f"  ⚠️ 复制 {pf_name} 失败: {e}")
+
+        if success_count == len(promo_files):
+            print(f"  ✅ 推广文件全部复制成功 ({success_count}/{len(promo_files)})")
+            results["success"].append(name)
+        else:
+            print(f"  ⚠️ 推广文件部分复制成功 ({success_count}/{len(promo_files)})")
+            results["success"].append(name)
+
+    return results
+
+
+def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--batch-json", required=True)
     args = ap.parse_args()
 
-    # 读取 cookies
-    cookies_path = Path(__file__).parent.parent.parent.parent / "QuarkPanTool" / "config" / "cookies.txt"
-    if not cookies_path.exists():
-        print(f"[ERROR] Cookies 文件不存在: {cookies_path}")
-        return
-    
-    cookies_raw = cookies_path.read_text().strip()
-    cookies = parse_cookies(cookies_raw)
+    batch = json.loads(Path(args.batch_json).read_text(encoding="utf-8"))
+    source = batch.get("source", "quark")
 
-    # 执行复制
-    results = await copy_promo_files(args.batch_json, cookies)
+    if source == "baidu":
+        print(f"[INFO] 检测到百度盘来源，走百度复制流程")
+        results = baidu_copy_promo(args.batch_json)
+    else:
+        print(f"[INFO] 检测到夸克来源，走夸克复制流程")
+        cookies_path = Path(__file__).parent.parent.parent.parent / "QuarkPanTool" / "config" / "cookies.txt"
+        if not cookies_path.exists():
+            print(f"[ERROR] Cookies 文件不存在: {cookies_path}")
+            return
+        cookies_raw = cookies_path.read_text().strip()
+        cookies = parse_cookies(cookies_raw)
+        results = asyncio.run(copy_promo_files(args.batch_json, cookies))
 
     print(f"\n[完成]")
-    print(f"  ✅ 成功: {len(results['success'])}")
-    print(f"  ⏭️ 跳过: {len(results['skipped'])}")
-    print(f"  ❌ 失败: {len(results['failed'])}")
+    ok_n = len(results.get("success", []))
+    sk_n = len(results.get("skipped", []))
+    fl_n = len(results.get("failed", []))
+    print(f"  ✅ 成功: {ok_n}")
+    print(f"  ⏭️ 跳过: {sk_n}")
+    print(f"  ❌ 失败: {fl_n}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

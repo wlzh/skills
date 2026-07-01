@@ -5,14 +5,20 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.4.4
+**版本**: v1.5.0
 
-夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
 
-### v1.4.4 (2026-06-30)
-- 🎯 **智能分类升级**：新增视频类关键词识别（4K、超清、蓝光、全X集、第X集、纪录等），自动优先匹配 movies 仓库
+### v1.5.0 (2026-07-01)
+- 🆕 **百度网盘完整支持**：新增 `baidu_client.py` / `baidu_batch_run.py`，支持百度网盘转存+加密永久分享+推广文件复制
+- 🆕 **统一编排器** `pipeline_orchestrator.py`：自动识别 Quark / Baidu 链接，分流处理、按名称合并结果后统一发布
+- 🆕 **多链接支持**：items.json 支持 `urls` 数组，一个资源名可以同时有夸克和百度链接
+- 🔗 **双链接发布**：TG 通知和群组消息同时显示夸克+百度两个链接
+- 🛡️ **容错设计**：一个网盘异常不影响另一个，至少有一个链接成功即可发布
+- 🔀 **统一路由** `url_router.py`：自动检测链接来源（quark.cn / pan.baidu.com）
+- ♻️ 百度A段已支持
 - 📝 **原始标题辅助判断**：同时检查用户输入的原始标题（如"北宋帝陵 (2023) 4K 全7集"），弥补 Quark 文件夹名简写问题
 - 🔧 **修复"合集"误归**：取消"合集"自动归 book 规则，防止影视合集错归书籍仓库
 - ➕ 新增第三个群组到通知列表，非论坛群无 topic

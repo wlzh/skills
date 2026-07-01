@@ -183,19 +183,26 @@ def make_commit_message(items: List[str]) -> str:
     return "\n".join(lines)
 
 
-def send_telegram_group_notification(updated_repos: List[str], total_items: int, by_repo: Dict[str, List[Tuple[str, str]]], month: str):
+def send_telegram_group_notification(updated_repos: List[str], total_items: int, by_repo: Dict[str, List[Tuple[str, str]]], month: str, source: str = "quark"):
     """发送统一的群组通知（只发一条）"""
     import urllib.parse
     
     if not updated_repos:
         return
     
+    # 根据来源使用不同文案
+    link_label = "夸克链接" if source == "quark" else ("百度链接" if source == "baidu" else "")
+    
     # 构建资源列表
     item_lines = []
     for repo in updated_repos:
         items = by_repo.get(repo, [])
         for name, url in items:
-            item_lines.append(f"增加 {name}\n🔗 夸克链接：{url}")
+            if source == "combined":
+                # 双链接：url 已包含夸克/百度标签
+                item_lines.append(f"增加 {name}\n{url}")
+            else:
+                item_lines.append(f"增加 {name}\n🔗 {link_label}：{url}")
     
     repos_str = "、".join(updated_repos)
     items_text = "\n\n".join(item_lines)
@@ -227,8 +234,9 @@ def send_telegram_group_notification(updated_repos: List[str], total_items: int,
             print(f"[TG] 发送异常: {e}")
 
 
-def generate_quark_group_message(by_repo: Dict[str, List[Tuple[str, str]]], batch_folder: str) -> str:
-    """生成夸克群组消息（格式化，方便复制）"""
+def generate_quark_group_message(by_repo: Dict[str, List[Tuple[str, str]]], batch_folder: str, source: str = "quark") -> str:
+    """生成网盘群组消息（格式化，方便复制）"""
+    source_label = "夸克" if source == "quark" else "百度"
     lines = ["📦 资源更新通知", ""]
     
     total = 0
@@ -250,7 +258,9 @@ def generate_quark_group_message(by_repo: Dict[str, List[Tuple[str, str]]], batc
         
         for name, url in items:
             lines.append(f"• {name}")
-            lines.append(f"  🔗 {url}")
+            url_lines = url.split("\n")
+            for ul in url_lines:
+                lines.append(f"  🔗 {ul}" if not ul.startswith("🔗") else f"  {ul}")
             total += 1
     
     lines.append("")
@@ -282,23 +292,48 @@ def main():
         if orig:
             original_titles[orig] = orig
 
-    by_repo: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
+    # 构建通知用的（带双链接文本）和 GitHub 用的（单 URL）
+    by_repo_notify: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
+    by_repo_github: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
+    
     for idx, it in enumerate(share_results):
         name = it.get("name") or ""
-        url = it.get("share_url") or ""
-        if not name or not url:
+        links = it.get("links", {})
+        share_url = it.get("share_url") or ""
+        if not name:
             continue
-        # 获取原始标题（按顺序匹配）
+        
+        # 获取原始标题
         orig_title = ""
         if idx < len(items_meta):
             orig_title = items_meta[idx].get("title") or ""
         repo = classify_item(name, repo_desc, original_title=orig_title)
-        by_repo[repo].append((name, url))
+        
+        # 通知用：支持双链接显示
+        if len(links) > 1:
+            quark_url = links.get("quark", "")
+            baidu_url = links.get("baidu", "")
+            if quark_url and baidu_url:
+                url_display = f"夸克：{quark_url}\n百度：{baidu_url}"
+            elif quark_url:
+                url_display = quark_url
+            else:
+                url_display = baidu_url
+        else:
+            url_display = share_url or next(iter(links.values()), "")
+        
+        if url_display:
+            by_repo_notify[repo].append((name, url_display))
+        
+        # GitHub 用：优先取夸克链接，其次百度
+        gh_url = links.get("quark") or links.get("baidu", "")
+        if gh_url:
+            by_repo_github[repo].append((name, gh_url))
 
     updated_repos = []
     total_items = 0
     
-    for repo, items in by_repo.items():
+    for repo, items in by_repo_github.items():
         ensure_clone(repo)
         repo_dir = MSWNLZ_ROOT / repo
         git_pull(repo_dir)
@@ -319,19 +354,23 @@ def main():
         total_items += len(items)
         print(f"[OK] pushed {repo}: {len(items)} items")
 
-    # 生成夸克群组消息并保存
-    quark_msg = generate_quark_group_message(by_repo, batch_folder)
-    quark_msg_file = Path(args.batch_json).parent / "quark_group_message.txt"
-    quark_msg_file.write_text(quark_msg, encoding="utf-8")
-    print(f"\n[夸克群组消息] 已保存到: {quark_msg_file}")
+    # 获取来源
+    source = batch.get("source", "quark")
+    
+    # 生成群组消息并保存
+    group_msg = generate_quark_group_message(by_repo_notify, batch_folder, source=source)
+    msg_filename = f"{source}_group_message.txt"
+    msg_file = Path(args.batch_json).parent / msg_filename
+    msg_file.write_text(group_msg, encoding="utf-8")
+    print(f"\n[{source.upper()}群组消息] 已保存到: {msg_file}")
     print("-" * 40)
-    print(quark_msg)
+    print(group_msg)
     print("-" * 40)
 
     # 统一发送群组通知（只发一条）
     if updated_repos:
         print(f"\n[TG] 发送群组汇总通知...")
-        send_telegram_group_notification(updated_repos, total_items, by_repo, args.month)
+        send_telegram_group_notification(updated_repos, total_items, by_repo_notify, args.month, source=source)
 
     # 触发网站更新
     if updated_repos:
