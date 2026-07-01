@@ -18,7 +18,8 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 - 🔗 **双链接发布**：TG 通知和群组消息同时显示夸克+百度两个链接
 - 🛡️ **容错设计**：一个网盘异常不影响另一个，至少有一个链接成功即可发布
 - 🔀 **统一路由** `url_router.py`：自动检测链接来源（quark.cn / pan.baidu.com）
-- ♻️ 百度A段已支持
+- ♻️ 百度A段已支持文件重复时自动分享已有文件夹
+- 🧪 **dry-run 模式**：编排器和发布脚本均支持 `--dry-run`，测试时可跳过 TG 通知、GitHub 推送和站点重建
 - 📝 **原始标题辅助判断**：同时检查用户输入的原始标题（如"北宋帝陵 (2023) 4K 全7集"），弥补 Quark 文件夹名简写问题
 - 🔧 **修复"合集"误归**：取消"合集"自动归 book 规则，防止影视合集错归书籍仓库
 - ➕ 新增第三个群组 @tgmkno (chat_id=-1002618425984) 到通知列表，非论坛群无 topic

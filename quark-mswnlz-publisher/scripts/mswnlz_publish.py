@@ -276,6 +276,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--month", required=True)
     ap.add_argument("--batch-json", required=True)
+    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知和GitHub推送")
     args = ap.parse_args()
 
     batch = json.loads(Path(args.batch_json).read_text(encoding="utf-8"))
@@ -333,7 +334,10 @@ def main():
     updated_repos = []
     total_items = 0
     
-    for repo, items in by_repo_github.items():
+    if args.dry_run:
+        print("[dry-run] 跳过 GitHub 推送")
+    else:
+        for repo, items in by_repo_github.items():
         ensure_clone(repo)
         repo_dir = MSWNLZ_ROOT / repo
         git_pull(repo_dir)
@@ -367,15 +371,25 @@ def main():
     print(group_msg)
     print("-" * 40)
 
-    # 统一发送群组通知（只发一条）
-    if updated_repos:
+    # 统一发送群组通知（dry-run 跳过）
+    if updated_repos and not args.dry_run:
         print(f"\n[TG] 发送群组汇总通知...")
         send_telegram_group_notification(updated_repos, total_items, by_repo_notify, args.month, source=source)
+    elif args.dry_run:
+        print(f"\n[dry-run] 跳过 TG 通知")
 
-    # 触发网站更新
-    if updated_repos:
+    # 触发网站更新（dry-run 跳过）
+    if updated_repos and not args.dry_run:
         print(f"\n[网站] 触发站点重建...")
         trigger_site_rebuild()
+    elif args.dry_run:
+        print(f"[dry-run] 跳过站点重建")
+
+    print("")
+    if args.dry_run:
+        print(f"[dry-run] 模拟完成，共 {total_items} 项")
+        print(f"   手动发布命令：")
+        print(f"     python3 {__file__} --month {args.month} --batch-json {args.batch_json}")
 
 
 def trigger_site_rebuild():
