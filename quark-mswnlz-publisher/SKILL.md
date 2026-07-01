@@ -266,41 +266,129 @@ python scripts/mswnlz_publish.py \
   --batch-json batch_share_results.json
 ```
 
-**依赖**：
-- Git SSH 配置
-- 可选：`GITHUB_TOKEN` 环境变量
-
-### scripts/trigger_site_rebuild.sh
-
-触发站点重建。
+支持 `--dry-run` 参数（测试时跳过推送）：
 
 ```bash
-bash scripts/trigger_site_rebuild.sh
+python scripts/mswnlz_publish.py \
+  --month 202603 \
+  --batch-json batch_share_results.json \
+  --dry-run
 ```
 
 **依赖**：
 - Git SSH 配置
-- `mswnlz.github.io` 仓库写权限
+- 可选：`GITHUB_TOKEN` 环境变量
 
-## 推广文件
+### scripts/pipeline_orchestrator.py 🆕
 
-### 模板文件夹位置
+统一编排器：自动识别 Quark/Baidu 链接，分流处理、合并结果后统一发布。
 
-夸克网盘：`temp/要共享的文件`
+```bash
+# 完整发布
+python scripts/pipeline_orchestrator.py \
+  --items-json items.json \
+  --label "短裤哥批次"
 
-### 文件清单
+# 测试（只跑转存+分享+合并，不发布）
+python scripts/pipeline_orchestrator.py \
+  --items-json items.json \
+  --label "短裤哥批次" \
+  --dry-run
+```
 
-| 文件名 | 用途 |
-|--------|------|
-| `必看免责声明_及加入资源分享群_及_副业_0_成本赚钱教程_资源网站doc_869hr_uk.txt` | 免责声明 + 联系方式 + 赚钱教程 |
-| `1_解压密码869hr_uk_移动端双击这里.html` | 移动端解压密码获取页面 |
-| `0_双击获取解压密码_Mac系统双击这里.webloc` | Mac 快捷方式 |
-| `0_双击获取解压密码_windows系统双击这里.url` | Windows 快捷方式 |
+**items.json 新增格式**（支持多链接）：
 
-### 本地备份
+```json
+{
+  "title": "樊登讲书2026年合集【全网最新】",
+  "urls": [
+    "https://pan.quark.cn/s/7f6be305d850",
+    "https://pan.baidu.com/s/1YHBDynfOKAkxpEjQzDq0Gg?pwd=L6kA"
+  ]
+}
+```
 
-`promo_files/` 目录保存了推广文件的本地备份，用于参考和恢复。
+旧格式 `url` 仍兼容：
 
-## 详细文档
+```json
+{
+  "title": "泰坦尼克号",
+  "url": "https://pan.quark.cn/s/c2bf2c29b114"
+}
+```
 
-完整配置、依赖安装、故障排除请参阅 [README.md](README.md)。
+**依赖**：
+- 所有 Quark A段 依赖
+- 所有 Baidu A段 依赖
+- `url_router.py`（本仓库）
+- QuarkPanTool 需放在与 `skills/` 同级的目录下
+
+### scripts/url_router.py 🆕
+
+自动检测链接来源（quark.cn / pan.baidu.com）。
+
+### scripts/baidu_batch_run.py 🆕（位于 QuarkPanTool 仓库）
+
+百度网盘 A段：批量转存 + 加密永久分享 + 推广文件复制。详见 [QuarkPanTool 下的 Baidu 模块](#quarkpantool-百度模块)。
+
+## 新机器安装指南
+
+### 1. 克隆仓库
+
+```bash
+# skills 仓库（发布脚本）
+git clone git@github.com:wlzh/skills.git
+
+# QuarkPanTool（转存脚本，用 gxjda 的 fork，含百度支持）
+git clone git@github.com:gxjda/QuarkPanTool.git
+cd QuarkPanTool
+git checkout feat/baidu-support
+```
+
+两个仓库需放在同一父目录下：
+
+```
+/你的工作目录/
+├── QuarkPanTool/         # 转存脚本（含百度支持）
+└── skills/               # 发布脚本
+    └── quark-mswnlz-publisher/
+        └── scripts/
+```
+
+### 2. 安装依赖
+
+**百度网盘**（BaiduPCS-Go）：
+```bash
+# 下载 BaiduPCS-Go v4.0.1+
+# https://github.com/qjfoidnh/BaiduPCS-Go/releases
+# macOS ARM64 版本：
+wget https://github.com/qjfoidnh/BaiduPCS-Go/releases/download/v4.0.1/BaiduPCS-Go-v4.0.1-darwin-arm64.zip
+unzip BaiduPCS-Go-v4.0.1-darwin-arm64.zip
+# 放到 PATH 下
+chmod +x /path/to/BaiduPCS-Go
+# 登录
+BaiduPCS-Go login -bduss=你的BDUSS -stoken=你的STOKEN
+```
+
+**夸克网盘**（QuarkPanTool 虚拟环境）：
+```bash
+cd QuarkPanTool
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. 配置凭证
+
+| 文件 | 用途 | 位置 |
+|------|------|------|
+| `config/baidu_auth.json` | BDUSS/STOKEN（百度盘） | `QuarkPanTool/config/` |
+| `config/cookies.txt` | Quark Cookie（夸克盘） | `QuarkPanTool/config/` |
+| `~/.mp-publisher/config.json` | TG Bot Token / 群组配置 | （来自 mp-article-publisher） |
+
+### 4. 上传推广文件
+
+**夸克盘**：上传到 `temp/要共享的文件` 目录（QuarkPanTool 默认创建）。
+**百度盘**：上传到 `/推广文件/` 目录，文件清单同夸克。
+
+## 脚本说明
