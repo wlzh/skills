@@ -7,7 +7,7 @@ pipeline_orchestrator.py — 统一批处理编排器
   自动按来源（夸克/百度）分流，分别转存+分享，
   按资源名合并结果后统一触发发布流程。
 
-Version: 1.0.0
+Version: 1.1.0
 
 用法：
   python /path/to/pipeline_orchestrator.py \\
@@ -305,7 +305,7 @@ def write_temp_items(items: list, suffix: str) -> Path:
 
 def main():
     ap = argparse.ArgumentParser(
-        description="统一批处理编排器 v1.0.0",
+        description="统一批处理编排器 v1.1.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -313,6 +313,7 @@ def main():
     ap.add_argument("--label", default="短裤哥批次", help="批次标签")
     ap.add_argument("--month", default="", help="月份（如 202607）")
     ap.add_argument("--out-json", default="", help="合并后的输出路径（默认自动）")
+    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知和GitHub发布")
     args = ap.parse_args()
 
     # ── 1. 读取 & 标准化 ──
@@ -455,21 +456,30 @@ def main():
             label="百度推广",
         )
 
-    # ── 7. 发布 ──
-    print(f"\n{'#'*60}")
-    print(f"# 发布（GitHub + TG通知 + 站点重建）")
-    print(f"{'#'*60}")
+    # ── 7. 发布（仅非 dry-run）──
+    if not args.dry_run:
+        print(f"\n{'#'*60}")
+        print(f"# 发布（GitHub + TG通知 + 站点重建）")
+        print(f"{'#'*60}")
 
-    run_script(
-        [
-            PYTHON,
-            str(SCRIPTS_DIR / "mswnlz_publish.py"),
-            "--month", merged["month"],
-            "--batch-json", str(merged_path),
-        ],
-        cwd=str(QUARKPANTOOL_DIR),
-        label="发布",
-    )
+        run_script(
+            [
+                PYTHON,
+                str(SCRIPTS_DIR / "mswnlz_publish.py"),
+                "--month", merged["month"],
+                "--batch-json", str(merged_path),
+            ],
+            cwd=str(QUARKPANTOOL_DIR),
+            label="发布",
+        )
+    else:
+        print(f"\n{'#'*60}")
+        print(f"# [dry-run] 跳过发布")
+        print(f"{'#'*60}")
+        print(f"   合并结果已保存: {merged_path}")
+        print(f"   共 {len(merged['share_results'])} 条")
+        print(f"   用以下命令手动发布：")
+        print(f"     python3 {SCRIPTS_DIR / 'mswnlz_publish.py'} --month {merged['month']} --batch-json {merged_path}")
 
     # ── 8. 清理临时文件 ──
     for tmp in [SCRIPTS_DIR / "batch_share_results_quark.json",
