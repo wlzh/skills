@@ -5,11 +5,20 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.6.0
+**版本**: v1.7.0
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v1.7.0 (2026-07-03)
+- 🆕 **quark_batch_run.py v2.0.0**: Save-Share 锁步模式，不再依赖目录列表顺序
+  - 每个 item 保存后立即生成分享链接，捕获 title→URL 的显式映射
+  - **规则**: 有 title+url → 用提供的 title；只有 url → 从 Quark 实际文件夹名取名字
+  - 一个 title 下有多个 url 时，所有分享链接自动归到同一 title 下
+- 🔧 **pipeline_orchestrator.py**: `_load_urls` 适配新版 title 字段，不再按 index 对位
+- 🔧 **内容校验**: 名称与 URL 一一对应，防止跨资源串位
+- 🧹 清理了过时的中间文件
 
 ### v1.6.0 (2026-07-03)
 - 🆕 **阿里云盘完整支持**：新增 `aliyun_client.py` / `aliyun_batch_run.py`，基于 aligo SDK 实现阿里云盘转存+加密永久分享+推广文件复制

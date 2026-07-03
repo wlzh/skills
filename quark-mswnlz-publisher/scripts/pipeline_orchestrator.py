@@ -213,14 +213,22 @@ def merge_results(
             items_meta = data.get("items", [])
             srs = data.get("share_results", [])
             for idx, sr in enumerate(srs):
-                orig_title = ""
-                if idx < len(items_meta):
-                    orig_title = items_meta[idx].get("title", "")
-                name = sr.get("name", "")
+                # v2.0.0+: explicit title field captured at save time (quark name fallback)
+                title = sr.get("title") or ""
+                quark_name = sr.get("quark_name") or sr.get("name", "")
                 url = sr.get("share_url", "")
-                key = orig_title or name
-                if key:
-                    store[key] = url
+                # Priority: 1) title from save-time capture, 2) original items title (old format), 3) quark_name
+                key = title
+                if not key:
+                    # Fallback: index-based (old format)
+                    orig_title = items_meta[idx].get("title", "") if idx < len(items_meta) else ""
+                    key = orig_title or quark_name
+                if key and url:
+                    # Same title may have multiple URLs (one title + two source URLs)
+                    if key in store:
+                        store[key] += f"\n{url}"
+                    else:
+                        store[key] = url
 
     _load_urls(quark_result_path, quark_urls)
     _load_urls(baidu_result_path, baidu_urls)
@@ -304,7 +312,7 @@ def write_temp_items(items: list, suffix: str) -> Path:
 
 def main():
     ap = argparse.ArgumentParser(
-        description="统一批处理编排器 v1.2.0",
+        description="统一批处理编排器 v1.3.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

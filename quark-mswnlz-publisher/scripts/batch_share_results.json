@@ -1,88 +1,153 @@
 {
-  "batch_folder_name": "2026-06-01_2027_短裤哥批次",
-  "batch_folder_fid": "acd305038b5240a780aac7e225d52e11",
+  "source": "combined",
+  "month": "202607",
+  "batch_folder_name": "2026-07-03_1446_短裤哥批次",
   "items": [
     {
-      "title": "⛵️樊登讲书0523《活着》【视频+音频+思维导图】",
-      "input_url": "https://pan.quark.cn/s/3ec17884c2a1"
+      "title": "潮州味道 (2022) 4K 全6集",
+      "urls": [
+        "https://pan.quark.cn/s/a2180fe3e74f"
+      ]
     },
     {
-      "title": "⛵️樊登讲书0516为什么10倍增长比2倍更容易",
-      "input_url": "https://pan.quark.cn/s/2421a5997254"
+      "title": "绘本故事2000+精选大全 一天一个启蒙小故事",
+      "urls": [
+        "https://pan.quark.cn/s/354f5cc80615"
+      ]
     },
     {
-      "title": "⛵️李蕾讲经典0520爱玛【视频+音频】",
-      "input_url": "https://pan.quark.cn/s/f042fd925602"
+      "title": "美女与猫AI视频案例，爆款萌宠内容创作指南",
+      "urls": [
+        "https://pan.quark.cn/s/75b37cea3175"
+      ]
     },
     {
-      "title": "⛵️李蕾将经典0513米格尔街",
-      "input_url": "https://pan.quark.cn/s/b772a58c4eeb"
+      "title": "【影视飓风】剪辑全能必修课：从0基础到专业成片",
+      "urls": [
+        "https://pan.quark.cn/s/c2650ce1afdf"
+      ]
     },
     {
-      "title": "⛵️非凡精读0518脆弱的家庭【视频+音频+思维导图】",
-      "input_url": "https://pan.quark.cn/s/cf293ffe07c4"
+      "title": "《Gemini 3.0从入门到精通》，全系统掌握谷歌最强AI模型",
+      "urls": [
+        "https://pan.quark.cn/s/94e91d78eef0"
+      ]
     },
     {
-      "title": "⛵️非凡精读0519更富有、更睿智、更快乐【视频+音频+思维导图】",
-      "input_url": "https://pan.quark.cn/s/e71a7556d3b4"
+      "title": "Codex橙皮书，非官方开源的Codex 全链路指南",
+      "urls": [
+        "https://pan.quark.cn/s/176ec41c2860"
+      ]
     },
     {
-      "title": "⛵️非凡精读0521自证预言【视频+音频+思维导图】",
-      "input_url": "https://pan.quark.cn/s/069811b99e95"
+      "title": "最全Codex入门教程，从基础配置到项目实战",
+      "urls": [
+        "https://pan.quark.cn/s/62c0611dfee7"
+      ]
     },
     {
-      "title": "🉐得到0526【更新】",
-      "input_url": "https://pan.quark.cn/s/ebfdc92da45e"
+      "title": "Codex实操课程",
+      "urls": [
+        "https://pan.quark.cn/s/3dacffe5b044"
+      ]
+    },
+    {
+      "title": "一键安装使用Hermes、Codex",
+      "urls": [
+        "https://pan.quark.cn/s/4cc24491678a"
+      ]
+    },
+    {
+      "title": "AI变现课：codex开发私域商用超级站",
+      "urls": [
+        "https://pan.quark.cn/s/771166d47fca"
+      ]
     }
   ],
   "share_results": [
     {
-      "name": "0526",
-      "fid": "97ba2dbe4a1d4c138a1a7b043ddab9ad",
-      "share_id": "8b51c6cda6a5472eade71817e5d76959",
-      "share_url": "https://pan.quark.cn/s/29007f6f65fb?pwd=G492"
+      "name": "潮州味道 (2022) 4K 全6集",
+      "title": "潮州味道 (2022) 4K 全6集",
+      "links": {
+        "quark": "https://pan.quark.cn/s/892f90ee8aa8?pwd=WOyi"
+      },
+      "share_url": "https://pan.quark.cn/s/892f90ee8aa8?pwd=WOyi"
     },
     {
-      "name": "非凡精读0521自证预言【视频+音频+思维导图】",
-      "fid": "1157bbaa16e148b6baca007cf5156342",
-      "share_id": "8e8cfee119cc4aa2ba1ba5a0a421915b",
-      "share_url": "https://pan.quark.cn/s/e39cb7904aa7?pwd=ErxJ"
+      "name": "绘本故事2000+精选大全 一天一个启蒙小故事",
+      "title": "绘本故事2000+精选大全 一天一个启蒙小故事",
+      "links": {
+        "quark": "https://pan.quark.cn/s/e08d1804a80e?pwd=sh3C"
+      },
+      "share_url": "https://pan.quark.cn/s/e08d1804a80e?pwd=sh3C"
     },
     {
-      "name": "非凡精读0519更富有、更睿智、更快乐【视频+音频+思维导图】",
-      "fid": "a9e00a63d3974860849d7cd1019210bd",
-      "share_id": "671aa2896d534821a71b8c4ea4af1841",
-      "share_url": "https://pan.quark.cn/s/f01008fe71a6?pwd=HZpA"
+      "name": "美女与猫AI视频案例，爆款萌宠内容创作指南",
+      "title": "美女与猫AI视频案例，爆款萌宠内容创作指南",
+      "links": {
+        "quark": "https://pan.quark.cn/s/32c733742acd?pwd=ZphG"
+      },
+      "share_url": "https://pan.quark.cn/s/32c733742acd?pwd=ZphG"
     },
     {
-      "name": "非凡精读0518脆弱的家庭【视频+音频+思维导图】",
-      "fid": "cab447cd30a0453ca8669c30e74a4152",
-      "share_id": "c393f033c28844ec8df6f75d82435646",
-      "share_url": "https://pan.quark.cn/s/2fd7d795c341?pwd=LaT5"
+      "name": "【影视飓风】剪辑全能必修课：从0基础到专业成片",
+      "title": "【影视飓风】剪辑全能必修课：从0基础到专业成片",
+      "links": {
+        "quark": "https://pan.quark.cn/s/b3b55e4c3ecd?pwd=PEy3"
+      },
+      "share_url": "https://pan.quark.cn/s/b3b55e4c3ecd?pwd=PEy3"
     },
     {
-      "name": "李蕾将经典0513米格尔街",
-      "fid": "6d399c0ca09d4887a011a9b96ed1e311",
-      "share_id": "dc3fa1def0074cf79ddcb1a62e3690eb",
-      "share_url": "https://pan.quark.cn/s/4c1b84846a72?pwd=7Rnp"
+      "name": "《Gemini 3.0从入门到精通》，全系统掌握谷歌最强AI模型",
+      "title": "《Gemini 3.0从入门到精通》，全系统掌握谷歌最强AI模型",
+      "links": {
+        "quark": "https://pan.quark.cn/s/9dd471020f86?pwd=FGBt"
+      },
+      "share_url": "https://pan.quark.cn/s/9dd471020f86?pwd=FGBt"
     },
     {
-      "name": "李蕾讲经典0520爱玛【视频+音频】",
-      "fid": "a6ed08ec6b54432a94b752f7425c868d",
-      "share_id": "5d05612a0c7c49c1a618eec8e6cdab39",
-      "share_url": "https://pan.quark.cn/s/b27a84272fc3?pwd=hhGY"
+      "name": "Codex橙皮书，非官方开源的Codex 全链路指南",
+      "title": "Codex橙皮书，非官方开源的Codex 全链路指南",
+      "links": {
+        "quark": "https://pan.quark.cn/s/5992c08bd49b?pwd=L7fi",
+        "baidu": "https://pan.baidu.com/s/1nk4LomScJ1HryAYrSV_zdA?pwd=AtiA"
+      },
+      "share_url": "https://pan.quark.cn/s/5992c08bd49b?pwd=L7fi"
     },
     {
-      "name": "樊登讲书0516为什么10倍增长比2倍更容易",
-      "fid": "b6249da8e5ea4f2c8bcc0f3bc5b58bf3",
-      "share_id": "256bba24cbd7471b9e34251755776ceb",
-      "share_url": "https://pan.quark.cn/s/c90cb9e0acc3?pwd=Whcu"
+      "name": "最全Codex入门教程，从基础配置到项目实战",
+      "title": "最全Codex入门教程，从基础配置到项目实战",
+      "links": {
+        "quark": "https://pan.quark.cn/s/cfac11b77918?pwd=54Uf",
+        "baidu": "https://pan.baidu.com/s/1Nk5YQxXPKvzOIGT-OF_Xzg?pwd=dVh8"
+      },
+      "share_url": "https://pan.quark.cn/s/cfac11b77918?pwd=54Uf"
     },
     {
-      "name": "樊登讲书0523《活着》【视频+音频+思维导图】",
-      "fid": "b45be8a378ae4bb6a61b03201758fe29",
-      "share_id": "134a2e2049984c1fbee0c07ce38040b4",
-      "share_url": "https://pan.quark.cn/s/853924496cd3?pwd=6PLr"
+      "name": "Codex实操课程",
+      "title": "Codex实操课程",
+      "links": {
+        "quark": "https://pan.quark.cn/s/a2841b57901d?pwd=aIV9",
+        "baidu": "https://pan.baidu.com/s/14sXnVzEVmDqenXiIALz6KA?pwd=PHW8"
+      },
+      "share_url": "https://pan.quark.cn/s/a2841b57901d?pwd=aIV9"
+    },
+    {
+      "name": "一键安装使用Hermes、Codex",
+      "title": "一键安装使用Hermes、Codex",
+      "links": {
+        "quark": "https://pan.quark.cn/s/50b15c3aa64a?pwd=Yuda\nhttps://pan.quark.cn/s/346e1dadcfdc?pwd=H1aF"
+      },
+      "share_url": "https://pan.quark.cn/s/50b15c3aa64a?pwd=Yuda\nhttps://pan.quark.cn/s/346e1dadcfdc?pwd=H1aF"
+    },
+    {
+      "name": "AI变现课：codex开发私域商用超级站",
+      "title": "AI变现课：codex开发私域商用超级站",
+      "links": {
+        "quark": "https://pan.quark.cn/s/4752b0fe3f4d?pwd=OVoQ",
+        "baidu": "https://pan.baidu.com/s/19JlCb3ks4XXzV-8tgzrr2A?pwd=oFu3"
+      },
+      "share_url": "https://pan.quark.cn/s/4752b0fe3f4d?pwd=OVoQ"
     }
   ]
 }

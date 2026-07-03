@@ -39,7 +39,7 @@ const execPromise = promisify(execAsync);
 // ── Proxy ──────────────────────────────────────────────────────────
 const PROXY = process.env.HTTPS_PROXY || process.env.https_proxy ||
               process.env.HTTP_PROXY || process.env.http_proxy ||
-              'http://127.0.0.1:10808';
+              'http://127.0.0.1:1082';
 
 const STATE_DIR = path.resolve(__dirname, '..', 'state');
 const CONFIG_PATH = path.join(STATE_DIR, 'config.json');
@@ -74,7 +74,7 @@ async function sendTelegram(botToken, text) {
     message_thread_id: TG_TOPIC_ID,
     text: text,
     parse_mode: 'HTML',
-    disable_web_page_preview: false,
+    disable_web_page_preview: true,
   });
 
   const cmd = `curl -sS -m 15 -x "${PROXY}" -X POST -H "Content-Type: application/json" -d '${body.replace(/'/g, "'\\''")}' "${url}"`;
@@ -543,35 +543,21 @@ Commands:
       return;
     }
 
-    // Send each video as a separate Telegram message
-    let sentOk = 0;
-    let sentFail = 0;
-    const sentIds = [];
+    // Merge all new videos into a single message (compact, no link previews)
+    const videoLines = newVideos.map((nv, i) => {
+      const chName = nv.channel.title || nv.video.channelTitle || nv.channel.channelId;
+      return `${i + 1}. ${nv.video.title}\n   📺 ${chName}｜🔗 ${nv.video.link || videoUrl(nv.video.videoId)}`;
+    });
+    const combinedText = `🔔 ${newVideos.length} 个新视频\n\n${videoLines.join('\n\n')}`;
 
-    for (const nv of newVideos) {
-      const text = formatVideoNotify(nv);
-      const ok = await sendTelegram(botToken, text);
+    const ok = await sendTelegram(botToken, combinedText);
 
-      if (ok) {
-        sentOk++;
-        sentIds.push(nv.video.videoId);
-        console.error(`✅ 已发送: ${nv.video.title}`);
-      } else {
-        sentFail++;
-        console.error(`❌ 发送失败: ${nv.video.title} (${nv.video.videoId}) — 下次重试`);
-      }
-    }
-
-    // Only mark successfully sent videos as seen
-    if (sentIds.length) {
+    if (ok) {
+      const sentIds = newVideos.map(v => v.video.videoId);
       markAsSeen(sentIds);
-    }
-
-    // Summary
-    console.error(`\n发送完成: ✅ ${sentOk} 成功, ❌ ${sentFail} 失败`);
-    if (sentFail > 0) {
-      console.error(`失败的视频未被标记为 seen，下次 cron 会自动重试`);
-      // Exit with code 1 to signal partial failure (cron can track this)
+      console.error(`✅ 已发送合并消息 (${newVideos.length} 个视频)`);
+    } else {
+      console.error(`❌ 合并消息发送失败 — ${newVideos.length} 个视频下次重试`);
       process.exit(1);
     }
 
