@@ -206,7 +206,7 @@ def baidu_copy_promo(batch_json_path: str) -> dict:
         for pf in promo_files:
             pf_name = pf["name"]
             src = f"/推广文件/{pf_name}"
-            dst = f"{src_path}/{pf_name}"
+            dst = src_path  # BaiduPCS-Go cp 复制到目录（非完整路径）
             try:
                 if client.cp(src, dst):
                     success_count += 1
@@ -223,6 +223,39 @@ def baidu_copy_promo(batch_json_path: str) -> dict:
     return results
 
 
+def aliyun_copy_promo(batch_json_path: str) -> dict:
+    """阿里云盘推广文件复制：使用 aliyun_client.copy_promo_to_folder"""
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "QuarkPanTool"))
+    from aliyun_client import AliyunClient
+
+    batch = json.loads(Path(batch_json_path).read_text(encoding="utf-8"))
+    share_results = batch.get("share_results", [])
+
+    client = AliyunClient()
+    if not client.login():
+        print("[ERROR] 阿里云盘登录失败")
+        return {"success": [], "skipped": [], "failed": []}
+
+    results = {"success": [], "skipped": [], "failed": []}
+    for item in share_results:
+        name = item.get("name", "")
+        file_id = item.get("file_id", "")
+        if not file_id:
+            results["skipped"].append(name)
+            continue
+
+        print(f"\n[处理] {name}")
+        n = client.copy_promo_to_folder(file_id)
+        if n > 0:
+            print(f"  ✅ 推广文件已复制 ({n} 个)")
+            results["success"].append(name)
+        else:
+            print(f"  ⚠️ 推广文件未复制")
+            results["skipped"].append(name)
+
+    return results
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--batch-json", required=True)
@@ -234,6 +267,9 @@ def main():
     if source == "baidu":
         print(f"[INFO] 检测到百度盘来源，走百度复制流程")
         results = baidu_copy_promo(args.batch_json)
+    elif source == "aliyun":
+        print(f"[INFO] 检测到阿里云盘来源，走阿里云盘复制流程")
+        results = aliyun_copy_promo(args.batch_json)
     else:
         print(f"[INFO] 检测到夸克来源，走夸克复制流程")
         cookies_path = Path(__file__).parent.parent.parent.parent / "QuarkPanTool" / "config" / "cookies.txt"

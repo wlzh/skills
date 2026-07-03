@@ -236,7 +236,7 @@ def send_telegram_group_notification(updated_repos: List[str], total_items: int,
 
 def generate_quark_group_message(by_repo: Dict[str, List[Tuple[str, str]]], batch_folder: str, source: str = "quark") -> str:
     """生成网盘群组消息（格式化，方便复制）"""
-    source_label = "夸克" if source == "quark" else "百度"
+    source_label = "夸克" if source == "quark" else ("百度" if source == "baidu" else ("阿里云盘" if source == "aliyun" else ""))
     lines = ["📦 资源更新通知", ""]
     
     total = 0
@@ -310,24 +310,24 @@ def main():
             orig_title = items_meta[idx].get("title") or ""
         repo = classify_item(name, repo_desc, original_title=orig_title)
         
-        # 通知用：支持双链接显示
+        # 通知用：支持多链接显示
         if len(links) > 1:
-            quark_url = links.get("quark", "")
-            baidu_url = links.get("baidu", "")
-            if quark_url and baidu_url:
-                url_display = f"夸克：{quark_url}\n百度：{baidu_url}"
-            elif quark_url:
-                url_display = quark_url
-            else:
-                url_display = baidu_url
+            parts = []
+            if links.get("quark"):
+                parts.append(f"夸克：{links['quark']}")
+            if links.get("baidu"):
+                parts.append(f"百度：{links['baidu']}")
+            if links.get("aliyun"):
+                parts.append(f"阿里云盘：{links['aliyun']}")
+            url_display = "\n".join(parts)
         else:
             url_display = share_url or next(iter(links.values()), "")
         
         if url_display:
             by_repo_notify[repo].append((name, url_display))
         
-        # GitHub 用：优先取夸克链接，其次百度
-        gh_url = links.get("quark") or links.get("baidu", "")
+        # GitHub 用：优先取夸克链接，其次阿里云盘，再百度
+        gh_url = links.get("quark") or links.get("aliyun", "") or links.get("baidu", "")
         if gh_url:
             by_repo_github[repo].append((name, gh_url))
 
@@ -338,25 +338,25 @@ def main():
         print("[dry-run] 跳过 GitHub 推送")
     else:
         for repo, items in by_repo_github.items():
-        ensure_clone(repo)
-        repo_dir = MSWNLZ_ROOT / repo
-        git_pull(repo_dir)
+            ensure_clone(repo)
+            repo_dir = MSWNLZ_ROOT / repo
+            git_pull(repo_dir)
 
-        month_file = repo_dir / f"{args.month}.md"
-        append_items(month_file, items)
+            month_file = repo_dir / f"{args.month}.md"
+            append_items(month_file, items)
 
-        readme_path = repo_dir / "README.md"
-        readme = readme_path.read_text(encoding="utf-8")
-        readme_path.write_text(readme_insert_month(readme, args.month), encoding="utf-8")
+            readme_path = repo_dir / "README.md"
+            readme = readme_path.read_text(encoding="utf-8")
+            readme_path.write_text(readme_insert_month(readme, args.month), encoding="utf-8")
 
-        sh(["git", "add", f"{args.month}.md", "README.md"], cwd=repo_dir)
-        msg = make_commit_message([t for t, _ in items])
-        sh(["git", "commit", "-m", msg], cwd=repo_dir)
-        sh(["git", "push", "origin", "main"], cwd=repo_dir)
+            sh(["git", "add", f"{args.month}.md", "README.md"], cwd=repo_dir)
+            msg = make_commit_message([t for t, _ in items])
+            sh(["git", "commit", "-m", msg], cwd=repo_dir)
+            sh(["git", "push", "origin", "main"], cwd=repo_dir)
 
-        updated_repos.append(repo)
-        total_items += len(items)
-        print(f"[OK] pushed {repo}: {len(items)} items")
+            updated_repos.append(repo)
+            total_items += len(items)
+            print(f"[OK] pushed {repo}: {len(items)} items")
 
     # 获取来源
     source = batch.get("source", "quark")

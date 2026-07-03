@@ -7,7 +7,7 @@ pipeline_orchestrator.py — 统一批处理编排器
   自动按来源（夸克/百度）分流，分别转存+分享，
   按资源名合并结果后统一触发发布流程。
 
-Version: 1.1.0
+Version: 1.2.0
 
 用法：
   python /path/to/pipeline_orchestrator.py \\
@@ -34,6 +34,7 @@ items.json 格式（支持单链接和多链接）：
 依赖：
   - QuarkPanTool/quark_batch_run.py
   - QuarkPanTool/baidu_batch_run.py
+  - QuarkPanTool/aliyun_batch_run.py  (阿里云盘，需项目 .venv 中安装 aligo)
   - scripts/copy_promo_to_folders.py
   - scripts/mswnlz_publish.py
 """
@@ -61,12 +62,14 @@ VENV_PYTHON = str(QUARKPANTOOL_DIR / ".venv" / "bin" / "python")
 # ─── URL 工具 ────────────────────────────────
 
 def detect_source(url: str) -> str:
-    """检测网盘来源：quark / baidu / unknown"""
+    """检测网盘来源：quark / baidu / aliyun / unknown"""
     url_lower = url.lower()
     if "pan.quark.cn" in url_lower:
         return "quark"
-    elif "pan.baidu.com" in url_lower:
+    elif "pan.baidu.com" in url_lower or "yun.baidu.com" in url_lower:
         return "baidu"
+    elif "aliyundrive.com" in url_lower or "aliyunpan.com" in url_lower:
+        return "aliyun"
     else:
         return "unknown"
 
@@ -119,10 +122,11 @@ def normalize_items(items_raw: list) -> list:
 
 # ─── 分流 ────────────────────────────────────
 
-def split_by_source(items: list) -> Tuple[list, list]:
-    """将资源按网盘来源拆分为两份"""
+def split_by_source(items: list) -> Tuple[list, list, list]:
+    """将资源按网盘来源拆分为三份"""
     quark_items = []
     baidu_items = []
+    aliyun_items = []
 
     for item in items:
         title = item["title"]
@@ -132,8 +136,10 @@ def split_by_source(items: list) -> Tuple[list, list]:
                 quark_items.append({"title": title, "url": url})
             elif source == "baidu":
                 baidu_items.append({"title": title, "url": url})
+            elif source == "aliyun":
+                aliyun_items.append({"title": title, "url": url})
 
-    return quark_items, baidu_items
+    return quark_items, baidu_items, aliyun_items
 
 
 # ─── 子进程执行 ──────────────────────────────
@@ -191,58 +197,45 @@ def run_script(
 def merge_results(
     quark_result_path: Optional[Path],
     baidu_result_path: Optional[Path],
+    aliyun_result_path: Optional[Path],
     batch_folder_name: str,
     items_normalized: list,
 ) -> dict:
-    """按资源名合并两个网盘的分享结果"""
+    """按资源名合并三个网盘的分享结果"""
     quark_urls: Dict[str, str] = {}   # original_title -> share_url
     baidu_urls: Dict[str, str] = {}   # original_title -> share_url
+    aliyun_urls: Dict[str, str] = {}  # original_title -> share_url
 
-    # 读取夸克结果（用 items 数组中的原始标题匹配 share_results）
-    if quark_result_path and quark_result_path.exists():
-        with open(quark_result_path, encoding="utf-8") as f:
-            data = json.load(f)
-        items_meta = data.get("items", [])
-        srs = data.get("share_results", [])
-        for idx, sr in enumerate(srs):
-            orig_title = ""
-            if idx < len(items_meta):
-                orig_title = items_meta[idx].get("title", "")
-            name = sr.get("name", "")
-            url = sr.get("share_url", "")
-            key = orig_title or name
-            if key:
-                quark_urls[key] = url
+    def _load_urls(result_path: Optional[Path], store: dict):
+        if result_path and result_path.exists():
+            with open(result_path, encoding="utf-8") as f:
+                data = json.load(f)
+            items_meta = data.get("items", [])
+            srs = data.get("share_results", [])
+            for idx, sr in enumerate(srs):
+                orig_title = ""
+                if idx < len(items_meta):
+                    orig_title = items_meta[idx].get("title", "")
+                name = sr.get("name", "")
+                url = sr.get("share_url", "")
+                key = orig_title or name
+                if key:
+                    store[key] = url
 
-    # 读取百度结果
-    if baidu_result_path and baidu_result_path.exists():
-        with open(baidu_result_path, encoding="utf-8") as f:
-            data = json.load(f)
-        items_meta = data.get("items", [])
-        srs = data.get("share_results", [])
-        for idx, sr in enumerate(srs):
-            orig_title = ""
-            if idx < len(items_meta):
-                orig_title = items_meta[idx].get("title", "")
-            name = sr.get("name", "")
-            url = sr.get("share_url", "")
-            key = orig_title or name
-            if key:
-                baidu_urls[key] = url
+    _load_urls(quark_result_path, quark_urls)
+    _load_urls(baidu_result_path, baidu_urls)
+    _load_urls(aliyun_result_path, aliyun_urls)
 
     merged = []
     for item in items_normalized:
         title = item["title"]
 
-        # 最多尝试两种匹配：原始标题 / 名字前缀匹配
+        # 最多尝试多种匹配：原始标题 / 名字前缀匹配
         def _find(store: dict, fallback_key: str = "") -> str:
-            # 精确匹配原始标题
             if title in store:
                 return store[title]
-            # 精确匹配 fallback
             if fallback_key and fallback_key in store:
                 return store[fallback_key]
-            # 前缀匹配
             for k, v in store.items():
                 if k and (title.startswith(k) or k.startswith(title)):
                     return v
@@ -250,22 +243,28 @@ def merge_results(
 
         quark_url = _find(quark_urls)
         baidu_url = _find(baidu_urls)
+        aliyun_url = _find(aliyun_urls)
 
         links = {}
         if quark_url:
             links["quark"] = quark_url
         if baidu_url:
             links["baidu"] = baidu_url
+        if aliyun_url:
+            links["aliyun"] = aliyun_url
 
         if not links:
-            print(f"  ⚠️ {title}: 两个网盘均未找到分享结果")
+            print(f"  ⚠️ {title}: 三个网盘均未找到分享结果")
             continue
+
+        # share_url 按优先级：夸克 > 阿里云 > 百度
+        share_url = quark_url or aliyun_url or baidu_url
 
         entry = {
             "name": title,
             "title": title,
             "links": links,
-            "share_url": quark_url or baidu_url,  # 优先夸克
+            "share_url": share_url,
         }
         merged.append(entry)
 
@@ -275,12 +274,12 @@ def merge_results(
 
     # 从任意一个存在的源文件获取月份和批次信息
     month = ""
-    if quark_result_path and quark_result_path.exists():
-        with open(quark_result_path) as f:
-            month = json.load(f).get("month", "")
-    if not month and baidu_result_path and baidu_result_path.exists():
-        with open(baidu_result_path) as f:
-            month = json.load(f).get("month", "")
+    for p in [quark_result_path, baidu_result_path, aliyun_result_path]:
+        if p and p.exists():
+            with open(p) as f:
+                month = json.load(f).get("month", "")
+            if month:
+                break
 
     return {
         "source": "combined",
@@ -305,7 +304,7 @@ def write_temp_items(items: list, suffix: str) -> Path:
 
 def main():
     ap = argparse.ArgumentParser(
-        description="统一批处理编排器 v1.1.0",
+        description="统一批处理编排器 v1.2.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -331,9 +330,10 @@ def main():
         return
 
     # ── 2. 分流 ──
-    quark_items, baidu_items = split_by_source(norm_items)
+    quark_items, baidu_items, aliyun_items = split_by_source(norm_items)
     print(f"\n   夸克: {len(quark_items)} 个链接")
     print(f"   百度: {len(baidu_items)} 个链接")
+    print(f"   阿里云盘: {len(aliyun_items)} 个链接")
 
     # ── 3. 生成批次信息 ──
     ts = datetime.now().strftime("%Y-%m-%d_%H%M")
@@ -343,6 +343,7 @@ def main():
     # ── 4. 执行 A 段（转存+分享） ──
     quark_result_path: Optional[Path] = None
     baidu_result_path: Optional[Path] = None
+    aliyun_result_path: Optional[Path] = None
 
     if quark_items:
         print(f"\n{'#'*60}")
@@ -367,9 +368,8 @@ def main():
         if result["success"]:
             quark_result_path = quark_out
         else:
-            print("  ⚠️ 夸克 A 段执行失败，继续处理百度")
+            print("  ⚠️ 夸克 A 段执行失败，继续处理其他网盘")
 
-        # 删除临时文件
         quark_items_file.unlink(missing_ok=True)
 
     if baidu_items:
@@ -399,6 +399,33 @@ def main():
 
         baidu_items_file.unlink(missing_ok=True)
 
+    if aliyun_items:
+        print(f"\n{'#'*60}")
+        print(f"# 阿里云盘 A 段：{len(aliyun_items)} 个链接")
+        print(f"{'#'*60}")
+        aliyun_items_file = write_temp_items(aliyun_items, "aliyun")
+        aliyun_out = SCRIPTS_DIR / f"batch_share_results_aliyun.json"
+
+        result = run_script(
+            [
+                VENV_PYTHON,
+                str(QUARKPANTOOL_DIR / "aliyun_batch_run.py"),
+                "--items-json", str(aliyun_items_file),
+                "--label", args.label,
+                "--month", month,
+                "--out-json", str(aliyun_out),
+            ],
+            cwd=str(QUARKPANTOOL_DIR),
+            label="阿里云盘A段",
+        )
+
+        if result["success"]:
+            aliyun_result_path = aliyun_out
+        else:
+            print("  ⚠️ 阿里云盘 A 段执行失败")
+
+        aliyun_items_file.unlink(missing_ok=True)
+
     # ── 5. 合并结果 ──
     print(f"\n{'#'*60}")
     print(f"# 合并结果")
@@ -407,6 +434,7 @@ def main():
     merged = merge_results(
         quark_result_path,
         baidu_result_path,
+        aliyun_result_path,
         batch_folder_name,
         norm_items,
     )
@@ -421,8 +449,10 @@ def main():
     print(f"\n✅ 合并结果已保存: {merged_path}")
     print(f"   共 {len(merged['share_results'])} 条，其中：")
     dual_count = sum(1 for sr in merged["share_results"] if len(sr.get("links", {})) > 1)
+    triple_count = sum(1 for sr in merged["share_results"] if len(sr.get("links", {})) > 2)
     single_count = len(merged["share_results"]) - dual_count
-    print(f"   • 双链接: {dual_count}")
+    print(f"   • 三链接: {triple_count}")
+    print(f"   • 双链接: {dual_count - triple_count}")
     print(f"   • 单链接: {single_count}")
 
     # ── 6. B 段：复制推广文件 ──
@@ -456,6 +486,13 @@ def main():
             label="百度推广",
         )
 
+    # 阿里云盘部分（推广文件已在 batch_run 内部复制，此处无需额外操作）
+    if aliyun_result_path and aliyun_result_path.exists():
+        print(f"\n{'#'*60}")
+        print(f"# 阿里云盘推广文件复制（已在 A 段内部完成）")
+        print(f"{'#'*60}")
+        print(f"   阿里云盘推广文件在转存分享环节自动完成，无需额外步骤")
+
     # ── 7. 发布（仅非 dry-run）──
     if not args.dry_run:
         print(f"\n{'#'*60}")
@@ -483,7 +520,8 @@ def main():
 
     # ── 8. 清理临时文件 ──
     for tmp in [SCRIPTS_DIR / "batch_share_results_quark.json",
-                SCRIPTS_DIR / "batch_share_results_baidu.json"]:
+                SCRIPTS_DIR / "batch_share_results_baidu.json",
+                SCRIPTS_DIR / "batch_share_results_aliyun.json"]:
         if tmp.exists():
             tmp.unlink()
 

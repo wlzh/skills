@@ -1,7 +1,7 @@
 """url_router.py — 网盘链接类型自动路由
 
-根据 URL 自动判断是夸克还是百度，返回路由信息。
-Version: 1.0.0
+根据 URL 自动判断是夸克/百度/阿里云盘，返回路由信息。
+Version: 1.1.0
 """
 
 import re
@@ -14,7 +14,7 @@ def route_url(url: str) -> str:
         url: 网盘分享链接
 
     Returns:
-        "quark" | "baidu"
+        "quark" | "baidu" | "aliyun"
 
     Raises:
         ValueError: 不支持的网盘类型
@@ -26,6 +26,9 @@ def route_url(url: str) -> str:
 
     if "pan.baidu.com" in url or "yun.baidu.com" in url:
         return "baidu"
+
+    if "aliyundrive.com" in url or "aliyunpan.com" in url:
+        return "aliyun"
 
     raise ValueError(f"不支持的网盘类型: {url[:50]}...")
 
@@ -66,7 +69,6 @@ def detect_and_run(items_json: str, out_json: str, label: str = "短裤哥批次
     print(f"[ROUTER] 🔀 检测到: {source.upper()} 网盘链接")
 
     if source == "quark":
-        # 走已有夸克流程
         import subprocess
         cmd = [
             "python", str(Path(__file__).resolve().parent / "quark_batch_run.py"),
@@ -79,7 +81,6 @@ def detect_and_run(items_json: str, out_json: str, label: str = "短裤哥批次
         subprocess.run(cmd, cwd=str(Path.cwd()))
 
     elif source == "baidu":
-        # 走百度流程
         import subprocess
         cmd = [
             "python", str(Path(__file__).resolve().parent.parent.parent.parent
@@ -92,4 +93,24 @@ def detect_and_run(items_json: str, out_json: str, label: str = "短裤哥批次
         work_dir = str(Path(__file__).resolve().parent.parent.parent.parent
                       / "QuarkPanTool")
         print(f"[ROUTER] 🚀 执行百度流程...")
+        subprocess.run(cmd, cwd=work_dir)
+
+    elif source == "aliyun":
+        import subprocess
+        venv_python = str(Path(__file__).resolve().parent.parent.parent.parent
+                         / "QuarkPanTool" / ".venv" / "bin" / "python")
+        if not Path(venv_python).exists():
+            venv_python = "python3"
+        cmd = [
+            venv_python,
+            str(Path(__file__).resolve().parent.parent.parent.parent
+               / "QuarkPanTool" / "aliyun_batch_run.py"),
+            "--label", label,
+            "--items-json", items_json,
+            "--out-json", out_json,
+            "--month", month or "",
+        ]
+        work_dir = str(Path(__file__).resolve().parent.parent.parent.parent
+                      / "QuarkPanTool")
+        print(f"[ROUTER] 🚀 执行阿里云盘流程...")
         subprocess.run(cmd, cwd=work_dir)

@@ -5,11 +5,19 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.5.0
+**版本**: v1.6.0
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v1.6.0 (2026-07-03)
+- 🆕 **阿里云盘完整支持**：新增 `aliyun_client.py` / `aliyun_batch_run.py`，基于 aligo SDK 实现阿里云盘转存+加密永久分享+推广文件复制
+- 🆕 **三链发布**：`pipeline_orchestrator.py` 支持夸克+百度+阿里云盘三网盘混合分流、合并、统一发布
+- 🆕 **三链 TG 通知**：群组通知和频道通知同时显示三个网盘的链接
+- 🔀 **url_router.py** 新增 aliyundrive.com 识别路由
+- 🆕 **自动上传推广文件**：阿里云盘首次自动扫码登录后，自动上传本地推广文件到网盘
+- 🧩 **依赖**：项目 .venv 需安装 `aligo>=6.2.8`（pip install aligo）
 
 ### v1.5.0 (2026-07-01)
 - 🆕 **百度网盘完整支持**：新增 `baidu_client.py` / `baidu_batch_run.py`，支持百度网盘转存+加密永久分享+推广文件复制
@@ -105,13 +113,26 @@ export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
 - 目标月份 `YYYYMM`（默认：当前月份）
 - 批次标签（默认：`短裤哥批次`）
 
-### 1) 确保夸克登录状态
+### 1) 确保各网盘登录状态
 
+**夸克网盘**：
 - 检查 `QuarkPanTool/config/cookies.txt`
 - 如果不存在或为空：运行 `python quark_login.py`
 - 登录流程：自动打开 Chrome → 用户扫码 → Cookie 自动保存
 
-### 2) 批量转存 + 生成分享链接
+**阿里云盘**（首次使用需扫码）：
+- 首次运行 `aliyun_batch_run.py` 时，终端会打印二维码图片链接
+- 用阿里云盘 App 扫码登录后，refresh_token 自动保存到 `~/.aligo/quark-mswnlz.json`
+- 后续运行自动复用 token，无需再扫码
+- 首次运行还会自动上传本地推广文件到阿里云盘的 `/推广文件` 目录
+
+### 2) 批量转存 + 生成分享链接（支持夸克/百度/阿里云盘）
+
+```
+          ┌─ 夸克 ─→ quark_batch_run.py
+items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_results.json ──→ 合并 ──→ B段
+          └─ 阿里云盘 → aliyun_batch_run.py
+```
 
 使用 `scripts/quark_batch_run.py`：
 1. 在夸克根目录创建批次文件夹（格式：`YYYY-MM-DD_HHMM_<label>`）
