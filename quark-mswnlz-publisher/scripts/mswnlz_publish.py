@@ -46,6 +46,7 @@ TELEGRAM_GROUPS = [
     {"chat_id": os.environ.get("TG_GROUP_1_ID", ""), "thread_id": os.environ.get("TG_GROUP_1_THREAD", "5")},
     {"chat_id": os.environ.get("TG_GROUP_2_ID", ""), "thread_id": os.environ.get("TG_GROUP_2_THREAD", "2")},
     {"chat_id": os.environ.get("TG_GROUP_3_ID", ""), "thread_id": None},
+    {"chat_id": os.environ.get("TG_GROUP_4_ID", ""), "thread_id": os.environ.get("TG_GROUP_4_THREAD", "")},
 ]
 
 # 频道 ID

@@ -5,11 +5,15 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.7.0
+**版本**: v1.8.0
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v1.8.0 (2026-07-04)
+- 🆕 **第4个 TG 群组推送**：`mswnlz_publish.py` 新增 `TG_GROUP_4_ID` / `TG_GROUP_4_THREAD` 环境变量支持
+- 🔧 默认支持 4 个群组推送，完全通过环境变量控制，无需改代码
 
 ### v1.7.0 (2026-07-03)
 - 🆕 **quark_batch_run.py v2.0.0**: Save-Share 锁步模式，不再依赖目录列表顺序
@@ -101,6 +105,8 @@ export TG_GROUP_1_ID="-100XXXXXXXXXX"      # 群组 1 ID
 export TG_GROUP_1_THREAD="5"               # 群组 1 话题 ID
 export TG_GROUP_2_ID="-100YYYYYYYYYY"      # 群组 2 ID
 export TG_GROUP_2_THREAD="2"               # 群组 2 话题 ID
+export TG_GROUP_4_ID=""                     # 群组 4 ID
+export TG_GROUP_4_THREAD=""                # 群组 4 话题 ID
 
 # Telegram 频道 ID（可选）
 export TELEGRAM_CHANNEL_ID="@your_channel"
@@ -238,7 +244,7 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
 - 包含：资源名称 + GitHub 链接
 - 由 GitHub Workflow 自动触发
 
-### 群组通知（tgmShare 话题5、tgmShareAI 话题2）
+### 群组通知（tgmShare 话题5、tgmShareAI 话题2、群组4）
 - **批量更新只发一条汇总消息**
 - 格式与频道风格对齐：📦 新增资源推送 + 资源名称 + 夸克链接 + 更新仓库 + 查看详情 + 资料总站 + 资料频道
 - 由 Skills 脚本统一发送，避免刷屏

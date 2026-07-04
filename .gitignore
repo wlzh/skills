@@ -53,3 +53,6 @@ video-downloader/cookies.txt
 
 # youtube-tracker local state
 **/seen.json
+batch_share_results
+*_codex.*
+combined_group_message.txt
