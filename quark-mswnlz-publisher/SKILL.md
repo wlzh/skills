@@ -5,11 +5,15 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.8.0
+**版本**: v1.9.0
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v1.9.0 (2026-07-11)
+- 🆕 **新增 @tgmkno 群组**：配置文件 quark-publisher.env 新增 `TG_GROUP_3_ID=@tgmkno`，通知同步推送到 tgmkno 群组
+- 🔧 默认支持 4 个 TG 群组推送（v1.8.0），完全通过环境变量控制
 
 ### v1.8.0 (2026-07-04)
 - 🆕 **第4个 TG 群组推送**：`mswnlz_publish.py` 新增 `TG_GROUP_4_ID` / `TG_GROUP_4_THREAD` 环境变量支持

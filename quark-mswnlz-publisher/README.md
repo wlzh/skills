@@ -109,7 +109,7 @@
 - 包含：资源名称 + 资料站链接 + GitHub 链接
 - 由 GitHub Workflow 自动触发
 
-### 群组通知（tgmShare 话题5、tgmShareAI 话题2）
+### 群组通知（tgmShare 话题5、tgmShareAI 话题2、tgmkno）
 - **批量更新只发一条汇总消息**
 - 格式与频道风格对齐：📦 新增资源推送 + 资源名称 + 更新仓库 + 查看详情 + 资料总站 + 资料频道
 - 由 Skills 脚本统一发送，避免刷屏
@@ -197,6 +197,8 @@ export TG_GROUP_1_ID="-100XXXXXXXXXX"
 export TG_GROUP_1_THREAD="5"
 export TG_GROUP_2_ID="-100YYYYYYYYYY"
 export TG_GROUP_2_THREAD="2"
+export TG_GROUP_3_ID="@tgmkno"
+export TG_GROUP_3_THREAD=""
 
 # Telegram 频道 ID（可选）
 export TELEGRAM_CHANNEL_ID="@your_channel"
