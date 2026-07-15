@@ -1,8 +1,8 @@
 # quark-mswnlz-publisher
 
-**版本**: v1.4.3
+**版本**: v2.0.0
 
-夸克网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ---
 
@@ -334,15 +334,19 @@ bash /Users/m./Documents/QNSZ/project/skills/quark-mswnlz-publisher/scripts/trig
 
 ```
 quark-mswnlz-publisher/
-├── SKILL.md                              # Skill 定义文件 (v1.2.0)
+├── SKILL.md                              # Skill 定义文件 (v2.0.0)
 ├── README.md                             # 本文档
 ├── references/
 │   └── mswnlz-repos-cache.json           # mswnlz 仓库描述缓存
 ├── scripts/
 │   ├── quark_batch_run.py                # 夸克批量转存脚本
-│   ├── quark_copy.py                     # 推广文件复制脚本 🆕
+│   ├── copy_promo_to_folders.py          # 推广文件复制脚本 🆕
+│   ├── cleanup_junk_files.py             # 垃圾文件清理脚本 🆕 v2.0.0
 │   ├── mswnlz_publish.py                 # GitHub 发布 + Telegram 通知
-│   └── trigger_site_rebuild.sh           # 站点重建触发脚本
+│   ├── pipeline_orchestrator.py          # 统一编排器 (v1.5.0+)
+│   ├── trigger_site_rebuild.sh           # 站点重建触发脚本
+│   └── config/
+│       └── junk_files.json               # 垃圾文件名配置 🆕 v2.0.0
 └── promo_files/                          # 推广文件本地备份 🆕
     ├── 必看免责声明-...txt
     ├── 1.【解压密码...】.html
@@ -354,9 +358,17 @@ quark-mswnlz-publisher/
 
 ## 更新日志
 
+### v2.0.0 (2026-07-15)
+- 🆕 **垃圾文件清理模块**：转存后自动删除原分享者植入的推广/广告文件
+  - 新增 `scripts/cleanup_junk_files.py` 独立清理脚本，支持夸克/百度/阿里云三端
+  - 新增 `config/junk_files.json` 垃圾文件名配置文件（子串匹配，可随时追加）
+  - `pipeline_orchestrator.py` 在 A 段与 B 段之间插入 cleanup 步骤
+  - QuarkPanTool `quark.py` 新增 `delete_files(fid_list)` API
+  - QuarkPanTool `aliyun_client.py` 新增 `delete_file_by_name()` 方法
+
 ### v1.4.3 (2026-05-29)
 - 🎨 统一群组通知格式：与频道通知风格对齐，包含资源名称、夸克链接、更新仓库、查看详情链接、资料总站、资料频道
-- 🔗 群组通知新增夸克转存链接行
+- 🔗 群组通知新增夸克转存链接行（🔗 夸克链接：xxx）
 - 📦 频道通知（notify.yml）新增资料频道链接，10个仓库统一更新
 
 ### v1.4.1 (2026-03-14)

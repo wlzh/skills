@@ -5,11 +5,19 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v1.9.0
+**版本**: v2.0.0
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v2.0.0 (2026-07-15)
+- 🆕 **垃圾文件清理模块**：转存后自动删除原分享者植入的推广/广告文件
+  - 新增 `scripts/cleanup_junk_files.py` 独立清理脚本，支持夸克/百度/阿里云三端
+  - 新增 `config/junk_files.json` 垃圾文件名配置文件（子串匹配，可随时追加）
+  - `pipeline_orchestrator.py` 在 A 段与 B 段之间插入 cleanup 步骤
+  - QuarkPanTool `quark.py` 新增 `delete_files(fid_list)` API
+  - QuarkPanTool `aliyun_client.py` 新增 `delete_file_by_name()` 方法
 
 ### v1.9.0 (2026-07-11)
 - 🆕 **新增 @tgmkno 群组**：配置文件 quark-publisher.env 新增 `TG_GROUP_3_ID=@tgmkno`，通知同步推送到 tgmkno 群组
@@ -296,6 +304,43 @@ python scripts/copy_promo_to_folders.py \
 ### scripts/quark_copy.py (已废弃)
 
 此脚本已被 `copy_promo_to_folders.py` 替代。
+
+### scripts/cleanup_junk_files.py 🆕 v2.0.0
+
+垃圾文件清理脚本：扫描批次文件夹下所有子文件夹，删除原分享者植入的推广/广告文件。
+
+```bash
+python scripts/cleanup_junk_files.py \
+  --batch-json batch_share_results.json \
+  --junk-config config/junk_files.json \
+  --baidu-batch-path /短裤哥批次/2026-07-15_0816_短裤哥批次
+```
+
+**参数**：
+- `--batch-json`: batch_share_results.json 路径
+- `--junk-config`: junk_files.json 配置路径
+- `--quark-parent-fid`: 夸克批次文件夹的父目录 FID（默认 0=根目录）
+- `--baidu-batch-path`: 百度批次文件夹路径
+
+**工作原理**：
+1. 加载垃圾文件名列表（支持子串匹配）
+2. 连接夸克/百度/阿里云客户端
+3. 遍历批次文件夹下所有子文件夹
+4. 删除匹配名单的垃圾文件
+5. **不重新生成分享链接**（夸克分享链接动态反映文件夹内容）
+
+**配置文件 `config/junk_files.json`**：
+```json
+{
+  "files": [
+    "🌹更多资源共享群🌹.jpg",
+    "影视ju风小程序剪辑课截图.jpg",
+    ...
+  ]
+}
+```
+
+随时可追加新的垃圾文件名，pipeline 运行时自动读取最新配置。
 
 ### scripts/mswnlz_publish.py
 
