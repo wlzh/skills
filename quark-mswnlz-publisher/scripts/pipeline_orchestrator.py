@@ -463,6 +463,64 @@ def main():
     print(f"   • 双链接: {dual_count - triple_count}")
     print(f"   • 单链接: {single_count}")
 
+    # ── 5.5 清理垃圾文件 ──
+    print(f"\n{'#'*60}")
+    print(f"# 清理垃圾文件")
+    print(f"{'#'*60}")
+
+    junk_config = SCRIPTS_DIR / "config" / "junk_files.json"
+    if junk_config.exists():
+        # 夸克清理
+        if quark_result_path and quark_result_path.exists():
+            print("\n☁️  夸克垃圾文件清理...")
+            run_script(
+                [
+                    VENV_PYTHON,
+                    str(SCRIPTS_DIR / "cleanup_junk_files.py"),
+                    "--batch-json", str(quark_result_path),
+                    "--junk-config", str(junk_config),
+                ],
+                cwd=str(QUARKPANTOOL_DIR),
+                label="夸克垃圾清理",
+            )
+
+        # 百度清理
+        if baidu_result_path and baidu_result_path.exists():
+            print("\n☁️  百度垃圾文件清理...")
+            try:
+                baidu_data_raw = json.loads(baidu_result_path.read_text(encoding="utf-8"))
+                baidu_batch_name = baidu_data_raw.get("batch_folder_name", "")
+            except Exception:
+                baidu_batch_name = ""
+            baidu_path_arg = f"/短裤哥批次/{baidu_batch_name}" if baidu_batch_name else "/短裤哥批次"
+            run_script(
+                [
+                    PYTHON,
+                    str(SCRIPTS_DIR / "cleanup_junk_files.py"),
+                    "--batch-json", str(baidu_result_path),
+                    "--junk-config", str(junk_config),
+                    "--baidu-batch-path", baidu_path_arg,
+                ],
+                cwd=str(QUARKPANTOOL_DIR),
+                label="百度垃圾清理",
+            )
+
+        # 阿里云盘清理
+        if aliyun_result_path and aliyun_result_path.exists():
+            print("\n☁️  阿里云盘垃圾文件清理...")
+            run_script(
+                [
+                    VENV_PYTHON,
+                    str(SCRIPTS_DIR / "cleanup_junk_files.py"),
+                    "--batch-json", str(aliyun_result_path),
+                    "--junk-config", str(junk_config),
+                ],
+                cwd=str(QUARKPANTOOL_DIR),
+                label="阿里云盘垃圾清理",
+            )
+    else:
+        print("  ℹ️  未找到垃圾文件配置，跳过清理")
+
     # ── 6. B 段：复制推广文件 ──
     # 夸克部分
     if quark_result_path and quark_result_path.exists():
