@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """
 Text-to-Speech Skill
-将文本转换为语音，支持 Edge TTS 和 Kokoro TTS 引擎
+将文本转换为语音，支持 MiniMax、Edge TTS 和 Kokoro TTS 引擎
 """
 
 import argparse
 import asyncio
+import binascii
 import json
 import os
 import re
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
-os.environ.setdefault("no_proxy", "localhost,127.0.0.1")
+os.environ.setdefault("no_proxy", "localhost,127.0.0.1,::1")
+os.environ.setdefault("NO_PROXY", "localhost,127.0.0.1,::1")
 
 
 class ScriptParser:
@@ -58,7 +62,7 @@ class ScriptParser:
 
 
 class TextToSpeech:
-    """文本转语音主类，支持 Edge TTS 和 Kokoro TTS"""
+    """文本转语音主类，支持 MiniMax、Edge TTS 和 Kokoro TTS"""
 
     def __init__(self, config_path=None):
         self.config = self.load_config(config_path)
@@ -150,10 +154,104 @@ class TextToSpeech:
             print(f"   响应: {resp.text[:300]}")
             return None
 
+    async def synthesize_minimax(self, text, output_file, voice=None, speed=None, volume=None, pitch=None):
+        """使用 MiniMax T2A API 合成语音。"""
+        minimax_config = self.config.get('minimax_tts', {})
+        api_key_env = minimax_config.get('api_key_env', 'MINIMAX_API_KEY')
+        api_key = os.environ.get(api_key_env, '').strip()
+        if not api_key:
+            print(f"❌ 缺少 MiniMax API Key：请设置环境变量 {api_key_env}")
+            return None
+
+        endpoint = minimax_config.get('endpoint', 'https://api.minimaxi.com/v1/t2a_v2')
+        model = minimax_config.get('model', 'speech-2.8-hd')
+        voice = voice or minimax_config.get('voice_id', 'male-qn-jingying')
+        speed = speed if speed is not None else minimax_config.get('speed', 1.0)
+        volume = volume if volume is not None else minimax_config.get('volume', 1.0)
+        pitch = pitch if pitch is not None else minimax_config.get('pitch', 0)
+        emotion = minimax_config.get('emotion')
+        audio_format = minimax_config.get('format', 'mp3')
+
+        payload = {
+            "model": model,
+            "text": text,
+            "stream": False,
+            "voice_setting": {
+                "voice_id": voice,
+                "speed": float(speed),
+                "vol": float(volume),
+                "pitch": int(pitch),
+            },
+            "audio_setting": {
+                "sample_rate": minimax_config.get('sample_rate', 32000),
+                "bitrate": minimax_config.get('bitrate', 128000),
+                "format": audio_format,
+                "channel": minimax_config.get('channel', 1),
+            },
+            "subtitle_enable": False,
+        }
+        if emotion:
+            payload["voice_setting"]["emotion"] = emotion
+        language_boost = minimax_config.get('language_boost')
+        if language_boost:
+            payload["language_boost"] = language_boost
+
+        print(f"🎤 引擎: MiniMax TTS")
+        print(f"   模型: {model}")
+        print(f"   声音: {voice}")
+        print(f"   语速: {speed}, 音量: {volume}, 音调: {pitch}")
+        print(f"🔊 正在合成语音...")
+
+        request = urllib.request.Request(
+            endpoint,
+            data=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=minimax_config.get('timeout', 180)) as response:
+                response_body = response.read().decode('utf-8')
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode('utf-8', errors='replace')[:500]
+            print(f"❌ MiniMax TTS API 错误: HTTP {exc.code}")
+            print(f"   响应: {body}")
+            return None
+        except urllib.error.URLError as exc:
+            print(f"❌ MiniMax TTS 连接失败: {exc.reason}")
+            return None
+
+        try:
+            data = json.loads(response_body)
+            base_resp = data.get('base_resp') or data.get('baseResp') or {}
+            status_code = base_resp.get('status_code') if isinstance(base_resp, dict) else None
+            if status_code not in (None, 0):
+                status_msg = base_resp.get('status_msg') or base_resp.get('statusMsg')
+                print(f"❌ MiniMax TTS API 返回失败: {status_code} {status_msg or ''}".strip())
+                return None
+            audio_hex = data.get('data', {}).get('audio')
+            if not audio_hex:
+                status_msg = base_resp.get('status_msg') or base_resp.get('statusMsg') or data.get('msg') or data.get('message')
+                print(f"❌ MiniMax TTS 未返回音频: {status_msg or response_body[:500]}")
+                return None
+            audio_bytes = binascii.unhexlify(audio_hex)
+        except (json.JSONDecodeError, binascii.Error, TypeError) as exc:
+            print(f"❌ MiniMax TTS 响应解析失败: {exc}")
+            return None
+
+        with open(output_file, 'wb') as f:
+            f.write(audio_bytes)
+        print(f"✅ 语音合成完成: {output_file}")
+        return output_file
+
     async def synthesize(self, text, output_file, voice=None, rate=None, pitch=None, volume=None, speed=None):
         """根据引擎选择合成方式"""
         if self.engine == 'kokoro':
             return await self.synthesize_kokoro(text, output_file, voice, speed)
+        if self.engine == 'minimax':
+            return await self.synthesize_minimax(text, output_file, voice, speed, volume, pitch)
         else:
             return await self.synthesize_edge(text, output_file, voice, rate, pitch, volume)
 
@@ -240,11 +338,14 @@ class TextToSpeech:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Text-to-Speech - 将文本转换为语音（支持 Edge TTS / Kokoro TTS）',
+        description='Text-to-Speech - 将文本转换为语音（支持 MiniMax / Edge TTS / Kokoro TTS）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:
   # 从文件转换
+  python3 text_to_speech.py script.txt
+
+  # 使用默认 MiniMax 引擎
   python3 text_to_speech.py script.txt
 
   # 使用 Kokoro 引擎
@@ -264,12 +365,12 @@ def main():
     parser.add_argument('input', nargs='?', help='输入文本文件路径（或使用 - 从标准输入读取）')
     parser.add_argument('-o', '--output', help='输出音频文件路径')
     parser.add_argument('-c', '--config', help='配置文件路径')
-    parser.add_argument('-e', '--engine', choices=['edge', 'kokoro'], help='TTS 引擎（覆盖配置文件）')
+    parser.add_argument('-e', '--engine', choices=['minimax', 'edge', 'kokoro'], help='TTS 引擎（覆盖配置文件）')
     parser.add_argument('-v', '--voice', help='声音类型')
     parser.add_argument('--rate', help='语速调整（Edge TTS: 如 +20%%）')
     parser.add_argument('--pitch', help='音调调整（Edge TTS: 如 +5Hz）')
     parser.add_argument('--volume', help='音量调整（Edge TTS: 如 +20%%）')
-    parser.add_argument('--speed', type=float, help='语速（Kokoro: 如 1.0）')
+    parser.add_argument('--speed', type=float, help='语速（MiniMax/Kokoro: 如 1.0）')
     parser.add_argument('--post-process', action='store_true', help='启用后处理（voice-changer）')
     parser.add_argument('--list-voices', action='store_true', help='列出所有可用的声音')
 
@@ -303,7 +404,7 @@ def main():
         tts.config['post_processing']['enabled'] = True
         tts.config['post_processing']['voice_changer']['enabled'] = True
 
-    asyncio.run(tts.convert(
+    result = asyncio.run(tts.convert(
         input_text,
         args.output,
         args.voice,
@@ -312,6 +413,7 @@ def main():
         args.volume,
         args.speed,
     ))
+    sys.exit(0 if result else 1)
 
 
 if __name__ == '__main__':

@@ -1,9 +1,9 @@
 # text-to-speech
 
 > 仓库地址: https://github.com/wlzh/skills
-> 版本: v1.0.0
+> 版本: v3.2.0
 
-文本转语音工具 - 支持播客脚本解析、情绪标记和后处理
+文本转语音工具 - 默认 MiniMax TTS，支持切换 Kokoro TTS 和 Edge TTS，保留播客脚本解析、情绪标记和后处理。
 
 ## 快速开始
 
@@ -11,16 +11,21 @@
 # 基本用法
 python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py <文本文件>
 
+# 设置 MiniMax API Key（只在本机环境变量中设置，不写入配置文件）
+export MINIMAX_API_KEY="你的本机 key"
+
 # 指定输出文件
 python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt -o output.mp3
 
-# 使用女声
-python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt -v zh-CN-XiaoxiaoNeural
+# 切换回 Kokoro 或 Edge
+python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt --engine kokoro
+python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt --engine edge
 ```
 
 ## 功能特性
 
-- 🎤 **高质量 TTS** - 基于 Microsoft Edge TTS，支持 18+ 种中文声音
+- 🎤 **默认 MiniMax TTS** - 默认音色 `male-qn-jingying`（精英青年），语速 1.0
+- 🔁 **多引擎切换** - `tts_engine` 可配置为 `minimax`、`kokoro` 或 `edge`
 - 📝 **脚本解析** - 自动识别并移除播客脚本中的注释和标记
 - 🎭 **情绪标记** - 支持 SSML 情绪标记处理（可配置）
 - 🎵 **后处理集成** - 可选集成 voice-changer 进行变声
@@ -40,7 +45,10 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt -v 
 
 ## 支持的声音
 
-### 男声
+### MiniMax
+- `male-qn-jingying` - 精英青年，男声，清晰专业，当前默认
+
+### Edge 男声
 - `zh-CN-YunyangNeural` - 新闻播音（沉稳专业）⭐ 默认
 - `zh-CN-YunxiNeural` - 年轻活力
 - `zh-CN-YunjianNeural` - 成熟稳重
@@ -48,7 +56,7 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt -v 
 - `zh-CN-YunhaoNeural` - 广告配音
 - `zh-CN-YunzeNeural` - 年轻阳光
 
-### 女声
+### Edge 女声
 - `zh-CN-XiaoxiaoNeural` - 温柔亲切
 - `zh-CN-XiaoyiNeural` - 活泼开朗
 - `zh-CN-XiaochenNeural` - 知性优雅
@@ -66,7 +74,9 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt -v 
 
 ```
 usage: text_to_speech.py [-h] [-o OUTPUT] [-c CONFIG] [-v VOICE]
+                         [--engine {minimax,edge,kokoro}]
                          [--rate RATE] [--pitch PITCH] [--volume VOLUME]
+                         [--speed SPEED]
                          [--post-process] [--list-voices]
                          input
 
@@ -74,10 +84,12 @@ usage: text_to_speech.py [-h] [-o OUTPUT] [-c CONFIG] [-v VOICE]
   input                 输入文本文件路径（或使用 - 从标准输入读取）
   -o, --output         输出音频文件路径
   -c, --config         配置文件路径
+  -e, --engine         TTS 引擎（minimax / kokoro / edge）
   -v, --voice          声音类型（如 zh-CN-YunyangNeural）
-  --rate               语速调整（如 +20% 或 -10%）
-  --pitch              音调调整（如 +5Hz 或 -3Hz）
-  --volume             音量调整（如 +20% 或 -10%）
+  --rate               语速调整（Edge，如 +20% 或 -10%）
+  --pitch              音调调整（Edge 或 MiniMax）
+  --volume             音量调整（Edge 或 MiniMax）
+  --speed              语速（MiniMax/Kokoro，如 1.0）
   --post-process       启用后处理（voice-changer）
   --list-voices        列出所有可用的声音
 ```
@@ -105,16 +117,26 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py podcast_script
 今天我们要聊的话题，关乎一场正在发生的剧变。
 ```
 
-### 示例 2: 使用女声并调整语速
+### 示例 2: 使用默认 MiniMax 音色并调整语速
 
 ```bash
 python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py \
   script.txt \
+  -o output.mp3 \
+  --speed 1.0
+```
+
+### 示例 3: 切回 Edge 女声
+
+```bash
+python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py \
+  script.txt \
+  --engine edge \
   -v zh-CN-XiaoxiaoNeural \
   --rate "+10%"
 ```
 
-### 示例 3: 启用后处理
+### 示例 4: 启用后处理
 
 ```bash
 python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py \
@@ -124,14 +146,14 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py \
 
 会先生成语音，然后调用 voice-changer 进行变声处理。
 
-### 示例 4: 从标准输入读取
+### 示例 5: 从标准输入读取
 
 ```bash
 echo "你好，世界！欢迎使用 Text-to-Speech。" | \
   python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py -
 ```
 
-### 示例 5: 列出所有可用声音
+### 示例 6: 列出所有可用声音
 
 ```bash
 python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
@@ -143,6 +165,21 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 
 ```json
 {
+  "tts_engine": "minimax",
+  "minimax_tts": {
+    "api_key_env": "MINIMAX_API_KEY",
+    "endpoint": "https://api.minimaxi.com/v1/t2a_v2",
+    "model": "speech-2.8-hd",
+    "voice_id": "male-qn-jingying",
+    "voice_name": "精英青年",
+    "speed": 1.0,
+    "format": "mp3"
+  },
+  "kokoro_tts": {
+    "api_url": "http://localhost:8880/v1/audio/speech",
+    "voice": "zm_009",
+    "speed": 1.0
+  },
   "edge_tts": {
     "voice": "zh-CN-YunyangNeural",
     "rate": "+0%",
@@ -166,14 +203,26 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 }
 ```
 
+密钥不要写入配置文件。默认只读取本机环境变量：
+
+```bash
+export MINIMAX_API_KEY="你的本机 key"
+```
+
 ## 依赖安装
 
 ```bash
-# 安装 Edge TTS
+# MiniMax 默认引擎不需要额外 Python 包，只需要环境变量
+export MINIMAX_API_KEY="你的本机 key"
+
+# 如需使用 Edge TTS
 pip install edge-tts
 
+# 如需使用 Kokoro TTS，启动本地 Docker 服务
+cd /Users/m/document/QNSZ/project/kokoro-tts && ./start.sh
+
 # 验证安装
-edge-tts --version
+python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 ```
 
 ## 输出文件
@@ -184,15 +233,13 @@ edge-tts --version
 
 ## 性能参考
 
-- 1000 字文本：约 10-20 秒
-- 5000 字文本：约 30-60 秒
-- 10000 字文本：约 60-120 秒
-
-*网络速度影响较大*
+- MiniMax TTS: 取决于 API 响应速度和文本长度
+- Kokoro TTS: 1000 字约 3-5 秒（本地 Docker CPU）
+- Edge TTS: 1000 字约 10-20 秒（受网络影响）
 
 ## 注意事项
 
-1. **网络要求**：Edge TTS 需要网络连接
+1. **密钥要求**：MiniMax 默认引擎需要 `MINIMAX_API_KEY` 环境变量
 2. **文本长度**：建议单次转换不超过 10000 字
 3. **脚本格式**：支持纯文本和带注释的播客脚本
 4. **后处理**：需要先安装 voice-changer skill
@@ -201,7 +248,12 @@ edge-tts --version
 
 **问题: 网络连接失败**
 - 检查网络连接
-- 尝试使用代理
+- MiniMax/Edge 可检查代理或 API 可用性
+- Kokoro 连接 localhost 时必须绕过代理
+
+**问题: MiniMax 报缺少 Key**
+- 设置 `MINIMAX_API_KEY` 环境变量
+- 不要把真实 Key 写入 `config/tts_config.json`
 
 **问题: 声音不自然**
 - 尝试调整语速和音调
@@ -212,6 +264,12 @@ edge-tts --version
 - 检查 voice-changer 配置
 
 ## 更新记录
+
+### v3.2.0 (2026-07-17)
+- 新增 MiniMax TTS 引擎并设为默认
+- 默认音色 `male-qn-jingying`（精英青年），语速 1.0
+- API Key 只读取 `MINIMAX_API_KEY` 环境变量，防止密钥入库
+- 保留 Kokoro/Edge，可通过 `tts_engine` 或 `--engine` 切换
 
 ### v1.0.0 (2026-01-20)
 - 首次发布

@@ -1,5 +1,24 @@
 # Changelog
 
+## v3.2.0 - 2026-07-17
+
+### 新增
+
+- 新增 `minimax` TTS 引擎，调用 MiniMax T2A API。
+- 默认引擎从 `kokoro` 切换为 `minimax`。
+- 默认音色设为 `male-qn-jingying`（精英青年），默认语速 `1.0`。
+- 新增 `minimax_tts` 配置段，包含 endpoint、model、voice_id、speed、audio format 等参数。
+- `--engine` 支持 `minimax`、`kokoro`、`edge` 三选一。
+
+### 安全
+
+- MiniMax API Key 只从环境变量读取，默认变量名 `MINIMAX_API_KEY`。
+- 配置文件只保存环境变量名，不保存真实 Key。
+
+### 兼容
+
+- 原 Kokoro/Edge 逻辑保留；需要旧 TTS 时，将 `config/tts_config.json` 的 `tts_engine` 改为 `kokoro` 或 `edge`，或在命令行传 `--engine kokoro/edge`。
+
 ## v1.0.0 - 2026-01-20
 
 ### 🎉 首次发布

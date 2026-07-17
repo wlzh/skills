@@ -47,6 +47,12 @@ voice-changer/models/rvc_models/.lock/
 # Configuration files with sensitive data
 **/config.json
 !**/config.json.example
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 # Local cookies (do not commit)
 video-downloader/cookies.txt

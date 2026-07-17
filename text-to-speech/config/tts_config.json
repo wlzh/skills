@@ -1,5 +1,22 @@
 {
-  "tts_engine": "kokoro",
+  "tts_engine": "minimax",
+  "minimax_tts": {
+    "api_key_env": "MINIMAX_API_KEY",
+    "endpoint": "https://api.minimaxi.com/v1/t2a_v2",
+    "model": "speech-2.8-hd",
+    "voice_id": "male-qn-jingying",
+    "voice_name": "精英青年",
+    "speed": 1.0,
+    "volume": 1.0,
+    "pitch": 0,
+    "emotion": "calm",
+    "language_boost": "Chinese",
+    "sample_rate": 32000,
+    "bitrate": 128000,
+    "format": "mp3",
+    "channel": 1,
+    "timeout": 180
+  },
   "edge_tts": {
     "voice": "zh-CN-YunyangNeural",
     "rate": "+0%",
@@ -13,6 +30,9 @@
     "response_format": "mp3"
   },
   "available_voices": {
+    "minimax_tts": {
+      "male-qn-jingying": "男声 精英青年（默认，清晰专业）"
+    },
     "edge_tts": {
       "zh-CN-YunyangNeural": "男声（新闻播音，沉稳专业）",
       "zh-CN-YunxiNeural": "男声（年轻活力）",
@@ -176,5 +196,5 @@
       "pitch_shift": null
     }
   },
-  "description": "Text-to-Speech 配置文件 (Kokoro v1.1-zh)"
+  "description": "Text-to-Speech 配置文件 (默认 MiniMax TTS，可切换 Kokoro/Edge)"
 }
