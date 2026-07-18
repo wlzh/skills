@@ -893,7 +893,7 @@ def description_heading_for_line(line):
         (r'^常见坑', '## 常见坑'),
         (r'^出门在外想改代码', '## 本期内容概览'),
         (r'^短信及语音接码平台', '## 短信及语音接码平台'),
-        (r'^白嫖流量', '## 白嫖流量'),
+        (r'^纯净住宅IP白嫖流量|^白嫖流量', '## 白嫖流量'),
         (r'^VPS\s*主机', '## VPS 主机推荐'),
         (r'^Gmail、Telegram', '## 账号、礼品卡与 AI 产品充值'),
         (r'^Claude、OpenAI', '## 账号、礼品卡与 AI 产品充值'),
@@ -917,7 +917,7 @@ def should_skip_heading_source_line(line):
     """Section marker lines should become headings instead of duplicated body text."""
     markers = [
         r'^短信及语音接码平台',
-        r'^白嫖流量',
+        r'^纯净住宅IP白嫖流量|^白嫖流量',
         r'^VPS\s*主机',
         r'^Gmail、Telegram',
         r'^👇?【?关注我不迷路',
