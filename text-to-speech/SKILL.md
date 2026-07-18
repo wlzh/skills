@@ -1,8 +1,9 @@
 ---
 name: text-to-speech
 description: 文本转语音工具 - 默认 MiniMax TTS，支持切换 Edge TTS 和 Kokoro TTS (v1.1-zh)
-version: 3.3.0
+version: 3.3.1
 changelog:
+  - 2026-07-18: v3.3.1 MiniMax 语境适配移除逐 beat emotion 注入，避免同一场景语气跳变；保留 speed/volume/pitch 轻量调整并同步测试文档
   - 2026-07-18: v3.3.0 MiniMax 默认音色改为 Chinese (Mandarin)_Reliable_Executive；新增 MiniMax 专属语境适配层，按开场、总结、解释、步骤、提醒、资源、结论和关注引导自动微调表达；Edge/Kokoro 行为不变
   - 2026-07-17: v3.2.0 新增 MiniMax TTS 引擎并设为默认，默认音色 male-qn-jingying（精英青年）、语速 1.0；API Key 只读取 MINIMAX_API_KEY 环境变量；保留 Kokoro/Edge 可配置切换
   - 2026-05-17: v3.1.0 强化 localhost Kokoro 代理绕过规则——curl/requests 直连本地服务默认必须 NO_PROXY，不允许先走代理失败后重试
@@ -64,7 +65,7 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 `minimax_tts.context_adaptation` 只在 MiniMax 分支生效。Edge 和 Kokoro 不读取此配置，也不会改变原请求参数。
 
 - 默认根据文本自动识别 `opening`、`summary`、`explanation`、`instruction`、`warning`、`resource`、`conclusion`、`call_to_action`、`neutral`
-- 语境档只轻量调整 MiniMax 的语速、音量、音高和 emotion，不修改原文，不自动插入声音标签
+- 语境档只轻量调整 MiniMax 的语速、音量和音高，不修改原文、不注入 emotion、不自动插入声音标签
 - 未命中规则时使用 `explanation`
 - 可用 `--context warning` 等参数显式覆盖自动识别；选择 Edge/Kokoro 时该参数被忽略
 - 调用方无需理解语境规则。视频流水线只需继续提交文本并使用返回音频，音频时长仍由下游实测

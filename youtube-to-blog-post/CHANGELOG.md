@@ -1,3 +1,10 @@
+# v4.4.0 - 2026-07-18
+
+- 修复 `generate_article_content_with_body()` 遗漏完整 YouTube description 的回归。
+- 支持“纯净住宅IP白嫖流量”固定板块标题别名。
+- 停用破坏用户原文语义、句式和 SEO 关键词的词级 humanize 替换。
+- 增加正文保留和标题规范化回归测试。
+
 # v3.2 Changelog - 标签管理规范版
 
 **版本**: 3.2.0

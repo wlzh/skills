@@ -1,7 +1,7 @@
 # text-to-speech
 
 > 仓库地址: https://github.com/wlzh/skills
-> 版本: v3.3.0
+> 版本: v3.3.1
 
 文本转语音工具 - 默认 MiniMax TTS，支持切换 Kokoro TTS 和 Edge TTS，保留播客脚本解析、情绪标记和后处理。
 
@@ -184,10 +184,10 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
       "enabled": true,
       "default_context": "explanation",
       "profiles": {
-        "explanation": {"speed_multiplier": 0.96, "emotion": "neutral"},
-        "instruction": {"speed_multiplier": 0.93, "emotion": "neutral"},
-        "warning": {"speed_multiplier": 0.9, "emotion": "neutral"},
-        "call_to_action": {"speed_multiplier": 1.0, "emotion": "happy"}
+        "explanation": {"speed_multiplier": 0.96, "volume_multiplier": 1.0, "pitch_offset": 0},
+        "instruction": {"speed_multiplier": 0.93, "volume_multiplier": 1.02, "pitch_offset": 0},
+        "warning": {"speed_multiplier": 0.9, "volume_multiplier": 1.08, "pitch_offset": -1},
+        "call_to_action": {"speed_multiplier": 1.0, "volume_multiplier": 1.05, "pitch_offset": 1}
       }
     },
     "format": "mp3"
@@ -281,6 +281,11 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 - 检查 voice-changer 配置
 
 ## 更新记录
+
+### v3.3.1 (2026-07-18)
+- 移除 MiniMax 逐 beat emotion 注入，避免连续句子语气不一致
+- 保留 speed、volume、pitch 三项 MiniMax 专属语境调整
+- 修复 payload 隔离测试并同步配置说明
 
 ### v3.3.0 (2026-07-18)
 - MiniMax 默认音色改为 `Chinese (Mandarin)_Reliable_Executive`

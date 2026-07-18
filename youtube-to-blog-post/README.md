@@ -1,7 +1,7 @@
 # YouTube 转 Blog Post - 使用指南
 
 > 仓库地址: https://github.com/wlzh/skills
-> 版本: v4.1
+> 版本: v4.4.0
 
 一键将 YouTube 视频转换为 **SEO 优化的 Hexo 博客文章**，所有优化自动完成！
 
@@ -300,9 +300,14 @@ pip install yt-dlp requests
 
 ## 🆕 版本信息
 
-**版本**: 4.1 直接注入元数据 + 描述完整保留
+**版本**: 4.4.0 正文保留 + 完整描述追加 + 固定板块别名
 **更新日期**: 2026-04-12
 **状态**: ✅ 已测试并上线
+
+### v4.4.0 更新内容 (2026-07-18)
+- `body_md` 模式同时保留原始 Markdown 正文和完整 YouTube description
+- “纯净住宅IP白嫖流量”统一转换为“白嫖流量”固定板块标题
+- 停用会删除原文语义和 SEO 关键词的词级 humanize 替换
 
 ### v4.1 更新内容 (2026-04-12)
 
@@ -368,4 +373,3 @@ pip install yt-dlp requests
 **建议：**
 - 如果遇到空白页面，请检查 iframe title 是否包含引号
 - 使用此版本后，所有引号会自动被清理
-

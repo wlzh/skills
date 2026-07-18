@@ -1,12 +1,18 @@
 # Changelog
 
+## v3.3.1 - 2026-07-18
+
+- 移除 MiniMax 逐 beat `emotion` 参数，避免分段 TTS 在同一场景中产生明显语气跳变。
+- 保留 MiniMax 专属 speed、volume、pitch 语境适配；Edge/Kokoro 继续完全隔离。
+- 修复 MiniMax payload 测试并同步 README、SKILL 和 VERSION。
+
 ## v3.3.0 - 2026-07-18
 
 ### MiniMax
 
 - 默认音色改为 `Chinese (Mandarin)_Reliable_Executive`（可靠高管）。
 - 新增 MiniMax 专属 `context_adaptation`：自动识别开场、总结、解释、步骤、风险提醒、资源、结论和关注引导语境。
-- 各语境只轻量调整 MiniMax 的 speed、volume、pitch 和 emotion，不改写文本、不自动注入声音标签。
+- 各语境只轻量调整 MiniMax 的 speed、volume 和 pitch，不改写文本、不自动注入声音标签。
 - 新增 `--context` 显式覆盖；未传时根据输入文本自动识别。
 
 ### 隔离与兼容

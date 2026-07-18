@@ -17,10 +17,7 @@ import shutil
 try:
     import yt_dlp
 except ImportError:
-    print("Installing yt-dlp...")
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "yt-dlp"])
-    import yt_dlp
+    yt_dlp = None
 
 
 # SEO optimization constants
@@ -221,6 +218,10 @@ def clean_keywords(keywords):
 
 def get_video_info(url):
     """Fetch video information from YouTube"""
+    if yt_dlp is None:
+        raise RuntimeError(
+            "缺少 yt-dlp。请在独立虚拟环境中安装；使用 --prefill-* 参数时无需此依赖。"
+        )
     print(f"Fetching video info from: {url}")
 
     ydl_opts = {

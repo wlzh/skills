@@ -29,7 +29,6 @@ def make_tts(engine: str = "minimax"):
             "speed": 1.0,
             "volume": 1.0,
             "pitch": 0,
-            "emotion": "neutral",
             "context_adaptation": {
                 "enabled": True,
                 "default_context": "explanation",
@@ -46,25 +45,21 @@ def make_tts(engine: str = "minimax"):
                         "speed_multiplier": 0.96,
                         "volume_multiplier": 1.0,
                         "pitch_offset": 0,
-                        "emotion": "neutral",
                     },
                     "instruction": {
                         "speed_multiplier": 0.93,
                         "volume_multiplier": 1.02,
                         "pitch_offset": 0,
-                        "emotion": "neutral",
                     },
                     "warning": {
                         "speed_multiplier": 0.9,
                         "volume_multiplier": 1.08,
                         "pitch_offset": -1,
-                        "emotion": "neutral",
                     },
                     "neutral": {
                         "speed_multiplier": 0.97,
                         "volume_multiplier": 1.0,
                         "pitch_offset": 0,
-                        "emotion": "neutral",
                     },
                 },
                 "rules": [
@@ -124,7 +119,7 @@ class MiniMaxContextTests(unittest.TestCase):
         self.assertEqual(payload["voice_setting"]["speed"], 0.9)
         self.assertEqual(payload["voice_setting"]["vol"], 1.08)
         self.assertEqual(payload["voice_setting"]["pitch"], -1)
-        self.assertEqual(payload["voice_setting"]["emotion"], "neutral")
+        self.assertNotIn("emotion", payload["voice_setting"])
 
     def test_edge_does_not_resolve_minimax_context(self):
         tts = make_tts("edge")
