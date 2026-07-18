@@ -1,5 +1,20 @@
 # Changelog
 
+## v3.3.0 - 2026-07-18
+
+### MiniMax
+
+- 默认音色改为 `Chinese (Mandarin)_Reliable_Executive`（可靠高管）。
+- 新增 MiniMax 专属 `context_adaptation`：自动识别开场、总结、解释、步骤、风险提醒、资源、结论和关注引导语境。
+- 各语境只轻量调整 MiniMax 的 speed、volume、pitch 和 emotion，不改写文本、不自动注入声音标签。
+- 新增 `--context` 显式覆盖；未传时根据输入文本自动识别。
+
+### 隔离与兼容
+
+- 语境适配只在 `synthesize_minimax()` 内执行。
+- Edge TTS 和 Kokoro TTS 不读取 MiniMax 语境配置，请求参数和默认行为保持不变。
+- 增加 MiniMax 参数、规则优先级、显式覆盖及 Edge/Kokoro 隔离测试。
+
 ## v3.2.0 - 2026-07-17
 
 ### 新增

@@ -1,7 +1,7 @@
 # text-to-speech
 
 > 仓库地址: https://github.com/wlzh/skills
-> 版本: v3.2.0
+> 版本: v3.3.0
 
 文本转语音工具 - 默认 MiniMax TTS，支持切换 Kokoro TTS 和 Edge TTS，保留播客脚本解析、情绪标记和后处理。
 
@@ -24,7 +24,8 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt --e
 
 ## 功能特性
 
-- 🎤 **默认 MiniMax TTS** - 默认音色 `male-qn-jingying`（精英青年），语速 1.0
+- 🎤 **默认 MiniMax TTS** - 默认音色 `Chinese (Mandarin)_Reliable_Executive`（可靠高管）
+- 🗣️ **MiniMax 语境适配** - 自动按开场、解释、步骤、提醒、总结、关注引导等语境轻量调整表达
 - 🔁 **多引擎切换** - `tts_engine` 可配置为 `minimax`、`kokoro` 或 `edge`
 - 📝 **脚本解析** - 自动识别并移除播客脚本中的注释和标记
 - 🎭 **情绪标记** - 支持 SSML 情绪标记处理（可配置）
@@ -46,7 +47,12 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt --e
 ## 支持的声音
 
 ### MiniMax
-- `male-qn-jingying` - 精英青年，男声，清晰专业，当前默认
+- `Chinese (Mandarin)_Reliable_Executive` - 可靠高管，男声，稳重可信，当前默认
+- `Chinese (Mandarin)_Sincere_Adult` - 真诚成年，男声，自然真诚
+- `Chinese (Mandarin)_Radio_Host` - 电台主持，男声，自然主持感
+- `Chinese (Mandarin)_Gentle_Youth` - 温柔青年，男声，年轻柔和
+- `Chinese (Mandarin)_Unrestrained_Young_Man` - 不羁青年，男声，轻松活跃
+- `male-qn-jingying` - 精英青年，男声，清晰专业，旧默认
 
 ### Edge 男声
 - `zh-CN-YunyangNeural` - 新闻播音（沉稳专业）⭐ 默认
@@ -76,7 +82,7 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt --e
 usage: text_to_speech.py [-h] [-o OUTPUT] [-c CONFIG] [-v VOICE]
                          [--engine {minimax,edge,kokoro}]
                          [--rate RATE] [--pitch PITCH] [--volume VOLUME]
-                         [--speed SPEED]
+                         [--speed SPEED] [--context CONTEXT]
                          [--post-process] [--list-voices]
                          input
 
@@ -90,6 +96,7 @@ usage: text_to_speech.py [-h] [-o OUTPUT] [-c CONFIG] [-v VOICE]
   --pitch              音调调整（Edge 或 MiniMax）
   --volume             音量调整（Edge 或 MiniMax）
   --speed              语速（MiniMax/Kokoro，如 1.0）
+  --context            MiniMax 专属语境档；默认自动识别，Edge/Kokoro 忽略
   --post-process       启用后处理（voice-changer）
   --list-voices        列出所有可用的声音
 ```
@@ -170,9 +177,19 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
     "api_key_env": "MINIMAX_API_KEY",
     "endpoint": "https://api.minimaxi.com/v1/t2a_v2",
     "model": "speech-2.8-hd",
-    "voice_id": "male-qn-jingying",
-    "voice_name": "精英青年",
+    "voice_id": "Chinese (Mandarin)_Reliable_Executive",
+    "voice_name": "可靠高管",
     "speed": 1.0,
+    "context_adaptation": {
+      "enabled": true,
+      "default_context": "explanation",
+      "profiles": {
+        "explanation": {"speed_multiplier": 0.96, "emotion": "neutral"},
+        "instruction": {"speed_multiplier": 0.93, "emotion": "neutral"},
+        "warning": {"speed_multiplier": 0.9, "emotion": "neutral"},
+        "call_to_action": {"speed_multiplier": 1.0, "emotion": "happy"}
+      }
+    },
     "format": "mp3"
   },
   "kokoro_tts": {
@@ -264,6 +281,12 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 - 检查 voice-changer 配置
 
 ## 更新记录
+
+### v3.3.0 (2026-07-18)
+- MiniMax 默认音色改为 `Chinese (Mandarin)_Reliable_Executive`
+- 增加 MiniMax 专属自动语境适配层和可选 `--context`
+- 语境适配只修改 MiniMax 请求；Edge/Kokoro 保持原行为
+- 增加自动识别、请求参数和跨引擎隔离测试
 
 ### v3.2.0 (2026-07-17)
 - 新增 MiniMax TTS 引擎并设为默认

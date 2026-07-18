@@ -4,12 +4,110 @@
     "api_key_env": "MINIMAX_API_KEY",
     "endpoint": "https://api.minimaxi.com/v1/t2a_v2",
     "model": "speech-2.8-hd",
-    "voice_id": "male-qn-jingying",
-    "voice_name": "精英青年",
+    "voice_id": "Chinese (Mandarin)_Reliable_Executive",
+    "voice_name": "可靠高管",
     "speed": 1.0,
     "volume": 1.0,
     "pitch": 0,
-    "emotion": "calm",
+    "emotion": "neutral",
+    "context_adaptation": {
+      "enabled": true,
+      "default_context": "explanation",
+      "limits": {
+        "speed_min": 0.8,
+        "speed_max": 1.2,
+        "volume_min": 0.8,
+        "volume_max": 1.2,
+        "pitch_min": -2,
+        "pitch_max": 2
+      },
+      "profiles": {
+        "opening": {
+          "speed_multiplier": 1.0,
+          "volume_multiplier": 1.03,
+          "pitch_offset": 1,
+          "emotion": "happy"
+        },
+        "summary": {
+          "speed_multiplier": 0.97,
+          "volume_multiplier": 1.02,
+          "pitch_offset": 0,
+          "emotion": "neutral"
+        },
+        "explanation": {
+          "speed_multiplier": 0.96,
+          "volume_multiplier": 1.0,
+          "pitch_offset": 0,
+          "emotion": "neutral"
+        },
+        "instruction": {
+          "speed_multiplier": 0.93,
+          "volume_multiplier": 1.02,
+          "pitch_offset": 0,
+          "emotion": "neutral"
+        },
+        "warning": {
+          "speed_multiplier": 0.9,
+          "volume_multiplier": 1.08,
+          "pitch_offset": -1,
+          "emotion": "neutral"
+        },
+        "resource": {
+          "speed_multiplier": 0.95,
+          "volume_multiplier": 1.01,
+          "pitch_offset": 0,
+          "emotion": "neutral"
+        },
+        "conclusion": {
+          "speed_multiplier": 0.94,
+          "volume_multiplier": 1.03,
+          "pitch_offset": -1,
+          "emotion": "neutral"
+        },
+        "call_to_action": {
+          "speed_multiplier": 1.0,
+          "volume_multiplier": 1.05,
+          "pitch_offset": 1,
+          "emotion": "happy"
+        },
+        "neutral": {
+          "speed_multiplier": 0.97,
+          "volume_multiplier": 1.0,
+          "pitch_offset": 0,
+          "emotion": "neutral"
+        }
+      },
+      "rules": [
+        {
+          "context": "warning",
+          "keywords": ["注意", "警告", "风险", "不要", "千万", "务必", "否则", "失败", "错误"]
+        },
+        {
+          "context": "call_to_action",
+          "keywords": ["关注", "订阅", "点赞", "收藏", "评论", "感谢观看", "下期再见"]
+        },
+        {
+          "context": "resource",
+          "keywords": ["视频下方", "说明区", "评论区", "下载地址", "下载链接", "开源地址"]
+        },
+        {
+          "context": "instruction",
+          "keywords": ["第一步", "第二步", "第三步", "首先", "然后", "接着", "点击", "打开", "选择", "输入", "安装", "设置"]
+        },
+        {
+          "context": "conclusion",
+          "keywords": ["总结一下", "最后总结", "归根结底", "结论是", "记住"]
+        },
+        {
+          "context": "opening",
+          "keywords": ["大家好", "欢迎来到", "今天我们", "这期视频"]
+        },
+        {
+          "context": "summary",
+          "keywords": ["本期路线", "先说结论", "核心是", "你将学会", "本期内容"]
+        }
+      ]
+    },
     "language_boost": "Chinese",
     "sample_rate": 32000,
     "bitrate": 128000,
@@ -31,7 +129,12 @@
   },
   "available_voices": {
     "minimax_tts": {
-      "male-qn-jingying": "男声 精英青年（默认，清晰专业）"
+      "Chinese (Mandarin)_Reliable_Executive": "男声 可靠高管（默认，稳重可信）",
+      "Chinese (Mandarin)_Sincere_Adult": "男声 真诚成年（自然真诚）",
+      "Chinese (Mandarin)_Radio_Host": "男声 电台主持（自然主持感）",
+      "Chinese (Mandarin)_Gentle_Youth": "男声 温柔青年（年轻柔和）",
+      "Chinese (Mandarin)_Unrestrained_Young_Man": "男声 不羁青年（轻松活跃）",
+      "male-qn-jingying": "男声 精英青年（旧默认，清晰专业）"
     },
     "edge_tts": {
       "zh-CN-YunyangNeural": "男声（新闻播音，沉稳专业）",

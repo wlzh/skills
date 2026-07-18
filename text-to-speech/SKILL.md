@@ -1,8 +1,9 @@
 ---
 name: text-to-speech
 description: 文本转语音工具 - 默认 MiniMax TTS，支持切换 Edge TTS 和 Kokoro TTS (v1.1-zh)
-version: 3.2.0
+version: 3.3.0
 changelog:
+  - 2026-07-18: v3.3.0 MiniMax 默认音色改为 Chinese (Mandarin)_Reliable_Executive；新增 MiniMax 专属语境适配层，按开场、总结、解释、步骤、提醒、资源、结论和关注引导自动微调表达；Edge/Kokoro 行为不变
   - 2026-07-17: v3.2.0 新增 MiniMax TTS 引擎并设为默认，默认音色 male-qn-jingying（精英青年）、语速 1.0；API Key 只读取 MINIMAX_API_KEY 环境变量；保留 Kokoro/Edge 可配置切换
   - 2026-05-17: v3.1.0 强化 localhost Kokoro 代理绕过规则——curl/requests 直连本地服务默认必须 NO_PROXY，不允许先走代理失败后重试
 
@@ -19,7 +20,7 @@ author: M.
 |------|-------------|-------------------|----------|
 | 质量 | 默认推荐，中文短视频旁白更自然 | 本地可用、接近真人 | 标准 Neural 语音 |
 | 网络 | 需要 MiniMax API | 不需要（本地 Docker） | 需要网络连接 |
-| 默认音色 | `male-qn-jingying`（精英青年） | `zm_009` | `zh-CN-YunyangNeural` |
+| 默认音色 | `Chinese (Mandarin)_Reliable_Executive`（可靠高管） | `zm_009` | `zh-CN-YunyangNeural` |
 | 语速调节 | speed 参数，默认 1.0 | speed 参数 | rate/pitch/volume |
 | 前提 | `MINIMAX_API_KEY` 环境变量 | Docker 容器需运行 | 安装 `edge-tts` |
 | 配置值 | `minimax` | `kokoro` | `edge` |
@@ -54,9 +55,27 @@ python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py --list-voices
 
 - 引擎：`tts_engine = "minimax"`
 - 模型：`speech-2.8-hd`
-- 音色：`male-qn-jingying`（精英青年）
+- 音色：`Chinese (Mandarin)_Reliable_Executive`（可靠高管）
 - 语速：`1.0`
 - 输出：MP3
+
+### MiniMax 专属语境适配
+
+`minimax_tts.context_adaptation` 只在 MiniMax 分支生效。Edge 和 Kokoro 不读取此配置，也不会改变原请求参数。
+
+- 默认根据文本自动识别 `opening`、`summary`、`explanation`、`instruction`、`warning`、`resource`、`conclusion`、`call_to_action`、`neutral`
+- 语境档只轻量调整 MiniMax 的语速、音量、音高和 emotion，不修改原文，不自动插入声音标签
+- 未命中规则时使用 `explanation`
+- 可用 `--context warning` 等参数显式覆盖自动识别；选择 Edge/Kokoro 时该参数被忽略
+- 调用方无需理解语境规则。视频流水线只需继续提交文本并使用返回音频，音频时长仍由下游实测
+
+```bash
+# 自动识别语境
+python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt
+
+# MiniMax 显式指定风险提醒语境
+python3 ~/.claude/skills/text-to-speech/scripts/text_to_speech.py script.txt --context warning
+```
 
 密钥规则：
 
@@ -126,6 +145,7 @@ v1.1-zh 模型支持中英文混合文本的自然朗读。
 关键配置项：
 - `tts_engine`: `"minimax"`、`"kokoro"` 或 `"edge"`（默认引擎）
 - `minimax_tts`: MiniMax 引擎配置（API URL、模型、默认音色、语速；Key 仅从环境变量读取）
+- `minimax_tts.context_adaptation`: MiniMax 专属语境档和自动识别规则；不影响其他引擎
 - `kokoro_tts`: Kokoro 引擎配置（API URL、默认声音、语速）
 - `edge_tts`: Edge 引擎配置（声音、语速、音调、音量）
 - `available_voices`: 按引擎分组的可用声音列表
