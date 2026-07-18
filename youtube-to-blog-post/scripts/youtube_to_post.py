@@ -662,8 +662,13 @@ def generate_title_based_description(title):
     return f"{title}教程，整理核心步骤、配置方法、常见问题和参考链接。"
 
 
-def generate_post_content(video_info, config, category, tags):
-    """Generate SEO-optimized blog post content"""
+def generate_post_content(video_info, config, category, tags, body_md=""):
+    """Generate SEO-optimized blog post content.
+
+    When body_md is provided, it is already-formatted Markdown that bypasses
+    format_description_as_markdown() — used when the upstream pipeline has
+    already cleaned and formatted the blog source (e.g. duanku blog-source.md).
+    """
 
     video_id = video_info['id']
     title = video_info['title']
@@ -735,8 +740,11 @@ copyright: true
 
 """
 
-    # Generate article content with SEO structure
-    content = generate_article_content(video_info, video_id)
+    # Generate article content — use pre-formatted body if provided
+    if body_md.strip():
+        content = generate_article_content_with_body(video_info, video_id, body_md)
+    else:
+        content = generate_article_content(video_info, video_id)
 
     # Generate reference links
     references = f"""
@@ -990,6 +998,45 @@ def generate_article_content(video_info, video_id):
     return content
 
 
+def generate_article_content_with_body(video_info, video_id, body_md):
+    """Generate article content using pre-formatted Markdown body.
+
+    The body_md is already clean Markdown from the upstream pipeline (e.g.
+    duanku blog-source.md with ads stripped). We:
+      1. Add the intro header (## 视频介绍)
+      2. Append body_md as-is (preserves Markdown formatting that
+         format_description_as_markdown() would destroy)
+      3. Append the YouTube description (formatted into Markdown sections) so
+         that supplementary content the AI wrote for the YouTube description
+         (适用场景, 关键步骤, 📎 资源链接, etc.) appears in the blog body too.
+
+    Step 3 was missing in an earlier version of this function, which caused
+    blog posts to lose all YouTube-description-only content. Fixed by
+    appending format_description_as_markdown(description) after body_md,
+    matching the behaviour of generate_article_content() (the no-body-md path).
+    """
+    uploader = video_info.get('uploader', '')
+    description = video_info.get('description', '')
+    duration = video_info.get('duration', 0)
+    duration_min = duration // 60 if duration else 0
+
+    content = f"""## 视频介绍
+
+本视频由 {uploader} 制作，时长约 {duration_min} 分钟。
+
+"""
+
+    # Append the pre-formatted body as-is
+    content += body_md.strip() + "\n\n"
+
+    # Append YouTube description (formatted into Markdown) so supplementary
+    # content (适用场景, 关键步骤, 📎 资源, etc.) appears in the blog body.
+    if len(description.strip()) > 200:
+        content += format_description_as_markdown(description) + "\n\n"
+
+    return content
+
+
 def humanize_article(content, video_title):
     """
     Apply humanizer to remove AI-generated writing patterns
@@ -1031,42 +1078,50 @@ def humanize_article(content, video_title):
             humanized_lines.append(line)
             continue
 
-        # Remove or replace AI patterns
-        # Keep useful Markdown emphasis; structured tutorials rely on bold labels.
+        # Format-only cleanups (safe — no content modification)
         line = re.sub(r'🚀\*\*', '', line)  # Remove rocket emoji
 
-        # Simplify overly promotional language
-        line = re.sub(r'真正[的]', '', line)
-        line = re.sub(r'终极[""]', '', line)
-        line = re.sub(r'"白嫖[""]', '免费', line)
-        line = re.sub(r'无限流量', '', line)
-        line = re.sub(r'无限生成', '', line)
-        line = re.sub(r'节点无限', '', line)
-        line = re.sub(r'4K秒开', '速度快', line)
+        # ── Word-level replacements DISABLED (v1.2) ─────────────────────────
+        # These rules were designed to remove "AI writing patterns" from
+        # AI-generated content. But the blog body comes from the user's
+        # original Markdown article, not AI text. These substitutions:
+        # 1. Destroy Chinese semantics (e.g. "很重要" → "很")
+        # 2. Delete SEO keywords (e.g. "无限流量", "深入探讨" are search terms)
+        # 3. Break sentence structure (e.g. removing "此外，" leaves orphaned clauses)
+        # All word-level rules commented out. Format-only rules below are kept.
+        # ─────────────────────────────────────────────────────────────────────
+        # line = re.sub(r'真正[的]', '', line)               # ❌ breaks "真正的问题" → "的问题"
+        # line = re.sub(r'终极[""]', '', line)               # ❌ deletes word without replacement
+        # line = re.sub(r'"白嫖[""]', '免费', line)           # ❌ "白嫖" is a unique SEO keyword
+        # line = re.sub(r'无限流量', '', line)                # ❌ deletes product keyword
+        # line = re.sub(r'无限生成', '', line)                # ❌ deletes feature keyword
+        # line = re.sub(r'节点无限', '', line)                # ❌ deletes product keyword
+        # line = re.sub(r'4K秒开', '速度快', line)             # ❌ "4K秒开" is a differentiator, not redundant
+        # line = re.sub(r'此外，', '', line)                  # ❌ removes conjunction, breaks flow
+        # line = re.sub(r'深入探讨', '介绍', line)             # ❌ weakens long-tail SEO
+        # line = re.sub(r'核心知识', '内容', line)             # ❌ "核心知识" more specific/unique
+        # line = re.sub(r'关键信息', '信息', line)             # ❌ weakens keyword
+        # line = re.sub(r'重要', '', line)                    # ❌ "很重要" → "很" — semantic destruction
+        # line = re.sub(r'至关重要的', '', line)              # ❌ "至关重要的步骤" → "步骤" — info loss
+        # line = re.sub(r'必不可少的', '', line)              # ❌ "必不可少的工具" → "工具" — info loss
 
-        # Remove AI vocabulary
-        line = re.sub(r'此外，', '', line)
-        line = re.sub(r'深入探讨', '介绍', line)
-        line = re.sub(r'核心知识', '内容', line)
-        line = re.sub(r'关键信息', '信息', line)
-        line = re.sub(r'重要', '', line)
-        line = re.sub(r'至关重要的', '', line)
-        line = re.sub(r'必不可少的', '', line)
+        # ── Safe format-only rules (kept) ────────────────────────────────────
+        line = re.sub(r'\*   ', '- ', line)  # Normalize list bullet spacing
 
-        # Simplify structure
-        line = re.sub(r'本视频适合以下观众观看：', '适合：', line)
-        line = re.sub(r'\*   ', '- ', line)  # Simplify bullet points
+        # ── Title replacement DISABLED (v1.2) ────────────────────────────────
+        # Replacing the video title with "这个教程" in body text destroys SEO
+        # keywords and changes meaning. The original title text should be preserved.
+        # ─────────────────────────────────────────────────────────────────────
+        # if video_title in line and len(video_title) > 20:
+        #     short_title = video_title[:30] + '...' if len(video_title) > 30 else video_title
+        #     line = line.replace(video_title, '这个教程')
+        #     line = line.replace(short_title, '这个教程')
 
-        # Remove repetitive title mentions
-        if video_title in line and len(video_title) > 20:
-            # If title appears verbatim in content, shorten it
-            short_title = video_title[:30] + '...' if len(video_title) > 30 else video_title
-            line = line.replace(video_title, '这个教程')
-            line = line.replace(short_title, '这个教程')
-
-        # Remove generic filler phrases
-        line = re.sub(r'建议在观看视频时：', '观看时：', line)
-        line = re.sub(r'无论你是……都能从中获得有价值的信息。', '', line)
+        # ── Phrase replacements DISABLED (v1.2) ──────────────────────────────
+        # These also modify content; safe format-only is list bullet normalization above.
+        # ─────────────────────────────────────────────────────────────────────
+        # line = re.sub(r'建议在观看视频时：', '观看时：', line)
+        # line = re.sub(r'无论你是……都能从中获得有价值的信息。', '', line)
 
         humanized_lines.append(line)
 
@@ -1183,6 +1238,7 @@ def main():
     parser.add_argument('--prefill-video-id', help='Pre-filled video ID (skip YouTube fetch)')
     parser.add_argument('--prefill-duration', type=int, default=0, help='Pre-filled duration in seconds')
     parser.add_argument('--prefill-uploader', default='', help='Pre-filled uploader name')
+    parser.add_argument('--prefill-body-md', default='', help='Pre-formatted Markdown body content (bypasses format_description_as_markdown)')
     parser.add_argument('--thumbnail', help='Local custom thumbnail image path (copied to blog source/images/)')
 
     args = parser.parse_args()
@@ -1246,7 +1302,7 @@ def main():
             print(f"⚠️ Thumbnail not found: {thumb_src}, falling back to YouTube thumbnail")
 
     # Generate post content
-    content = generate_post_content(video_info, config, args.category, args.tags)
+    content = generate_post_content(video_info, config, args.category, args.tags, body_md=args.prefill_body_md or "")
 
     if args.dry_run:
         print("\n" + "="*60)
