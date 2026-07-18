@@ -200,7 +200,6 @@ class TextToSpeech:
         speed = float(speed if speed is not None else minimax_config.get('speed', 1.0))
         volume = float(volume if volume is not None else minimax_config.get('volume', 1.0))
         pitch = int(pitch if pitch is not None else minimax_config.get('pitch', 0))
-        emotion = minimax_config.get('emotion')
         try:
             context_name, context_profile = self._resolve_minimax_context(text, context)
         except ValueError as exc:
@@ -210,7 +209,6 @@ class TextToSpeech:
             speed *= float(context_profile.get('speed_multiplier', 1.0))
             volume *= float(context_profile.get('volume_multiplier', 1.0))
             pitch += int(context_profile.get('pitch_offset', 0))
-            emotion = context_profile.get('emotion', emotion)
         limits = minimax_config.get('context_adaptation', {}).get('limits', {})
         speed = self._clamp(speed, float(limits.get('speed_min', 0.5)), float(limits.get('speed_max', 2.0)))
         volume = self._clamp(volume, float(limits.get('volume_min', 0.1)), float(limits.get('volume_max', 10.0)))
@@ -235,8 +233,6 @@ class TextToSpeech:
             },
             "subtitle_enable": False,
         }
-        if emotion:
-            payload["voice_setting"]["emotion"] = emotion
         language_boost = minimax_config.get('language_boost')
         if language_boost:
             payload["language_boost"] = language_boost

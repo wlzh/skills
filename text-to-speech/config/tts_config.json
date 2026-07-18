@@ -9,7 +9,6 @@
     "speed": 1.0,
     "volume": 1.0,
     "pitch": 0,
-    "emotion": "neutral",
     "context_adaptation": {
       "enabled": true,
       "default_context": "explanation",
@@ -25,86 +24,132 @@
         "opening": {
           "speed_multiplier": 1.0,
           "volume_multiplier": 1.03,
-          "pitch_offset": 1,
-          "emotion": "happy"
+          "pitch_offset": 1
         },
         "summary": {
           "speed_multiplier": 0.97,
           "volume_multiplier": 1.02,
-          "pitch_offset": 0,
-          "emotion": "neutral"
+          "pitch_offset": 0
         },
         "explanation": {
           "speed_multiplier": 0.96,
           "volume_multiplier": 1.0,
-          "pitch_offset": 0,
-          "emotion": "neutral"
+          "pitch_offset": 0
         },
         "instruction": {
           "speed_multiplier": 0.93,
           "volume_multiplier": 1.02,
-          "pitch_offset": 0,
-          "emotion": "neutral"
+          "pitch_offset": 0
         },
         "warning": {
           "speed_multiplier": 0.9,
           "volume_multiplier": 1.08,
-          "pitch_offset": -1,
-          "emotion": "neutral"
+          "pitch_offset": -1
         },
         "resource": {
           "speed_multiplier": 0.95,
           "volume_multiplier": 1.01,
-          "pitch_offset": 0,
-          "emotion": "neutral"
+          "pitch_offset": 0
         },
         "conclusion": {
           "speed_multiplier": 0.94,
           "volume_multiplier": 1.03,
-          "pitch_offset": -1,
-          "emotion": "neutral"
+          "pitch_offset": -1
         },
         "call_to_action": {
           "speed_multiplier": 1.0,
           "volume_multiplier": 1.05,
-          "pitch_offset": 1,
-          "emotion": "happy"
+          "pitch_offset": 1
         },
         "neutral": {
           "speed_multiplier": 0.97,
           "volume_multiplier": 1.0,
-          "pitch_offset": 0,
-          "emotion": "neutral"
+          "pitch_offset": 0
         }
       },
       "rules": [
         {
           "context": "warning",
-          "keywords": ["注意", "警告", "风险", "不要", "千万", "务必", "否则", "失败", "错误"]
+          "keywords": [
+            "注意",
+            "警告",
+            "风险",
+            "不要",
+            "千万",
+            "务必",
+            "否则",
+            "失败",
+            "错误"
+          ]
         },
         {
           "context": "call_to_action",
-          "keywords": ["关注", "订阅", "点赞", "收藏", "评论", "感谢观看", "下期再见"]
+          "keywords": [
+            "关注",
+            "订阅",
+            "点赞",
+            "收藏",
+            "评论",
+            "感谢观看",
+            "下期再见"
+          ]
         },
         {
           "context": "resource",
-          "keywords": ["视频下方", "说明区", "评论区", "下载地址", "下载链接", "开源地址"]
+          "keywords": [
+            "视频下方",
+            "说明区",
+            "评论区",
+            "下载地址",
+            "下载链接",
+            "开源地址"
+          ]
         },
         {
           "context": "instruction",
-          "keywords": ["第一步", "第二步", "第三步", "首先", "然后", "接着", "点击", "打开", "选择", "输入", "安装", "设置"]
+          "keywords": [
+            "第一步",
+            "第二步",
+            "第三步",
+            "首先",
+            "然后",
+            "接着",
+            "点击",
+            "打开",
+            "选择",
+            "输入",
+            "安装",
+            "设置"
+          ]
         },
         {
           "context": "conclusion",
-          "keywords": ["总结一下", "最后总结", "归根结底", "结论是", "记住"]
+          "keywords": [
+            "总结一下",
+            "最后总结",
+            "归根结底",
+            "结论是",
+            "记住"
+          ]
         },
         {
           "context": "opening",
-          "keywords": ["大家好", "欢迎来到", "今天我们", "这期视频"]
+          "keywords": [
+            "大家好",
+            "欢迎来到",
+            "今天我们",
+            "这期视频"
+          ]
         },
         {
           "context": "summary",
-          "keywords": ["本期路线", "先说结论", "核心是", "你将学会", "本期内容"]
+          "keywords": [
+            "本期路线",
+            "先说结论",
+            "核心是",
+            "你将学会",
+            "本期内容"
+          ]
         }
       ]
     },
@@ -279,11 +324,21 @@
     "enabled": true,
     "use_ssml": true,
     "emotion_mappings": {
-      "语速放慢": {"rate": "-20%"},
-      "语速加快": {"rate": "+20%"},
-      "加重语气": {"volume": "+20%"},
-      "轻声": {"volume": "-20%"},
-      "停顿": {"break": "500ms"}
+      "语速放慢": {
+        "rate": "-20%"
+      },
+      "语速加快": {
+        "rate": "+20%"
+      },
+      "加重语气": {
+        "volume": "+20%"
+      },
+      "轻声": {
+        "volume": "-20%"
+      },
+      "停顿": {
+        "break": "500ms"
+      }
     }
   },
   "output": {
