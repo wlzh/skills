@@ -5,11 +5,19 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v2.0.0
+**版本**: v2.1.0
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 ## 更新日志
+
+### v2.1.0 (2026-07-19)
+- 🆕 **多账号轮换**：支持多个夸克账号按批次自动轮换，分摊转存压力
+  - 新增 `scripts/quark_account_rotator.py` 独立轮换器
+  - `quark_batch_run.py` 集成轮换逻辑，支持 `--force-account` 和 `--no-rotate` 参数
+  - 采用方案B（按批次轮换）+ 做法甲（cookie 文件复制），对现有代码零侵入
+  - 状态记录在 `config/account_state.json`，支持任意数量的账号
+  - 输出 JSON 新增 `quark_account` 字段，标记本批次使用的账号
 
 ### v2.0.0 (2026-07-15)
 - 🆕 **垃圾文件清理模块**：转存后自动删除原分享者植入的推广/广告文件

@@ -1,4 +1,7 @@
-"""Quark batch runner v2.0.0: save-share lockstep with title tracking.
+"""Quark batch runner v2.1.0: save-share lockstep with title tracking + multi-account rotation.
+
+v2.1.0: 集成 quark_account_rotator，每次执行自动轮换夸克账号（方案B：按批次轮换）。
+        支持 --force-account N 强制指定账号。
 
 Each item is saved AND shared in one step, capturing the title→URL mapping
 explicitly (no longer order-dependent on get_sorted_file_list).
@@ -58,6 +61,10 @@ def parse_args():
     p.add_argument("--items-json", required=True)
     p.add_argument("--out-json", required=True)
     p.add_argument("--headless", action="store_true", default=True)
+    p.add_argument("--force-account", type=int, default=None,
+                   help="强制使用指定账号（跳过自动轮换），用于某账号被限速时")
+    p.add_argument("--no-rotate", action="store_true",
+                   help="不轮换账号（使用当前 cookies.txt）")
     return p.parse_args()
 
 
@@ -82,6 +89,20 @@ async def list_all_items(mgr, pdir_fid):
 
 async def main():
     args = parse_args()
+
+    # ── 账号轮换（方案B + 做法甲）──
+    account_id = None
+    if not args.no_rotate:
+        try:
+            from quark_account_rotator import rotate_to_next_account
+            # 确定配置目录（QuarkPanTool/config）
+            config_dir = Path(__file__).resolve().parent.parent.parent.parent / "QuarkPanTool" / "config"
+            account_id = rotate_to_next_account(str(config_dir), force_account=args.force_account)
+            print(f"\n[ACCOUNT] 当前使用夸克账号 {account_id}")
+        except Exception as e:
+            print(f"\n[ACCOUNT] ⚠️ 账号轮换失败（{e}），使用当前 cookies.txt")
+    else:
+        print("\n[ACCOUNT] 跳过轮换，使用当前 cookies.txt")
 
     items = json.loads(Path(args.items_json).read_text(encoding="utf-8"))
     norm_items = []
@@ -148,6 +169,7 @@ async def main():
     out = {
         "batch_folder_name": batch_folder_name,
         "batch_folder_fid": to_dir_id,
+        "quark_account": account_id,
         "items": [{"title": t, "input_url": u} for t, u in norm_items],
         "share_results": share_results,
     }

@@ -1,6 +1,6 @@
 # quark-mswnlz-publisher
 
-**版本**: v2.0.0
+**版本**: v2.1.0
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -55,7 +55,10 @@
 ├── QuarkPanTool/              # 夸克网盘自动化工具
 │   ├── .venv/                 # Python 虚拟环境
 │   ├── config/
-│   │   ├── cookies.txt        # 夸克登录 Cookie（自动生成）
+│   │   ├── cookies.txt        # 夸克登录 Cookie（自动生成，由轮换器维护）
+│   │   ├── cookies_1.txt      # 账号 1 Cookie（备份）
+│   │   ├── cookies_2.txt      # 账号 2 Cookie（备份）
+│   │   ├── account_state.json # 多账号轮换状态
 │   │   └── config.json        # 保存目录配置
 │   ├── quark.py               # 核心库
 │   ├── quark_login.py         # 登录脚本
@@ -69,6 +72,7 @@
     └── quark-mswnlz-publisher/  # 本 Skill
         ├── scripts/
         │   ├── quark_batch_run.py
+        │   ├── quark_account_rotator.py  # 🆕 v2.1.0 多账号轮换
         │   ├── quark_copy.py       # 推广文件复制
         │   ├── mswnlz_publish.py   # GitHub 发布 + Telegram 通知
         │   └── trigger_site_rebuild.sh
@@ -356,7 +360,86 @@ quark-mswnlz-publisher/
 
 ---
 
+## 多账号轮换 🆕 v2.1.0
+
+支持多个夸克账号按批次自动轮换，分摊转存压力，避免单账号被限速。
+
+### 工作原理（方案B：按批次轮换 + 做法甲：cookie 文件复制）
+
+- 每次执行 `quark_batch_run.py` 时，自动轮换到下一个账号
+- 轮换逻辑：将下一个账号的 cookie 文件复制为 `cookies.txt`，`quark.py` 零改动
+- 状态记录在 `config/account_state.json`，自动维护
+
+### 配置方法
+
+1. **登录每个账号**，获取完整 cookie：
+```bash
+cd QuarkPanTool
+. .venv/bin/activate
+python quark_login.py  # 登录账号1
+# 登录后：cp config/cookies.txt config/cookies_1.txt
+
+python quark_login.py  # 登录账号2
+# 登录后：cp config/cookies.txt config/cookies_2.txt
+```
+
+2. **添加更多账号**（可选）：
+- 保存 `cookies_3.txt`、`cookies_4.txt`... 即可，轮换器自动扫描发现
+
+3. **无需其他配置**，`quark_batch_run.py` 执行时自动轮换
+
+### 使用方式
+
+```bash
+# 正常使用（自动轮换到下一个账号）
+python quark_batch_run.py --label "短裤哥批次" ...
+
+# 强制指定账号（某账号被限速时临时使用）
+python quark_batch_run.py --force-account 1 ...
+
+# 跳过轮换（使用当前 cookies.txt）
+python quark_batch_run.py --no-rotate ...
+```
+
+### 管理命令
+
+```bash
+# 查看轮换状态
+cd QuarkPanTool
+. .venv/bin/activate
+python scripts/quark_account_rotator.py --config-dir ./config status
+
+# 手动轮换到下一个
+python scripts/quark_account_rotator.py --config-dir ./config next
+
+# 列出所有账号
+python scripts/quark_account_rotator.py --config-dir ./config list
+
+# 强制切换到指定账号
+python scripts/quark_account_rotator.py --config-dir ./config force 2
+```
+
+### 文件说明
+
+| 文件 | 说明 |
+|------|------|
+| `config/cookies_1.txt` | 账号1 cookie |
+| `config/cookies_2.txt` | 账号2 cookie |
+| `config/cookies.txt` | 当前激活的 cookie（由轮换器维护） |
+| `config/cookies.txt.bak` | 切换前的备份 |
+| `config/account_state.json` | 轮换状态（当前账号、历史记录） |
+
+---
+
 ## 更新日志
+
+### v2.1.0 (2026-07-19)
+- 🆕 **多账号轮换**：支持多个夸克账号按批次自动轮换，分摊转存压力
+  - 新增 `scripts/quark_account_rotator.py` 独立轮换器
+  - `quark_batch_run.py` 集成轮换逻辑，支持 `--force-account` 和 `--no-rotate` 参数
+  - 采用方案B（按批次轮换）+ 做法甲（cookie 文件复制），对现有代码零侵入
+  - 状态记录在 `config/account_state.json`，支持任意数量的账号
+  - 输出 JSON 新增 `quark_account` 字段，标记本批次使用的账号
 
 ### v2.0.0 (2026-07-15)
 - 🆕 **垃圾文件清理模块**：转存后自动删除原分享者植入的推广/广告文件
