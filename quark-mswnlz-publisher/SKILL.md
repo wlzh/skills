@@ -1,13 +1,15 @@
 ---
 name: quark-mswnlz-publisher
-description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Use when the user provides Quark share URLs and wants: (1) create a batch folder in Quark Drive, (2) save/copy resources into that folder, (3) copy promotional files INTO each shared resource folder, (4) generate permanent encrypted share links with random passcodes, (5) auto-classify items into mswnlz repos (book/movies/etc.) by repo descriptions, (6) append/update the target repo's YYYYMM.md and README month index, (7) git commit+push, (8) send unified Telegram notifications, and (9) force-trigger mswnlz.github.io site rebuild and return the final site URLs."
+description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Supports Quark / Baidu / Aliyun drives with multi-account rotation. Use when the user provides share URLs and wants: (1) auto-detect drive type and route to correct handler, (2) save resources with automatic account rotation, (3) clean junk files from shared folders, (4) copy promotional files into each folder, (5) generate permanent encrypted share links, (6) auto-classify items into mswnlz repos (book/movies/AIknowledge/tools/etc.), (7) append/update YYYYMM.md and README index, (8) git commit+push, (9) send unified Telegram notifications to multiple groups, (10) trigger site rebuild."
 ---
 
 # quark-mswnlz-publisher
 
 **版本**: v2.1.1
 
-夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+夸克网盘 / 百度网盘 / 阿里云盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+
+支持三网盘混合输入、多账号轮换、多群组通知。
 
 ## 更新日志
 
