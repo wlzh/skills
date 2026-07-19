@@ -1,6 +1,6 @@
 # quark-mswnlz-publisher
 
-**版本**: v2.1.0
+**版本**: v2.1.1
 
 夸克网盘 + 百度网盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -432,6 +432,9 @@ python scripts/quark_account_rotator.py --config-dir ./config force 2
 ---
 
 ## 更新日志
+
+### v2.1.1 (2026-07-19)
+- 🔧 **copy_promo 动态发现推广文件夹**：不再硬编码账号1的 fid，改为先试硬编码 → 失败则在 `temp/` 下按名称查找，自动适配多账号场景
 
 ### v2.1.0 (2026-07-19)
 - 🆕 **多账号轮换**：支持多个夸克账号按批次自动轮换，分摊转存压力

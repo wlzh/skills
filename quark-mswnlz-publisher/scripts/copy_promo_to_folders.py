@@ -47,7 +47,9 @@ def parse_cookies(cookies_str: str) -> str:
 class QuarkPromoCopier:
     """Copy promotional files to each shared folder."""
 
-    PROMO_FOLDER_FID = "87b3b2740c284ada8e513d59ce81aa96"  # temp/要共享的文件
+    PROMO_FOLDER_FID = "87b3b2740c284ada8e513d59ce81aa96"  # temp/要共享的文件 (账号1)
+    PROMO_FOLDER_NAME = "要共享的文件"
+    TEMP_FOLDER_FID = "0"  # 根目录下找 temp
 
     def __init__(self, cookies: str, headers: dict = None):
         self.cookies = cookies
@@ -102,16 +104,56 @@ class QuarkPromoCopier:
 
         return result.get('status') == 200
 
+    async def find_promo_folder(self, client: httpx.AsyncClient) -> str | None:
+        """动态查找推广文件夹 fid：先试硬编码，失败则在 temp 下按名称查找"""
+        # 1. 先试硬编码 fid
+        is_folder, items = await self.list_folder_files(client, self.PROMO_FOLDER_FID)
+        if is_folder and items:
+            print(f"[INFO] 使用硬编码推广文件夹 fid: {self.PROMO_FOLDER_FID}")
+            return self.PROMO_FOLDER_FID
+
+        # 2. 在根目录找 temp 文件夹
+        is_folder, root_items = await self.list_folder_files(client, "0")
+        if not root_items:
+            return None
+
+        temp_fid = None
+        for it in root_items:
+            if it.get("file_name") == "temp":
+                temp_fid = it.get("fid")
+                break
+
+        if not temp_fid:
+            return None
+
+        # 3. 在 temp 下找 "要共享的文件"
+        is_folder, temp_items = await self.list_folder_files(client, temp_fid)
+        if not temp_items:
+            return None
+
+        for it in temp_items:
+            if it.get("file_name") == self.PROMO_FOLDER_NAME:
+                fid = it.get("fid")
+                print(f"[INFO] 动态发现推广文件夹 fid: {fid} (temp/{self.PROMO_FOLDER_NAME})")
+                return fid
+
+        return None
+
     async def copy_promo_to_all_folders(self, share_results: List[dict]) -> dict:
         """复制推广文件到每个分享文件夹内部"""
         results = {"success": [], "skipped": [], "failed": []}
 
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # 1. 获取推广文件列表
-            is_folder, promo_items = await self.list_folder_files(client, self.PROMO_FOLDER_FID)
-            if not is_folder or not promo_items:
+            # 1. 获取推广文件列表（动态查找）
+            promo_fid = await self.find_promo_folder(client)
+            if not promo_fid:
                 print("[ERROR] 推广文件模板文件夹为空或无法访问")
                 print(f"[INFO] 请确保夸克网盘中存在 'temp/要共享的文件' 文件夹")
+                return results
+
+            _, promo_items = await self.list_folder_files(client, promo_fid)
+            if not promo_items:
+                print("[ERROR] 推广文件夹为空")
                 return results
 
             promo_fids = [f['fid'] for f in promo_items]
