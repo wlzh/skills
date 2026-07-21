@@ -258,12 +258,14 @@ async function uploadVideo(
           });
           if (searchResp.data.items && searchResp.data.items.length > 0) {
             const candidate = searchResp.data.items[0];
-            if (candidate.snippet?.title === videoMetadata.snippet?.title) {
-              console.log(`\nUpload succeeded despite error — found video: ${candidate.id}`);
+            const candidateId = candidate.id?.videoId;
+            if (candidateId && candidate.snippet?.title === videoMetadata.snippet?.title) {
+              console.log(`\nUpload succeeded despite error — found video: ${candidateId}`);
               // Fetch full video resource (search returns search result, not video)
-              const videoResp = await youtube.videos.list({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const videoResp: any = await youtube.videos.list({
                 part: ["snippet", "status"],
-                id: [candidate.id!],
+                id: [candidateId],
               });
               if (videoResp.data.items && videoResp.data.items.length > 0) {
                 response = videoResp;

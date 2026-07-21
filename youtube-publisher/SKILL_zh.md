@@ -171,7 +171,19 @@ npx ts-node youtube-upload.ts \
 | 配额超限 | 在 Google Cloud Console 查看配额 |
 | 权限被拒绝 | 重新授权：`npx ts-node youtube-upload.ts --auth` |
 
+上传进程报错且无法确认服务端是否已创建视频时，先运行以下命令查看最近上传记录，再决定是否重试，避免生成重复视频：
+
+```bash
+npx ts-node list-uploads.ts
+```
+
 ## 更新日志
+
+### v1.5.0 - 上传恢复与重复检测 (2026-07-21)
+
+- 修复网络错误恢复分支错误传递 SearchResult 对象的问题，改为使用真实 `videoId`。
+- 新增 `list-uploads.ts`，供发布流水线在上传失败后检查同标题视频。
+- 新增生产脚本 TypeScript 严格检查命令。
 
 ### v1.1 - 可恢复上传 + 自动重试 (2026-04-22)
 
