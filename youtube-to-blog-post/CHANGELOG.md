@@ -1,3 +1,12 @@
+# v4.5.0 - 2026-07-22
+
+- 输出 `video_id`、`video_duration`、`video_upload_date`，供 Hexo 生成完整 VideoObject。
+- 输出独立 `excerpt`，并保证 description 是自然语言摘要而非 hashtag 串。
+- 对齐博客共享 SEO 门禁，description 保持在 45-160 字符范围内。
+- 新文章标签硬限制为最多 5 个，避免继续制造薄标签页。
+- 删除指向博客首页的伪“相关推荐”，真实内链交由站点相关内容与发布门禁处理。
+- 新增视频 front matter 与标签上限回归测试。
+
 # v4.4.0 - 2026-07-18
 
 - 修复 `generate_article_content_with_body()` 遗漏完整 YouTube description 的回归。

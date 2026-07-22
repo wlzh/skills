@@ -572,7 +572,7 @@ def generate_seo_description(title, description):
     """
     specialized_desc = generate_specialized_description(title)
     if specialized_desc:
-        return specialized_desc[:MAX_DESCRIPTION_LENGTH]
+        return ensure_description_length(specialized_desc, title)
 
     title_terms = extract_seo_terms(title)
 
@@ -598,14 +598,24 @@ def generate_seo_description(title, description):
         candidates = [item for item in candidates if item[0] > 0]
         if candidates:
             candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
-            return candidates[0][2]
+            return ensure_description_length(candidates[0][2], title)
 
     # Fallback to title-based description
     desc_template = generate_title_based_description(title)
     if len(desc_template) > MAX_DESCRIPTION_LENGTH:
         desc_template = f"{title} - 详细教程与指南"
 
-    return desc_template[:MAX_DESCRIPTION_LENGTH]
+    return ensure_description_length(desc_template, title)
+
+
+def ensure_description_length(description, title, minimum=45):
+    """Keep snippets natural while satisfying the shared blog SEO contract."""
+    text = re.sub(r'\s+', ' ', description).strip()
+    if len(text) < minimum:
+        text = f"{text.rstrip('。')}。包含适用条件、操作步骤、结果验证和常见问题。"
+    if len(text) < minimum:
+        text = f"{title}：{text}"
+    return text[:MAX_DESCRIPTION_LENGTH]
 
 
 def generate_specialized_description(title):
@@ -688,7 +698,7 @@ def generate_post_content(video_info, config, category, tags, body_md=""):
     tag_list = []
     for t in raw_tags:
         normalized = normalize_tag(t)
-        if normalized not in tag_list:
+        if normalized and normalized not in tag_list and len(tag_list) < 5:
             tag_list.append(normalized)
 
     # Build cover image URL with 3-level fallback:
@@ -717,6 +727,7 @@ date: {date_str}
 updated: {date_str}
 author: {config['author']}
 description: {yaml_safe_string(post_description)}
+excerpt: {yaml_safe_string(post_description)}
 categories:
   - {category}
 {generate_tags_yaml(tag_list)}
@@ -724,6 +735,9 @@ keywords:
 {generate_keywords_yaml(keywords)}
 cover: {cover_image}
 thumbnail: {cover_image}
+video_id: {video_id}
+video_duration: {int(video_info.get('duration') or 0)}
+video_upload_date: {yaml_safe_string(video_info.get('upload_date') or date_str)}
 toc: true
 comments: true
 copyright: true
@@ -753,7 +767,6 @@ copyright: true
 ## 参考链接
 
 - [YouTube视频原地址](https://www.youtube.com/watch?v={video_id})
-- [相关推荐](https://869hr.uk)
 
 ---
 """
@@ -1239,6 +1252,7 @@ def main():
     parser.add_argument('--prefill-video-id', help='Pre-filled video ID (skip YouTube fetch)')
     parser.add_argument('--prefill-duration', type=int, default=0, help='Pre-filled duration in seconds')
     parser.add_argument('--prefill-uploader', default='', help='Pre-filled uploader name')
+    parser.add_argument('--prefill-upload-date', default='', help='Video upload date in ISO 8601 format')
     parser.add_argument('--prefill-body-md', default='', help='Pre-formatted Markdown body content (bypasses format_description_as_markdown)')
     parser.add_argument('--thumbnail', help='Local custom thumbnail image path (copied to blog source/images/)')
 
@@ -1265,7 +1279,7 @@ def main():
             'title': sanitize_text_for_yaml(args.prefill_title),
             'description': args.prefill_description or '',
             'uploader': args.prefill_uploader or '',
-            'upload_date': '',
+            'upload_date': args.prefill_upload_date or datetime.now().astimezone().isoformat(),
             'duration': args.prefill_duration or 0,
             'thumbnail': '',
             'tags': args.tags if isinstance(args.tags, list) else [args.tags],
