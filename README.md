@@ -250,6 +250,25 @@ YouTube 视频自动下载并发布到小宇宙播客
 
 ---
 
+### 🐦 x-twitter-scraper
+通过 Xquik API 为 Agent 提供 X (Twitter) 数据工作流，适合需要结构化搜索、用户资料、粉丝导出、媒体下载、MCP、Webhook 或需确认后发布的场景。
+
+**特点**：
+- 🔎 推文搜索与互动数据查询
+- 👤 用户资料、时间线、媒体推文、粉丝和关注列表
+- 📦 批量抽取任务，执行前先估算并确认
+- 🔌 MCP、SDK、Webhook 和监控工作流
+- 🔐 仅使用 `XQUIK_API_KEY`，不收集 X 密码、2FA、Cookie 或会话
+- ✅ 私密读取、写操作、监控、Webhook 和计费批量任务都需要用户明确确认
+
+**版本**: v2.4.16
+
+**基于**: [Xquik-dev/x-twitter-scraper](https://github.com/Xquik-dev/x-twitter-scraper)
+
+[查看详情 →](./x-twitter-scraper/)
+
+---
+
 ### 📰 wespy-fetcher
 微信公众号/通用网页文章抓取并转换为 Markdown，支持微信专辑批量下载
 
