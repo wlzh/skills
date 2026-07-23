@@ -26,6 +26,17 @@ class DescriptionFormatTests(unittest.TestCase):
         )
         self.assertTrue(blog.should_skip_heading_source_line("纯净住宅IP白嫖流量"))
 
+    def test_resource_markers_become_headings_without_losing_following_urls(self):
+        formatted = blog.format_description_as_markdown(
+            "更多资料获取及讨论群\n"
+            "1. 微信讨论群：https://qr.869hr.uk/aitech\n"
+            "短信及语音接码平台\n"
+            "https://hero-sms.com/?ref=357885"
+        )
+        self.assertIn("## 关注与资源", formatted)
+        self.assertIn("## 短信及语音接码平台", formatted)
+        self.assertIn("https://hero-sms.com/?ref=357885", formatted)
+
     def test_body_md_keeps_body_and_appends_full_description(self):
         description = "适用场景\n" + "这是完整描述。" * 40
         content = blog.generate_article_content_with_body(
@@ -41,6 +52,30 @@ class DescriptionFormatTests(unittest.TestCase):
         self.assertIn("正文必须保留。", content)
         self.assertIn("适用场景", content)
         self.assertIn("这是完整描述。", content)
+
+    def test_redundant_browser_copy_notice_is_removed_from_all_inputs(self):
+        description = (
+            "适用场景\n"
+            "这是完整描述。" * 40
+            + "\n注意⚠️链接需复制到浏览器中才能打开！！！"
+        )
+        content = blog.generate_post_content(
+            {
+                "id": "abc123XYZ",
+                "title": "测试教程",
+                "description": description,
+                "uploader": "频道",
+                "upload_date": "2026-07-23T12:00:00+08:00",
+                "duration": 120,
+                "thumbnail": "",
+            },
+            {"author": "M.", "local_thumbnail": "/images/test.jpg"},
+            "技术",
+            ["教程"],
+            body_md="## 原始正文\n\n部分链接需要复制到浏览器中才能打开。\n\n正文保留。",
+        )
+        self.assertNotIn("复制到浏览器中才能打开", content)
+        self.assertIn("正文保留。", content)
 
     def test_video_front_matter_and_tag_limit(self):
         content = blog.generate_post_content(

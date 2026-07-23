@@ -27,6 +27,11 @@ MIN_KEYWORD_LENGTH = 2
 MAX_KEYWORD_LENGTH = 20
 MAX_FILENAME_LENGTH = 50  # Short, readable URLs perform better
 
+REDUNDANT_BROWSER_NOTICE_RE = re.compile(
+    r"(?:部分)?链接需(?:要)?复制到浏览器中才能打开",
+    re.IGNORECASE,
+)
+
 # Stop words to filter from keywords
 STOP_WORDS = {
     '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个',
@@ -123,6 +128,16 @@ def yaml_safe_string(value: str) -> str:
         return '""'
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
+
+
+def remove_redundant_browser_notice_lines(text: str) -> str:
+    """Drop obsolete standalone browser-copy notices from generated articles."""
+    if not text:
+        return text
+    return "\n".join(
+        line for line in text.splitlines()
+        if not REDUNDANT_BROWSER_NOTICE_RE.search(line)
+    )
 
 
 def normalize_tag(tag):
@@ -681,6 +696,12 @@ def generate_post_content(video_info, config, category, tags, body_md=""):
     already cleaned and formatted the blog source (e.g. duanku blog-source.md).
     """
 
+    video_info = dict(video_info)
+    video_info['description'] = remove_redundant_browser_notice_lines(
+        video_info.get('description', '')
+    )
+    body_md = remove_redundant_browser_notice_lines(body_md)
+
     video_id = video_info['id']
     title = video_info['title']
     description = video_info.get('description', '')
@@ -907,6 +928,7 @@ def description_heading_for_line(line):
         (r'^常见坑', '## 常见坑'),
         (r'^出门在外想改代码', '## 本期内容概览'),
         (r'^短信及语音接码平台', '## 短信及语音接码平台'),
+        (r'^更多资料获取及讨论群', '## 关注与资源'),
         (r'^纯净住宅IP白嫖流量|^白嫖流量', '## 白嫖流量'),
         (r'^VPS\s*主机', '## VPS 主机推荐'),
         (r'^Gmail、Telegram', '## 账号、礼品卡与 AI 产品充值'),
@@ -931,6 +953,7 @@ def should_skip_heading_source_line(line):
     """Section marker lines should become headings instead of duplicated body text."""
     markers = [
         r'^短信及语音接码平台',
+        r'^更多资料获取及讨论群',
         r'^纯净住宅IP白嫖流量|^白嫖流量',
         r'^VPS\s*主机',
         r'^Gmail、Telegram',
@@ -941,6 +964,7 @@ def should_skip_heading_source_line(line):
 
 def format_description_as_markdown(description):
     """Convert long YouTube descriptions into readable Markdown sections."""
+    description = remove_redundant_browser_notice_lines(description)
     lines = [normalize_description_line(line) for line in description.splitlines()]
     lines = [line for line in lines if line]
 
@@ -1040,8 +1064,8 @@ def generate_article_content_with_body(video_info, video_id, body_md):
 
 """
 
-    # Append the pre-formatted body as-is
-    content += body_md.strip() + "\n\n"
+    # Append the pre-formatted body as-is after shared notice cleanup.
+    content += remove_redundant_browser_notice_lines(body_md).strip() + "\n\n"
 
     # Append YouTube description (formatted into Markdown) so supplementary
     # content (适用场景, 关键步骤, 📎 资源, etc.) appears in the blog body.
