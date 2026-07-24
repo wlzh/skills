@@ -1,9 +1,9 @@
 """Copy promotional files to each shared resource folder.
 
 Usage:
-  cd /Users/m./Documents/QNSZ/project/QuarkPanTool
+  cd /Users/m/document/QNSZ/project/QuarkPanTool
   . .venv/bin/activate
-  python /Users/m./Documents/QNSZ/project/skills/quark-mswnlz-publisher/scripts/copy_promo_to_folders.py \
+  python /Users/m/document/QNSZ/project/skills/quark-mswnlz-publisher/scripts/copy_promo_to_folders.py \
     --batch-json batch_share_results.json
 
 This script:

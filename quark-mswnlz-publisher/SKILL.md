@@ -5,13 +5,19 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v2.1.1
+**版本**: v2.2.0
 
 夸克网盘 / 百度网盘 / 阿里云盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 支持三网盘混合输入、多账号轮换、多群组通知。
 
 ## 更新日志
+
+### v2.2.0 (2026-07-24)
+- 同步 `doc.869hr.uk` SEO 重构后的站点合同：发布端只追加资源源文件，不再生成或修改分类页结构
+- 新增资源写入标准 Markdown 链接格式 `[标题](URL)`，兼容站点构建期 catalog 和服务端可索引目录
+- 站点重建前执行 `npm run build` + `npm run validate`，验证 catalog、sitemap 和 `/public/` 重复页规则
+- 默认路径更新为 `/Users/m/document/QNSZ/project/mswnlz-github`，可用环境变量覆盖
 
 ### v2.1.1 (2026-07-19)
 - 🔧 **copy_promo 动态发现推广文件夹**：不再硬编码账号1的 fid，改为先试硬编码 → 失败则在 `temp/` 下按名称查找，自动适配多账号场景
@@ -105,10 +111,10 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 | 路径 | 用途 |
 |------|------|
-| `/Users/m./Documents/QNSZ/project` | 项目根目录 |
-| `/Users/m./Documents/QNSZ/project/QuarkPanTool` | 夸克自动化工具 |
-| `/Users/m./Documents/QNSZ/project/mswnlz` | mswnlz 组织仓库 |
-| `/Users/m./Documents/QNSZ/project/skills` | Skills 仓库 (wlzh/skills) |
+| `/Users/m/document/QNSZ/project` | 项目根目录 |
+| `/Users/m/document/QNSZ/project/QuarkPanTool` | 夸克自动化工具 |
+| `/Users/m/document/QNSZ/project/mswnlz-github` | mswnlz 组织内容仓库 + 站点仓库 |
+| `/Users/m/document/QNSZ/project/skills` | Skills 仓库 |
 
 ## 安全要求
 
@@ -211,20 +217,31 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
    - **第二关 书籍类**：书/书单/新书/电子书/杂志、X册/X本 → `book`（不再用"合集"归书）
    - **第三关 回退匹配**：前两关未命中时，根据仓库 description 关键词模糊评分
 3. 克隆/更新本地仓库（SSH 方式）
-4. 追加到 `<YYYYMM>.md`：
+4. 追加到 `<YYYYMM>.md`，只写资源源数据，不生成网站页面结构：
    ```
-   - {标题}-超过100T资料总站网站-doc.869hr.uk | {分享链接}
+   [{标题}]({分享链接})
    ```
 5. 更新 `README.md` 月份索引（保持倒序）
 6. Git commit + push
 7. **发送统一的 Telegram 群组通知**（多仓库更新只发一条汇总消息）
 
+### 4.5) 站点设计与 SEO 合同
+
+资源站点已按 `taste-skill:design-taste-frontend` 重构为“信任优先、检索优先、归档保留”的中文资源目录：
+- 分类首页由 VitePress 构建期 catalog 生成目录，支持搜索、月份、平台和排序筛选
+- 月份页仍是 `/category/YYYYMM` 归档 URL，不删除旧路径
+- 发布脚本不得写入 `docs/public/{category}/*.md`
+- 发布脚本不得生成 `<ResourceTabs :months>`、分类首页、广告容器或页面布局代码
+- 新资源只提交到对应内容仓库的 `YYYYMM.md`，站点 CI 会复制内容仓库并重新生成 catalog
+
 ### 5) 触发站点重建
 
 使用 `scripts/trigger_site_rebuild.sh`：
-1. 在 `mswnlz.github.io` 仓库创建空提交
-2. Push 到 main 分支
-3. 触发 GitHub Actions 构建
+1. 定位 `mswnlz.github.io` 仓库（可用 `MSWNLZ_SITE_REPO` 覆盖）
+2. 拉取 main 最新代码
+3. 执行 `npm run build` 和 `npm run validate`
+4. 不提交本地 dist/catalog 构建噪音
+5. 创建空提交并 push 到 main，触发 GitHub Actions 构建
 
 ### 6) 返回结果
 

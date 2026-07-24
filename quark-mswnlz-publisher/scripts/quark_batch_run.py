@@ -12,9 +12,9 @@ Title rules:
 - If one title has two URLs → both saved under the same title (merged later)
 
 Usage:
-  cd /Users/m./Documents/QNSZ/project/QuarkPanTool
+  cd /Users/m/document/QNSZ/project/QuarkPanTool
   . .venv/bin/activate
-  python /Users/m./Documents/QNSZ/project/skills/quark-mswnlz-publisher/scripts/quark_batch_run.py \
+  python /Users/m/document/QNSZ/project/skills/quark-mswnlz-publisher/scripts/quark_batch_run.py \
     --label "短裤哥批次" \
     --month 202603 \
     --items-json /path/to/items.json \

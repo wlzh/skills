@@ -22,7 +22,7 @@ import subprocess
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # 自动加载 secrets.env（如果存在）
 SECRETS_ENV = Path(__file__).resolve().parent.parent.parent.parent / "QuarkPanTool" / "config" / "secrets.env"
@@ -35,10 +35,28 @@ if SECRETS_ENV.exists():
             key, _, value = line.partition('=')
             os.environ.setdefault(key.strip(), value.strip())
 
-PROJECT_ROOT = Path("/Users/m./Documents/QNSZ/project")
-MSWNLZ_ROOT = PROJECT_ROOT / "mswnlz"
+def first_existing_path(paths: List[Optional[Path]], fallback: Path) -> Path:
+    for candidate in paths:
+        if candidate and candidate.exists():
+            return candidate
+    return fallback
 
-SITE_SUFFIX = "-超过100T资料总站网站-doc.869hr.uk"
+
+PROJECT_ROOT = first_existing_path(
+    [
+        Path(os.environ["QNSZ_PROJECT_ROOT"]) if os.environ.get("QNSZ_PROJECT_ROOT") else None,
+        Path("/Users/m/document/QNSZ/project"),
+    ],
+    Path("/Users/m/document/QNSZ/project"),
+)
+MSWNLZ_ROOT = first_existing_path(
+    [
+        Path(os.environ["MSWNLZ_CONTENT_ROOT"]) if os.environ.get("MSWNLZ_CONTENT_ROOT") else None,
+        PROJECT_ROOT / "mswnlz-github",
+        PROJECT_ROOT / "mswnlz",
+    ],
+    PROJECT_ROOT / "mswnlz-github",
+)
 
 # Telegram 配置 - 从环境变量读取，不要硬编码！
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -173,8 +191,14 @@ def append_items(month_file: Path, items: List[Tuple[str, str]]):
     month_file.parent.mkdir(parents=True, exist_ok=True)
     existing = month_file.read_text(encoding="utf-8") if month_file.exists() else ""
     out = existing.rstrip("\n") + ("\n" if existing.strip() else "")
+    existing_urls = set(re.findall(r"https?://[^\s<>)|]+", existing))
     for title, url in items:
-        out += f"- {title}{SITE_SUFFIX} | {url}\n"
+        if url in existing_urls:
+            print(f"[SKIP] existing URL in {month_file.name}: {title}")
+            continue
+        safe_title = title.replace("[", "【").replace("]", "】").strip()
+        out += f"[{safe_title}]({url})\n"
+        existing_urls.add(url)
     month_file.write_text(out, encoding="utf-8")
 
 
@@ -351,6 +375,9 @@ def main():
             readme_path.write_text(readme_insert_month(readme, args.month), encoding="utf-8")
 
             sh(["git", "add", f"{args.month}.md", "README.md"], cwd=repo_dir)
+            if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=str(repo_dir)).returncode == 0:
+                print(f"[SKIP] no changes for {repo}")
+                continue
             msg = make_commit_message([t for t, _ in items])
             sh(["git", "commit", "-m", msg], cwd=repo_dir)
             sh(["git", "push", "origin", "main"], cwd=repo_dir)
