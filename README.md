@@ -188,7 +188,7 @@ YouTube 视频自动下载并发布到小宇宙播客
 - 支持 API Key 配置与验证（YouTube Data API v3）
 - 首次加入频道会自动做 baseline，避免把历史视频当成“新视频”刷屏
 
-[查看详情 →](./youtube-tracker/)
+[查看详情 →](./wlzh-youtube-tracker/)
 
 ### 📺 youtube-publisher
 上传视频到 YouTube，支持标题、详情、标签、封面和字幕完整控制。
