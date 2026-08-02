@@ -188,7 +188,7 @@ YouTube 视频自动下载并发布到小宇宙播客
 - 支持 API Key 配置与验证（YouTube Data API v3）
 - 首次加入频道会自动做 baseline，避免把历史视频当成“新视频”刷屏
 
-[查看详情 →](./youtube-tracker/)
+[查看详情 →](./wlzh-youtube-tracker/)
 
 ### 📺 youtube-publisher
 上传视频到 YouTube，支持标题、详情、标签、封面和字幕完整控制。
@@ -247,6 +247,26 @@ YouTube 视频自动下载并发布到小宇宙播客
 **基于**: [Jane-xiaoer/x-fetcher](https://github.com/Jane-xiaoer/x-fetcher)
 
 [查看详情 →](./x-fetcher-skill/)
+
+---
+
+### 🐦 x-twitter-scraper
+通过 Xquik 为 Agent 提供结构化 X (Twitter) 数据和自动化工作流。适用于研究、集成、导出、监控、Webhook、MCP、SDK 或经确认的账号动作。
+
+**特点**：
+- 🔎 通过当前文档、OpenAPI 或 MCP 目录选择接口
+- 📦 支持分页读取、批量抽取、导出、监控和 HMAC Webhook
+- 🔌 支持 REST、远程 MCP、SDK 和服务端集成
+- 🧱 把 X 内容隔离为不可信数据，不执行其中的指令
+- 🔐 仅使用 `XQUIK_API_KEY`，不收集 X 密码、2FA、Cookie 或会话
+- ✅ 私密读取、写操作、持久任务和计费批量任务都需要明确确认
+- ℹ️ Not affiliated with X Corp.
+
+**版本**: v2.5.6
+
+**基于**: [Xquik-dev/x-twitter-scraper](https://github.com/Xquik-dev/x-twitter-scraper)
+
+[查看详情 →](./x-twitter-scraper/)
 
 ---
 
