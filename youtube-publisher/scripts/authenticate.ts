@@ -27,6 +27,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as dotenv from "dotenv";
 import * as http from "http";
+import * as crypto from "crypto";
 import open = require("open");
 
 // Load .env from the same directory as this script
@@ -46,7 +47,8 @@ if (proxyUrl) {
   try {
     const { ProxyAgent, setGlobalDispatcher } = require("undici");
     setGlobalDispatcher(new ProxyAgent(proxyUrl as string));
-    console.log(`[proxy] Using proxy: ${proxyUrl}`);
+    const parsedProxy = new URL(proxyUrl);
+    console.log(`[proxy] Using proxy: ${parsedProxy.protocol}//${parsedProxy.host}`);
   } catch {
     // undici not available — googleapis will fall back to default transport.
     // Proxy may not work but don't crash.
@@ -55,6 +57,11 @@ if (proxyUrl) {
 }
 
 const TOKEN_PATH = path.join(__dirname, ".youtube-token.json");
+
+function saveToken(token: object): void {
+  fs.writeFileSync(TOKEN_PATH, JSON.stringify(token, null, 2), { mode: 0o600 });
+  fs.chmodSync(TOKEN_PATH, 0o600);
+}
 
 const SCOPES = [
   "https://www.googleapis.com/auth/youtube",
@@ -137,12 +144,12 @@ export async function authenticate(allowInteractive = false): Promise<AuthResult
       const creds = credentials as Record<string, any>;
       ensureExpiryDate(creds);
       oauth2Client.setCredentials(credentials);
-      fs.writeFileSync(TOKEN_PATH, JSON.stringify(credentials, null, 2));
+      saveToken(credentials);
       console.log("Token refreshed successfully");
       const youtube = google.youtube({ version: "v3", auth: oauth2Client });
       return { oauth2Client, youtube };
     } catch (err) {
-      console.error("Token refresh failed:", err);
+      console.error("Token refresh failed:", err instanceof Error ? err.message : String(err));
       if (!allowInteractive) {
         process.exit(1);
       }
@@ -161,10 +168,19 @@ export async function authenticate(allowInteractive = false): Promise<AuthResult
 
 async function interactiveAuth(oauth2Client: any): Promise<AuthResult> {
   return new Promise((resolve, reject) => {
+    const redirectUri = process.env.YOUTUBE_REDIRECT_URI || "http://localhost:3333/oauth2callback";
+    const redirect = new URL(redirectUri);
+    if (redirect.hostname !== "localhost" && redirect.hostname !== "127.0.0.1") {
+      reject(new Error("YOUTUBE_REDIRECT_URI must use localhost or 127.0.0.1"));
+      return;
+    }
+    const port = Number(redirect.port || 3333);
+    const oauthState = crypto.randomBytes(32).toString("hex");
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: SCOPES,
       prompt: "consent",
+      state: oauthState,
     });
 
     console.log("\n=== YouTube Authentication ===");
@@ -173,13 +189,18 @@ async function interactiveAuth(oauth2Client: any): Promise<AuthResult> {
 
     const server = http.createServer(async (req, res) => {
       try {
-        const urlObj = new URL(req.url || "", "http://localhost:3333");
-        if (urlObj.pathname === "/oauth2callback") {
+        const urlObj = new URL(req.url || "", redirectUri);
+        if (urlObj.pathname === redirect.pathname) {
+          if (urlObj.searchParams.get("state") !== oauthState) {
+            res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+            res.end("OAuth state mismatch");
+            throw new Error("OAuth callback state mismatch");
+          }
           const code = urlObj.searchParams.get("code");
           if (code) {
             const { tokens } = await oauth2Client.getToken(code);
             oauth2Client.setCredentials(tokens);
-            fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
+            saveToken(tokens);
 
             res.writeHead(200, { "Content-Type": "text/html" });
             res.end(
@@ -198,7 +219,7 @@ async function interactiveAuth(oauth2Client: any): Promise<AuthResult> {
       }
     });
 
-    server.listen(3333, () => {
+    server.listen(port, redirect.hostname, () => {
       open(authUrl).catch(() => {
         console.log("Could not open browser. Visit the URL above manually.");
       });

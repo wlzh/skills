@@ -1,0 +1,33 @@
+name: youtube-publisher
+
+on:
+  pull_request:
+    paths:
+      - "youtube-publisher/**"
+      - ".github/workflows/youtube-publisher.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "youtube-publisher/**"
+      - ".github/workflows/youtube-publisher.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: youtube-publisher/scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: youtube-publisher/scripts/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck:production
+      - run: npm test

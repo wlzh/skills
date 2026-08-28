@@ -2,6 +2,8 @@ import { google, youtube_v3 } from "googleapis";
 import * as fs from "fs";
 import * as path from "path";
 import { authenticate } from "./authenticate";
+import { upsertCaptionTrack } from "./youtube-caption-upsert";
+import { AmbiguousUploadError, PersistentP0DError, recoverAmbiguousUpload } from "./youtube-upload-recovery";
 
 interface UploadOptions {
   video: string;
@@ -212,112 +214,41 @@ async function uploadVideo(
 
   console.log("\nUploading... (this may take a while for large files)");
 
-  // Upload video with resumable upload for better reliability
-  const maxRetries = 3;
+  // A failed insert can still create a server-side resource. Never issue a
+  // second insert here; recover the exact resource or return a stable failure
+  // marker so the orchestrator can perform an independent channel check.
   let response;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      response = await youtube.videos.insert(
-        {
-          part: ["snippet", "status"],
-          requestBody: videoMetadata,
-          media: {
-            mimeType: "video/mp4",
-            body: fs.createReadStream(options.video),
-          },
+  try {
+    response = await youtube.videos.insert(
+      {
+        part: ["snippet", "status"],
+        requestBody: videoMetadata,
+        media: {
+          mimeType: "video/mp4",
+          body: fs.createReadStream(options.video),
         },
-        {
-          onUploadProgress: (evt: { bytesRead: number }) => {
-            const progress = (evt.bytesRead / stats.size) * 100;
-            if (progress % 10 < 1 || progress >= 99.9) {
-              console.log(`Upload progress: ${progress.toFixed(1)}%`);
-            }
-          },
-        }
-      );
-      break;
-    } catch (err: any) {
-      const isRetryable =
-        err.message?.includes("EPIPE") ||
-        err.message?.includes("ETIMEDOUT") ||
-        err.message?.includes("ECONNRESET") ||
-        err.message?.includes("socket hang up") ||
-        err.message?.includes("Premature close");
-      if (isRetryable && attempt < maxRetries) {
-        // Before retrying, check if the video was actually created server-side
-        // (YouTube sometimes completes the upload even when the connection drops
-        // with "Premature close"). Use search.list to find a recently uploaded
-        // video with the same title.
-        try {
-          const searchResp = await youtube.search.list({
-            part: ["snippet"],
-            forMine: true,
-            maxResults: 1,
-            type: ["video"],
-            q: videoMetadata.snippet?.title || "",
-          });
-          if (searchResp.data.items && searchResp.data.items.length > 0) {
-            const candidate = searchResp.data.items[0];
-            const candidateId = candidate.id?.videoId;
-            if (candidateId && candidate.snippet?.title === videoMetadata.snippet?.title) {
-              console.log(`\nUpload succeeded despite error — found video: ${candidateId}`);
-              // Fetch full video resource (search returns search result, not video)
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const videoResp: any = await youtube.videos.list({
-                part: ["snippet", "status", "contentDetails"],
-                id: [candidateId],
-              });
-              if (videoResp.data.items && videoResp.data.items.length > 0) {
-                const foundVideo = videoResp.data.items[0];
-
-                // --- P0D guard: if YouTube accepted the metadata insert but the video
-                //     bytes didn't actually arrive (Premature close during upload), the
-                //     duration is "P0D" and processing will never start.  Delete the
-                //     metadata-only shell and keep retrying the real upload. ---
-                const contentDetails = (foundVideo as any)?.contentDetails;
-                if (contentDetails?.duration === "P0D") {
-                  console.log(
-                    `\n⚠️  Found video ${candidateId} but duration is P0D (metadata-only shell).`
-                  );
-                  console.log(`   Deleting empty shell and retrying upload...`);
-                  try {
-                    await youtube.videos.delete({ id: candidateId });
-                    console.log(`   Deleted empty shell ${candidateId}.`);
-                  } catch (delErr: any) {
-                    console.log(
-                      `   Could not delete shell ${candidateId}: ${delErr.message}.`
-                    );
-                  }
-                  // Don't break — fall through to the retry (line ~292)
-                } else {
-                  console.log(
-                    `\n   Content verified — duration: ${contentDetails?.duration || "unknown"}`
-                  );
-                  // Reconstruct an insert-compatible response shape so the
-                  // downstream response.data.id! works correctly.
-                  response = { data: { id: foundVideo.id!, ...foundVideo } } as any;
-                  break;
-                }
-              }
-            }
+      },
+      {
+        onUploadProgress: (evt: { bytesRead: number }) => {
+          const progress = (evt.bytesRead / stats.size) * 100;
+          if (progress % 10 < 1 || progress >= 99.9) {
+            console.log(`Upload progress: ${progress.toFixed(1)}%`);
           }
-        } catch {
-          // Search failed, proceed with retry
-        }
-        console.log(
-          `\nUpload failed (attempt ${attempt}/${maxRetries}): ${err.message}`
-        );
-        console.log(`Retrying in ${attempt * 5} seconds...`);
-        await new Promise((r) => setTimeout(r, attempt * 5000));
-      } else {
-        throw err;
+        },
       }
-    }
+    );
+  } catch (err: any) {
+    const isAmbiguous = ["EPIPE", "ETIMEDOUT", "ECONNRESET", "socket hang up", "Premature close"]
+      .some((fragment) => err.message?.includes(fragment));
+    if (!isAmbiguous) throw err;
+    const foundVideo = await recoverAmbiguousUpload(
+      youtube as unknown as Parameters<typeof recoverAmbiguousUpload>[0],
+      videoMetadata.snippet?.title || "",
+    );
+    console.log(`\nUpload response was interrupted; recovered verified video: ${foundVideo.id}`);
+    response = { data: { ...foundVideo, id: foundVideo.id! } } as typeof response;
   }
-
-  if (!response) {
-    throw new Error("Upload failed after all retries");
-  }
+  if (!response) throw new AmbiguousUploadError(undefined, "upload returned no response");
   const videoId = response.data.id!;
   const videoUrl = `https://youtu.be/${videoId}`;
 
@@ -357,21 +288,13 @@ async function uploadVideo(
   if (options.subtitles && fs.existsSync(options.subtitles)) {
     console.log("\nUploading subtitles...");
     try {
-      await youtube.captions.insert({
-        part: ["snippet"],
-        requestBody: {
-          snippet: {
-            videoId: videoId,
-            language: options.subtitleLang || "zh",
-            name: options.subtitleName || "中文",
-            isDraft: false,
-          },
-        },
-        media: {
-          body: fs.createReadStream(options.subtitles),
-        },
+      const caption = await upsertCaptionTrack(youtube as unknown as Parameters<typeof upsertCaptionTrack>[0], {
+        videoId,
+        captionFile: options.subtitles,
+        language: options.subtitleLang || "zh",
+        name: options.subtitleName || "中文",
       });
-      console.log("Subtitles uploaded!");
+      console.log(`Subtitles ${caption.action}!`);
       subtitlesUploaded = true;
     } catch (err: any) {
       console.error("SUBTITLES_UPLOAD_FAILED:", err.message);
@@ -473,22 +396,17 @@ async function main() {
       }
     }
 
-    // Upload subtitles
+    // Update an exact existing track or insert a new one. Never delete a good
+    // caption track before its replacement has been accepted.
     console.log("\nUploading subtitles...");
     try {
-      await youtube.captions.insert({
-        part: ["snippet"],
-        requestBody: {
-          snippet: {
-            videoId: videoId,
-            language: options.subtitleLang || "zh",
-            name: options.subtitleName || "中文",
-            isDraft: false,
-          },
-        },
-        media: { body: fs.createReadStream(options.subtitles) },
+      const caption = await upsertCaptionTrack(youtube as unknown as Parameters<typeof upsertCaptionTrack>[0], {
+        videoId,
+        captionFile: options.subtitles,
+        language: options.subtitleLang || "zh",
+        name: options.subtitleName || "中文",
       });
-      console.log("Subtitles uploaded!");
+      console.log(`Subtitles ${caption.action}!`);
       console.log("SUBTITLES_UPLOADED: true");
       console.log(`https://youtu.be/${videoId}`);
     } catch (err: any) {
@@ -528,5 +446,8 @@ async function main() {
 
 main().catch((err) => {
   console.error("Error:", err.message);
-  process.exit(1);
+  const exitCode = err instanceof PersistentP0DError || err instanceof AmbiguousUploadError
+    ? err.exitCode
+    : 1;
+  process.exit(exitCode);
 });

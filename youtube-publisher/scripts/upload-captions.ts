@@ -1,5 +1,5 @@
-import * as fs from "fs";
 import { authenticate } from "./authenticate";
+import { upsertCaptionTrack } from "./youtube-caption-upsert";
 
 interface Options {
   videoId: string;
@@ -31,53 +31,13 @@ async function main() {
 
   const { youtube } = await authenticate();
 
-  // Delete existing captions first
-  const existingCaptions = await youtube.captions.list({
-    part: ["snippet"],
+  const result = await upsertCaptionTrack(youtube as unknown as Parameters<typeof upsertCaptionTrack>[0], {
     videoId: options.videoId,
+    captionFile: options.captionFile,
+    language: options.language,
+    name: options.name,
   });
-  for (const caption of existingCaptions.data.items || []) {
-    if (caption.id) {
-      try {
-        await youtube.captions.delete({ id: caption.id });
-        console.log("Deleted existing caption: " + caption.id);
-      } catch (e: any) {
-        console.error("Failed to delete caption " + caption.id + ": " + e.message);
-      }
-    }
-  }
-
-  // Check file exists  
-  if (!fs.existsSync(options.captionFile)) {
-    console.error("Caption file not found: " + options.captionFile);
-    process.exit(1);
-  }
-
-  // Upload new caption
-  const result = await youtube.captions.insert(
-    {
-      part: ["snippet"],
-      requestBody: {
-        snippet: {
-          videoId: options.videoId,
-          language: options.language,
-          name: options.name,
-          // isDraft: false is required — without it the API rejects with
-          // invalidMetadata (matches youtube-upload.ts working call site)
-          isDraft: false,
-        },
-      },
-      media: {
-        body: fs.createReadStream(options.captionFile),
-      },
-      // NOTE: do NOT set mimeType or a Content-Type header override here.
-      // googleapis builds a multipart body and computes its own boundary;
-      // overriding the header corrupts metadata parsing → invalidMetadata.
-      // This matches the working captions.insert call in youtube-upload.ts.
-    }
-  );
-
-  console.log("Caption uploaded: " + result.data.id);
+  console.log(`Caption ${result.action}: ${result.captionId ?? "unknown"}`);
   console.log("Done!");
 }
 

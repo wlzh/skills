@@ -1,10 +1,10 @@
 ---
 name: youtube-publisher
-description: "Upload and publish videos to YouTube with title, description, tags, thumbnail and subtitles. Use for: youtube upload, publish video, share on youtube."
-version: 1.6.4
+description: "Upload and fully manage YouTube videos and live events: metadata, thumbnails, captions, playlists, scheduled broadcasts, encoder streams, binding, lifecycle transitions, and cleanup."
+version: 1.7.0
 setup_complete: true
 setup: "./SETUP.md"
-changelog: "v1.6.4: upload-captions.ts — 修复 captions.insert invalidMetadata 400（去掉 mimeType/Content-Type 头覆盖，保持 googleapis multipart 边界；补 isDraft:false 与 youtube-upload.ts 对齐）. v1.6.3: youtube-update-description.ts v1.5 — transient proxy error diagnostics. v1.6.2: thumbnail 2MB limit check. v1.6.1: P0D guard. v1.6.0: parameterized thumbnail-only recovery. Full history: references/CHANGELOG.md."
+changelog: "v1.7.0: full YouTube Live lifecycle with writable-field-safe updates, fail-closed ambiguous upload recovery, non-destructive caption upsert, OAuth CSRF protection, secret-safe output, explicit destructive-operation guards, regression tests, and CI. Full history: references/CHANGELOG.md."
 ---
 
 ## 🔴 Strict Execution Rule (Highest Priority)
@@ -23,6 +23,30 @@ Every instruction, step, and check in this SKILL.md must be **followed exactly a
 > **First time?** If `setup_complete: false` above, run `./SETUP.md` first, then set `setup_complete: true`.
 
 Upload videos to YouTube with full metadata control.
+
+## Live broadcasts and encoder streams
+
+Use `youtube-live.ts` to list, inspect, schedule, update, bind, transition, and delete
+YouTube Live broadcasts and encoder streams. Mutating commands support `--dry-run`;
+destructive deletion, live/completed transitions, and stream-key disclosure require
+explicit `--yes`. Stream keys are redacted from ordinary output.
+
+The safe default is one dedicated named encoder stream per independent show/event.
+Intentional reuse across active or upcoming broadcasts requires `--allow-shared-stream`.
+
+Read [references/live-streaming.md](references/live-streaming.md) before operating a live
+event. Scheduled timestamps must include an explicit timezone (`Z` or `±HH:MM`).
+
+The skill passes `--inherit-previous` before creation unless the user requests a clean
+profile. The raw CLI remains deterministic and offline without that explicit flag.
+
+An interrupted video insert is never retried inside `youtube-upload.ts`. Recovery must
+identify exactly one recent same-title video with a verified non-zero duration. Persistent
+`P0D` exits `42` with `PERSISTENT_P0D_VIDEO_ID`; unavailable or inconclusive inspection
+exits `43` with `AMBIGUOUS_UPLOAD_VIDEO_ID`. Inspect the channel before another insert.
+
+Caption recovery updates one exact language/name track in place or inserts a new track.
+It never deletes an existing caption before the replacement upload succeeds.
 
 ## Metadata sanitization
 

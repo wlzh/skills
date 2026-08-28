@@ -4,6 +4,16 @@
 
 使用完整元数据控制将视频上传到 YouTube。
 
+## YouTube Live 直播管理
+
+使用 `youtube-live.ts` 创建、查询、更新、绑定、切换状态和删除直播活动与编码器推流。
+所有修改操作应先使用 `--dry-run` 预览；删除、切换为直播/结束状态，以及显示推流密钥时必须显式传入 `--yes`。
+普通输出会自动隐藏推流密钥。完整命令和安全规则见 [references/live-streaming.md](references/live-streaming.md)。
+默认情况下，每个独立节目或活动使用单独命名的编码器推流；如需在多个活动间有意复用，必须传入 `--allow-shared-stream`。
+
+视频上传响应中断后，`youtube-upload.ts` 内部不得再次盲目 insert。持续 `P0D` 使用退出码 42 和 `PERSISTENT_P0D_VIDEO_ID`；服务端检查为空、异常或无法确认时使用退出码 43 和 `AMBIGUOUS_UPLOAD_VIDEO_ID`，必须先核对频道再重传。
+字幕恢复对同语言/名称轨道执行原位更新，不得先删除现有字幕。
+
 ## 元数据清洗规则
 
 - 标题/详情里的 `>` 会自动改写成 `》`

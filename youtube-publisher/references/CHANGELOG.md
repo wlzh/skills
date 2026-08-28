@@ -1,6 +1,19 @@
 # Changelog — youtube-publisher
 
-Current version: `1.6.4`
+Current version: `1.7.0`
+
+## v1.7.0 (2026-08-28)
+
+- Added full Live broadcast and encoder-stream lifecycle commands.
+- Added dry-run previews, explicit confirmations, stream-key redaction, and transition preflights.
+- Added shared-stream conflict detection; deliberate reuse now requires `--allow-shared-stream`.
+- Added previous-broadcast setting inspection and safe nonstandard-setting inheritance.
+- Added OAuth `state` validation, loopback-only callback binding, and `0600` token permissions.
+- Live updates now round-trip only API-writable fields, omit response-only fields, and never submit both closed-caption representations. Unsupported latency updates are rejected at CLI parsing.
+- Removed automatic deletion of metadata-only upload shells. Interrupted inserts stop fail-closed with stable P0D/ambiguous markers and distinct exit codes instead of issuing another internal insert.
+- Caption retries update an exact existing language/name track or insert a new one; they no longer delete caption tracks before replacement succeeds.
+- Added upload-recovery, caption-upsert, Live service and post-create recovery regression tests plus a path-scoped GitHub Actions workflow.
+- Updated `googleapis` to a patched dependency line.
 
 ## v1.6.4 (2026-08-26)
 
