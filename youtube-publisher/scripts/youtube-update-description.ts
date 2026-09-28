@@ -180,6 +180,15 @@ Usage:
   npx ts-node youtube-update-description.ts --video-id <ID> --description-file <path>
 `);
         process.exit(0);
+      default:
+        // v1.7.1 (2026-09-28): unknown flags are fatal, not silent no-ops.
+        // A --dry-run passed on 9/28 was silently ignored and a truncated test
+        // file went live. Fail fast instead.
+        if (arg.startsWith("--")) {
+          console.error(`Error: unknown option "${arg}" — this script has no such flag, refusing to run (v1.7.1 guard)`);
+          process.exit(2);
+        }
+        break;
     }
   }
 

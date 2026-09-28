@@ -245,6 +245,10 @@ On success, returns:
 
 ## Changelog
 
+### v1.7.1 - Unknown-Flag Fail-Fast (2026-09-28)
+
+- `youtube-update-description.ts` 遇到未知 `--` 参数直接报错退出（exit 2），不再静默忽略。背景：当日测试 `--dry-run`（不存在的 flag）被静默吞掉，截断的测试文件真实上传；fail-fast 杜绝同类误操作。
+
 ### v1.7.0 - Baseline-Header Upload Guard (2026-09-28)
 
 - `youtube-update-description.ts` 现在会在上传前自动剥离 duanku 基线头：`--description-file` 内容若以 `# YouTube description baseline` 开头（run_pipeline v2.46+ 落盘的人工 diff 参照文件），去掉头部注释块后上传并打印 `NOTE: stripped baseline header before upload (v1.7 guard)`。
