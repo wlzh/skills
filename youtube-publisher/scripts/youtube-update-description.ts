@@ -197,6 +197,27 @@ Usage:
     process.exit(1);
   }
 
+  // v1.7 (2026-09-28): Strip duanku baseline header before upload.
+  // run_pipeline v2.46+ writes {slug}-youtube-description-final.txt with a 6-line
+  // "# YouTube description baseline" comment header for manual-diff use only.
+  // On 9/15 (tello) / 9/27 (capital_one) / 9/28 (maya), agent-driven description
+  // edits loaded that baseline file and re-uploaded it verbatim, leaking the
+  // header into live YouTube descriptions. Guard here so no caller path can
+  // ever push the header on-wire again.
+  const BASELINE_MARKER = "# YouTube description baseline";
+  if (description.startsWith(BASELINE_MARKER)) {
+    const lines = description.split("\n");
+    // Header = leading comment lines + the "─────" separator line + blank line(s)
+    let i = 0;
+    while (i < lines.length) {
+      const l = lines[i].trim();
+      if (l === "" || l.startsWith("#") || l.startsWith("──")) i++;
+      else break;
+    }
+    description = lines.slice(i).join("\n").replace(/^\n+/, "");
+    console.log("NOTE: stripped baseline header before upload (v1.7 guard)");
+  }
+
   return { videoId, description, descriptionFile };
 }
 

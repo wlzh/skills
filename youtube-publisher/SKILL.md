@@ -245,6 +245,11 @@ On success, returns:
 
 ## Changelog
 
+### v1.7.0 - Baseline-Header Upload Guard (2026-09-28)
+
+- `youtube-update-description.ts` 现在会在上传前自动剥离 duanku 基线头：`--description-file` 内容若以 `# YouTube description baseline` 开头（run_pipeline v2.46+ 落盘的人工 diff 参照文件），去掉头部注释块后上传并打印 `NOTE: stripped baseline header before upload (v1.7 guard)`。
+- 背景：9/15(tello)/9/27(capital_one)/9/28(maya) 三次 agent 驱动的描述编辑把带头的基线文件原样重传，6 行 `#` 注释泄漏到线上 YouTube 说明区（tello/capital_one 由用户手工清除，maya 已由本版本修复）。守卫落在上传口，此后任何调用路径都无法再把头推上线。
+
 ### v1.6.0 - Safe Thumbnail-Only Recovery (2026-07-28)
 
 - Added `upload-thumbnail.ts` with parameter validation, bounded retry, target-video verification, and structured output.
