@@ -33,6 +33,23 @@ class DescriptionFormatTests(unittest.TestCase):
         self.assertLessEqual(len(description), 160)
         self.assertFalse(description.startswith("#"))
 
+    def test_seo_description_preserves_decimal_numbers(self):
+        description = blog.generate_seo_description(
+            "菲律宾 DITO eSIM 低成本保号教程",
+            "菲律宾 DITO eSIM 全流程教程，每年只需 0.6 元人民币即可低成本保号，涵盖开卡、充值和大陆漫游。",
+        )
+        self.assertIn("0.6", description)
+        self.assertIn("低成本保号", description)
+
+    def test_seo_description_rejects_source_code_candidates(self):
+        description = blog.generate_seo_description(
+            "ChatGPT Plus Gopay 开通教程",
+            'console.log("ChatGPT Plus Gopay plan"); console.error("debug"). '
+            "本教程介绍使用 Gopay 开通 ChatGPT Plus 的准备条件、接码步骤、付款流程和结果验证。",
+        )
+        self.assertNotIn("console", description)
+        self.assertIn("Gopay", description)
+
     def test_baipiao_alias_becomes_canonical_heading(self):
         self.assertEqual(
             blog.description_heading_for_line("纯净住宅IP白嫖流量"),

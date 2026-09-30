@@ -1,8 +1,8 @@
 ---
 name: youtube-to-blog-post
 description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and canonical 5-8 keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
-version: 4.8.4
-changelog: "v4.8.4: generate_seo_description 候选句剔除 markdown 痕迹（bullet 前缀拆分候选；含 * ` # > N. 的候选直接拒绝）——修复 0816 blackwhale 博客 SEO 审计 description contains transcript or Markdown artifacts 部署阻断。"
+version: 4.8.5
+changelog: "v4.8.5: SEO 摘要切句保留 0.6、v2.1 等数字句点，并拒绝 console.log 等代码候选，防止摘要截断或混入源码。"
   - 2026-07-28: v4.8.2 对齐博客 v2.3.2；观看页只允许一个完整 JSON-LD VideoObject，禁止重复且不完整的 Microdata 视频实体
   - 2026-07-28: v4.8.1 对齐博客 v2.3.1；独立观看页播放器必须位于 H1 和说明文字之前，确保 Google 首屏可见与主体突出
   - 2026-07-28: v4.8.0 对齐博客 v2.3.0 页面职责分离；源 iframe 仅供 Hexo 生成观看页，渲染文章只输出封面入口，播放器与 VideoObject 仅允许出现在 /videos/<video_id>/

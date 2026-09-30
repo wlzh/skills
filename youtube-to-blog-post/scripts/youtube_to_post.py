@@ -638,7 +638,9 @@ def generate_seo_description(title, description):
 
         # Prefer the most keyword-rich sentence, not simply the first sentence.
         candidates = []
-        sentences = re.split(r'[。！？.!?]', desc)
+        # A dot inside a decimal or version (for example 0.6 or v2.1) is not
+        # a sentence boundary. Splitting it produced truncated SEO snippets.
+        sentences = re.split(r'[。！？!?]|(?<!\d)\.(?!\d)', desc)
         # v4.6.2 (2026-08-16 blackwhale case): YouTube descriptions contain
         # "本期拆解：" bullet lists ("- Composio实测：…" lines joined without
         # sentence-ending punctuation). Splitting only on 。！？.!? keeps the
@@ -655,7 +657,9 @@ def generate_seo_description(title, description):
                 if len(sentence) < 20 or len(sentence) > MAX_DESCRIPTION_LENGTH:
                     continue
                 # Skip candidates carrying residual markdown artifacts
-                if re.search(r'[*`]|#{1,6}\s|(^|\s)[#>]\s|(^|\s)\d+\.\s', sentence):
+                if re.search(r'[*`{}]|#{1,6}\s|(^|\s)[#>]\s|(^|\s)\d+\.\s', sentence):
+                    continue
+                if re.search(r'\b(?:console\.)?(?:log|warn|error)\s*\(', sentence, re.IGNORECASE):
                     continue
                 score = score_seo_sentence(sentence, title_terms)
                 candidates.append((score, len(sentence), sentence))
