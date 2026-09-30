@@ -1,7 +1,7 @@
 ---
 name: youtube-publisher
 description: "Upload and fully manage YouTube videos and live events: metadata, thumbnails, captions, playlists, scheduled broadcasts, encoder streams, binding, lifecycle transitions, and cleanup."
-version: 1.8.0
+version: 1.8.1
 setup_complete: true
 setup: "./SETUP.md"
 changelog: "v1.8.0: repeatable/comma-separated --playlist assignment and authenticated public-playlist catalog export for blog/GitHub series synchronization. Full history: references/CHANGELOG.md."

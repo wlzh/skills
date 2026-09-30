@@ -43,7 +43,7 @@ async function main(): Promise<void> {
         for (const item of items.data.items || []) {
           const videoId = item.contentDetails?.videoId || item.snippet?.resourceId?.videoId;
           const title = item.snippet?.title || "";
-          if (!videoId || title === "Deleted video" || title === "Private video") continue;
+          if (!videoId || item.status?.privacyStatus !== "public" || title === "Deleted video" || title === "Private video") continue;
           videos.push({
             videoId,
             title,

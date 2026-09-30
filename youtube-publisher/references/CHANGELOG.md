@@ -1,6 +1,10 @@
 # Changelog — youtube-publisher
 
-Current version: `1.8.0`
+Current version: `1.8.1`
+
+## v1.8.1 (2026-09-30)
+
+- Public playlist export now excludes unlisted, private and unknown-visibility items so staged videos cannot leak through series indexes.
 
 ## v1.8.0 (2026-09-30)
 
