@@ -50,6 +50,13 @@ class DescriptionFormatTests(unittest.TestCase):
         self.assertNotIn("console", description)
         self.assertIn("Gopay", description)
 
+    def test_long_description_ends_at_natural_boundary(self):
+        first_sentence = "前半段完整说明，详细包含适用对象、申请条件、环境准备、核心操作步骤、结果验证方法和常见问题处理方式。"
+        description = first_sentence + "后续补充内容" * 30
+        shortened = blog.ensure_description_length(description, "测试教程")
+        self.assertLessEqual(len(shortened), 160)
+        self.assertEqual(shortened, first_sentence)
+
     def test_baipiao_alias_becomes_canonical_heading(self):
         self.assertEqual(
             blog.description_heading_for_line("纯净住宅IP白嫖流量"),

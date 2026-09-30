@@ -684,7 +684,17 @@ def ensure_description_length(description, title, minimum=45):
         text = f"{text.rstrip('。')}。包含适用条件、操作步骤、结果验证和常见问题。"
     if len(text) < minimum:
         text = f"{title}：{text}"
-    return text[:MAX_DESCRIPTION_LENGTH]
+    if len(text) <= MAX_DESCRIPTION_LENGTH:
+        return text
+    prefix = text[:MAX_DESCRIPTION_LENGTH]
+    boundaries = [match.end() for match in re.finditer(r'[。！？!?；;，,]', prefix)]
+    natural = next((end for end in reversed(boundaries) if end >= minimum), 0)
+    if natural:
+        shortened = prefix[:natural].rstrip()
+        if shortened.endswith(('。', '！', '？', '!', '?')):
+            return shortened
+        return shortened.rstrip('，,；;') + '。'
+    return prefix[:MAX_DESCRIPTION_LENGTH - 1].rstrip() + '…'
 
 
 def generate_specialized_description(title):
