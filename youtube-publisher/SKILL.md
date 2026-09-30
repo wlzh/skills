@@ -1,10 +1,10 @@
 ---
 name: youtube-publisher
 description: "Upload and fully manage YouTube videos and live events: metadata, thumbnails, captions, playlists, scheduled broadcasts, encoder streams, binding, lifecycle transitions, and cleanup."
-version: 1.7.0
+version: 1.8.0
 setup_complete: true
 setup: "./SETUP.md"
-changelog: "v1.7.0: full YouTube Live lifecycle with writable-field-safe updates, fail-closed ambiguous upload recovery, non-destructive caption upsert, OAuth CSRF protection, secret-safe output, explicit destructive-operation guards, regression tests, and CI. Full history: references/CHANGELOG.md."
+changelog: "v1.8.0: repeatable/comma-separated --playlist assignment and authenticated public-playlist catalog export for blog/GitHub series synchronization. Full history: references/CHANGELOG.md."
 ---
 
 ## 🔴 Strict Execution Rule (Highest Priority)
@@ -93,10 +93,19 @@ npx ts-node youtube-upload.ts \
 | `--subtitles` | | Subtitle file path (SRT/VTT) |
 | `--subtitle-lang` | | Subtitle language code (default: zh) |
 | `--subtitle-name` | | Subtitle display name (default: 中文) |
-| `--playlist` | | Add to playlist ID |
+| `--playlist` | | Add to playlist ID; repeat or use comma-separated IDs for multiple playlists |
 | `--short` | | Mark as YouTube Short |
 | `--auth` | | Run OAuth2 authentication flow |
 | `--dry-run` | | Preview without uploading |
+
+## Playlist catalog export
+
+Export every public playlist owned by the authenticated channel, including ordered video IDs and thumbnails. The blog synchronizer consumes this deterministic JSON to build `/series/`, GitHub series pages, and the resource-site guide hub.
+
+```bash
+cd ~/.codex/skills/youtube-publisher/scripts
+npm run export:playlists -- --output /absolute/path/youtube-playlists.json
+```
 
 ## Category IDs
 

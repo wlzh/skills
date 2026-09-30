@@ -1,6 +1,11 @@
 # Changelog — youtube-publisher
 
-Current version: `1.7.0`
+Current version: `1.8.0`
+
+## v1.8.0 (2026-09-30)
+
+- `youtube-upload.ts` accepts repeated or comma-separated `--playlist` values and adds an upload to each unique playlist.
+- Added `export-playlists.ts` and `npm run export:playlists` to export all public owned playlists with ordered video metadata for downstream blog and GitHub synchronization.
 
 ## v1.7.0 (2026-08-28)
 

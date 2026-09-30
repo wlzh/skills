@@ -1,14 +1,15 @@
 {
   "name": "youtube-publisher",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "type": "commonjs",
   "description": "Upload and publish videos to YouTube with thumbnails and subtitles",
   "scripts": {
     "upload": "ts-node youtube-upload.ts",
     "thumbnail": "ts-node upload-thumbnail.ts",
+    "export:playlists": "ts-node export-playlists.ts",
     "live": "ts-node youtube-live.ts",
     "test": "node --test --require ts-node/register tests/*.test.ts",
-    "typecheck:production": "tsc --noEmit --target ES2020 --module CommonJS --moduleResolution node --esModuleInterop --strict --skipLibCheck youtube-upload.ts youtube-upload-recovery.ts youtube-caption-upsert.ts upload-captions.ts list-uploads.ts upload-thumbnail.ts youtube-live.ts youtube-live-cli.ts youtube-live-service.ts"
+    "typecheck:production": "tsc --noEmit --target ES2020 --module CommonJS --moduleResolution node --esModuleInterop --strict --skipLibCheck youtube-upload.ts youtube-upload-recovery.ts youtube-caption-upsert.ts upload-captions.ts list-uploads.ts export-playlists.ts upload-thumbnail.ts youtube-live.ts youtube-live-cli.ts youtube-live-service.ts"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
