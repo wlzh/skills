@@ -13,7 +13,6 @@ interface UploadOptions {
   privacy?: "public" | "unlisted" | "private";
   category?: string;
   thumbnail?: string;
-  playlists?: string[];
   isShort?: boolean;
   dryRun?: boolean;
   subtitles?: string;
@@ -89,13 +88,6 @@ function parseArgs(): { auth: boolean; options: UploadOptions } {
         options.thumbnail = next;
         i++;
         break;
-      case "--playlist":
-        options.playlists = [
-          ...(options.playlists || []),
-          ...next.split(",").map((value) => value.trim()).filter(Boolean),
-        ];
-        i++;
-        break;
       case "--short":
         options.isShort = true;
         break;
@@ -152,7 +144,6 @@ Options:
   --subtitle-name <name>  Subtitle display name (default: 中文)
   --subtitles-only        Upload subtitles only (requires --video-id)
   --video-id <id>         Target video ID for --subtitles-only mode
-  --playlist <id>         Add to playlist; repeat or pass comma-separated IDs
   --short                 Mark as YouTube Short
   --dry-run               Preview without uploading
   --help, -h              Show this help
@@ -304,28 +295,6 @@ async function uploadVideo(
     }
   } else if (options.subtitles) {
     console.error(`Subtitle file not found: ${options.subtitles}`);
-  }
-
-  // A video can belong to more than one editorial series.
-  for (const playlistId of [...new Set(options.playlists || [])]) {
-    console.log(`\nAdding to playlist ${playlistId}...`);
-    try {
-      await youtube.playlistItems.insert({
-        part: ["snippet"],
-        requestBody: {
-          snippet: {
-            playlistId,
-            resourceId: {
-              kind: "youtube#video",
-              videoId: videoId,
-            },
-          },
-        },
-      });
-      console.log(`Added to playlist ${playlistId}!`);
-    } catch (err: any) {
-      console.error(`Failed to add to playlist ${playlistId}:`, err.message);
-    }
   }
 
   // Print structured summary for pipeline to parse

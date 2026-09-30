@@ -51,7 +51,6 @@ npx ts-node youtube-upload.ts \
 | `--subtitles` | | 字幕文件路径（SRT/VTT） |
 | `--subtitle-lang` | | 字幕语言代码（默认：zh） |
 | `--subtitle-name` | | 字幕显示名称（默认：中文） |
-| `--playlist` | | 添加到播放列表 ID |
 | `--short` | | 标记为 YouTube Short（短视频） |
 | `--auth` | | 运行 OAuth2 身份验证 |
 | `--dry-run` | | 预览而不实际上传 |
@@ -118,16 +117,6 @@ npx ts-node youtube-upload.ts \
   -t "技巧分享 #Shorts" \
   --privacy public \
   --short
-```
-
-### 上传到播放列表
-
-```bash
-npx ts-node youtube-upload.ts \
-  -v episode5.mp4 \
-  -t "第5期节目" \
-  --playlist 播放列表ID \
-  --privacy unlisted
 ```
 
 ### 上传并设置封面和字幕

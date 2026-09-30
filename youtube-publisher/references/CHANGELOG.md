@@ -1,6 +1,11 @@
 # Changelog — youtube-publisher
 
-Current version: `1.8.1`
+Current version: `1.8.2`
+
+## v1.8.2 (2026-09-30)
+
+- Removed automatic per-video playlist assignment from the uploader and publishing contract at the user's request.
+- Retained authenticated public playlist export for read-only blog, GitHub knowledge-base and resource-site series pages.
 
 ## v1.8.1 (2026-09-30)
 
