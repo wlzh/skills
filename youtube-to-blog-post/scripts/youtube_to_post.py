@@ -1363,15 +1363,20 @@ def main():
     filename = generate_english_filename(video_info['title'], video_id)
     print(f"📝 Filename: {filename}.md")
 
+    if not args.dry_run and (Path(posts_dir) / f"{filename}.md").exists():
+        print("Post already exists; resume with --blog-post. No article or cover was changed.")
+        return 1
+
     # Handle local thumbnail: copy to blog source/images/ if provided
     if args.thumbnail and blog_dir:
         thumb_src = os.path.expanduser(args.thumbnail)
         if os.path.isfile(thumb_src):
             thumb_name = f"{filename}-cover{os.path.splitext(thumb_src)[1]}"
             images_dir = os.path.join(blog_dir, 'source', 'images')
-            os.makedirs(images_dir, exist_ok=True)
             thumb_dst = os.path.join(images_dir, thumb_name)
-            shutil.copy2(thumb_src, thumb_dst)
+            if not args.dry_run:
+                os.makedirs(images_dir, exist_ok=True)
+                shutil.copy2(thumb_src, thumb_dst)
             config['local_thumbnail'] = f"/images/{thumb_name}"
             print(f"🖼️ Thumbnail copied: source/images/{thumb_name}")
         else:
