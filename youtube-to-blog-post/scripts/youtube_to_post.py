@@ -615,10 +615,6 @@ def generate_seo_description(title, description):
     - Include main keywords
     - Compelling call-to-action
     """
-    specialized_desc = generate_specialized_description(title)
-    if specialized_desc:
-        return ensure_description_length(specialized_desc, title)
-
     title_terms = extract_seo_terms(title)
 
     # Clean up description
@@ -680,12 +676,8 @@ def generate_seo_description(title, description):
 def ensure_description_length(description, title, minimum=45):
     """Keep snippets natural while satisfying the shared blog SEO contract."""
     text = re.sub(r'\s+', ' ', description).strip()
-    if len(text) < minimum:
-        text = f"{text.rstrip('。')}。包含适用条件、操作步骤、结果验证和常见问题。"
-    if len(text) < minimum:
-        text = f"{title}：{text}"
-    if len(text) <= MAX_DESCRIPTION_LENGTH:
-        return text
+    if len(text) < MAX_DESCRIPTION_LENGTH:
+        return text if text.endswith(('。', '！', '？', '.', '!', '?')) else text + '。'
     prefix = text[:MAX_DESCRIPTION_LENGTH]
     boundaries = [match.end() for match in re.finditer(r'[。！？!?；;，,]', prefix)]
     natural = next((end for end in reversed(boundaries) if end >= minimum), 0)
@@ -749,7 +741,7 @@ def score_seo_sentence(sentence, terms):
 
 def generate_title_based_description(title):
     """Build a concise fallback that still includes title keywords."""
-    return f"{title}教程，整理核心步骤、配置方法、常见问题和参考链接。"
+    return f"{title}。"
 
 
 def generate_post_content(video_info, config, category, tags, body_md=""):
@@ -773,7 +765,7 @@ def generate_post_content(video_info, config, category, tags, body_md=""):
 
     # Generate SEO-optimized metadata
     keywords = generate_seo_keywords(title, description, tags)
-    post_description = generate_seo_description(title, description)
+    post_description = generate_seo_description(title, body_md or description)
 
     # Use current time as post date (not video upload time)
     date_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -1252,11 +1244,9 @@ def save_post(content, filename, posts_dir, video_title, apply_humanizer=True):
     # Full file path
     file_path = posts_path / f"{filename}.md"
 
-    # If file exists, add timestamp
+    # Preserve the existing canonical URL; resume through --blog-post upstream.
     if file_path.exists():
-        timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        file_path = posts_path / f"{filename}-{timestamp}.md"
-        print(f"File exists, creating with timestamp: {file_path.name}")
+        raise FileExistsError(f"Post already exists: {file_path}; resume with --blog-post instead of creating a duplicate")
 
     # Apply humanizer if enabled (default) - built-in implementation
     if apply_humanizer:
@@ -1272,56 +1262,35 @@ def save_post(content, filename, posts_dir, video_title, apply_humanizer=True):
     return file_path
 
 
-def deploy_to_git(blog_dir, branch='main'):
-    """Deploy changes to git repository"""
+def deploy_to_git(blog_dir, branch='main', post_path=None, asset_path=None):
+    """Scoped source commit followed by the repository's audited publisher."""
     import subprocess
-
-    if not blog_dir or not os.path.exists(blog_dir):
-        print("⚠️ Blog directory not found, skipping git deployment")
-        return False
-
-    original_dir = os.getcwd()
+    root = Path(blog_dir).resolve()
+    if post_path is None:
+        raise ValueError("post_path is required for scoped publishing")
+    paths = [Path(post_path).resolve()]
+    if asset_path:
+        paths.append(Path(asset_path).resolve())
+    relative = [path.relative_to(root).as_posix() for path in paths]
+    def run(args):
+        return subprocess.run(args, cwd=root, capture_output=True, text=True, check=True)
     try:
-        os.chdir(blog_dir)
-
-        # Check if it's a git repository
-        result = subprocess.run(['git', 'rev-parse', '--git-dir'],
-                              capture_output=True)
-        if result.returncode != 0:
-            print("⚠️ Not a git repository, skipping git deployment")
-            return False
-
-        # Add changes
-        print("📤 Adding changes to git...")
-        subprocess.run(['git', 'add', '.'], check=True)
-
-        # Check if there are changes to commit
-        result = subprocess.run(['git', 'diff', '--cached', '--quiet'],
-                              capture_output=True)
-        needs_commit = result.returncode != 0
-
-        if needs_commit:
-            # Commit changes
-            print("💾 Committing changes...")
-            commit_msg = f"docs: add new blog post - {datetime.now().strftime('%Y-%m-%d')}"
-            subprocess.run(['git', 'commit', '-m', commit_msg], check=True)
-
-            # Push to remote
-            print("🚀 Pushing to remote...")
-            subprocess.run(['git', 'push', 'origin', branch], check=True)
-            print("✅ Successfully pushed to git repository")
-        else:
-            print("ℹ️ No changes to commit")
-
+        if run(['git', 'branch', '--show-current']).stdout.strip() != branch:
+            raise ValueError("Unexpected blog branch")
+        if run(['git', 'diff', '--cached', '--name-only']).stdout.strip():
+            raise ValueError("Existing staged changes must be handled separately")
+        changed = run(['git', 'status', '--porcelain', '--untracked-files=all']).stdout.splitlines()
+        if any(line[3:] not in relative for line in changed):
+            raise ValueError("Unrelated blog changes must be handled separately")
+        run(['npm', 'run', 'audit:seo', '--', '--strict', '--file=' + str(paths[0])])
+        run(['git', 'add', '--', *relative])
+        if run(['git', 'diff', '--cached', '--name-only']).stdout.strip():
+            run(['git', 'commit', '-m', 'docs: publish ' + paths[0].stem])
+        run(['npm', 'run', 'publish'])
         return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Git operation failed: {e}")
+    except (subprocess.CalledProcessError, ValueError) as exc:
+        print(f"Publication failed: {exc}; {getattr(exc, 'stderr', '')}")
         return False
-    except Exception as e:
-        print(f"❌ Deployment error: {e}")
-        return False
-    finally:
-        os.chdir(original_dir)
 
 
 def main():
@@ -1424,12 +1393,14 @@ def main():
         print(f"\n🎉 Post saved to: {file_path}")
 
         # Auto deploy if enabled and not suppressed
-        if args.deploy or (config.get('auto_deploy', False) and not args.no_deploy):
+        if not args.no_deploy and (args.deploy or config.get('auto_deploy', False)):
             print("\n🚀 Auto-deploying to git...")
             deploy_branch = config.get('deploy_branch', 'main')
-            deploy_to_git(blog_dir, deploy_branch)
+            asset = Path(blog_dir) / 'source' / config['local_thumbnail'].lstrip('/') if config.get('local_thumbnail') else None
+            if not deploy_to_git(blog_dir, deploy_branch, file_path, asset):
+                return 1
         else:
-            print(f"\n📂 To deploy: cd {blog_dir or '.'} && hexo cl; hexo g; hexo d")
+            print(f"\nReview the article and run the audited publishing pipeline in {blog_dir or '.'}; do not bypass audit:release.")
 
     return 0
 

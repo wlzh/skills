@@ -27,9 +27,11 @@ class DescriptionFormatTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid"):
             blog.normalize_video_upload_date("2025-02-24T23:302:51Z")
 
-    def test_seo_description_meets_shared_length_contract(self):
+    def test_short_description_does_not_invent_coverage(self):
         description = blog.generate_seo_description("测试工具教程", "这是一句很短的介绍。")
-        self.assertGreaterEqual(len(description), 45)
+        self.assertNotIn("常见问题", description)
+        self.assertNotIn("操作步骤", description)
+        self.assertTrue(description.endswith("。"))
         self.assertLessEqual(len(description), 160)
         self.assertFalse(description.startswith("#"))
 

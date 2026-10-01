@@ -1,22 +1,13 @@
 ---
 name: youtube-to-blog-post
 description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and canonical 5-8 keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
-version: 4.8.6
-changelog: "v4.8.6: 超长 SEO 摘要优先在自然标点处收尾，无可用边界时使用省略号，禁止生成半句话。"
-  - 2026-07-28: v4.8.2 对齐博客 v2.3.2；观看页只允许一个完整 JSON-LD VideoObject，禁止重复且不完整的 Microdata 视频实体
-  - 2026-07-28: v4.8.1 对齐博客 v2.3.1；独立观看页播放器必须位于 H1 和说明文字之前，确保 Google 首屏可见与主体突出
-  - 2026-07-28: v4.8.0 对齐博客 v2.3.0 页面职责分离；源 iframe 仅供 Hexo 生成观看页，渲染文章只输出封面入口，播放器与 VideoObject 仅允许出现在 /videos/<video_id>/
-  - 2026-07-27: v4.7.1 明确生成文章永久链接会自动进入独立观看页的对应博客文章区域，发布门禁验证目标 HTML 真实存在
-  - 2026-07-27: v4.7.0 对齐博客 v2.2.0 独立观看页契约；生成的 video_id 等元数据会在 Hexo 构建时自动产生 /videos/<video_id>/、视频索引和 video-sitemap.xml
-  - 2026-07-27: v4.6.3 强制 video_upload_date 为带时区的有效 ISO 8601，优先使用 YouTube timestamp，并拒绝无时区或非法预填值
-  - 2026-07-26: v4.6.2 明确保留 body_md fenced code block，并增加回归测试，确保 Hexo 主题可为生成代码块附加复制按钮
-  - 2026-07-26: v4.6.1 修复 generate_seo_description 把 hashtag 列表当作 SEO description 的 bug——在提取候选句前先移除 # 开头的 hashtag token
-  - 2026-07-23: v4.6.0 清除新旧 YouTube 描述和 body_md 中无效的"复制到浏览器"提示，避免重新写回博客正文
-  - 2026-07-22: v4.5.0 输出 VideoObject 所需 front matter、自然摘要 excerpt、最多 5 个标签，移除伪相关推荐首页链接，并与博客 SEO 门禁对齐
-  - 2026-07-18: v4.4.0 body_md 路径在保留原始 Markdown 正文后追加完整 YouTube description；固定板块支持“纯净住宅IP白嫖流量”标题别名；禁用破坏正文语义和 SEO 关键词的词级 humanize 替换
-  - 2026-05-23: v4.3.2 YAML 安全转义——新增 yaml_safe_string() 对 front matter 的 title/description 字段做双引号包裹+内部转义，防止 **bold** 和 [links] 被 YAML 误解析为 alias 或 sequence；iframe title 属性同步做 HTML 引号转义
-  - 2026-05-23: v4.3.1 严格执行规则——新增「🔴 严格执行规则（最高优先级）」章节于 SKILL.md 顶部，强制 AI 严格按文档执行每一步、实跑 youtube_to_post.py 脚本、不跳过 SEO 优化步骤、部署后必须验证
+version: 4.8.7
+changelog: "v4.8.7: Factual body-derived summaries, duplicate URL protection and scoped audited publication. See references/SEARCH-PUBLISH.md."
 ---
+
+## 搜索发布契约
+
+新文章、恢复、重发和部署先遵循 [搜索发布契约](references/SEARCH-PUBLISH.md)。仅按正文提取事实摘要；不为凑字数扩写，不跳过发布门禁。
 
 ## 🔴 严格执行规则（最高优先级）
 
@@ -314,11 +305,9 @@ for url in $(cat youtube_urls.txt); do
   python scripts/youtube_to_post.py "$url"
 done
 
-# 部署（增量编译，只生成变更文件）
-hexo g && hexo d
-
-# 如需全量重建（改了配置/主题时才用）
-# hexo cl && hexo g && hexo d
+# 逐篇严格审计后，仅提交本次文章与封面；再运行统一发布入口
+# npm run audit:seo -- --strict --file=source/_posts/<slug>.md
+npm run publish
 ```
 
 ## 🔧 命令行参数
@@ -538,9 +527,9 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ```python
 # 优先级：
-# 1. 已知教程类型的专门 SEO 描述（如 Claude Code + Happy、Cloudflare 邮箱）
-# 2. 描述中与标题关键词匹配度最高的句子
-# 3. 基于标题生成的兜底描述
+# 1. 博客正文中与标题相关的真实句子
+# 2. 无正文时使用视频描述中的真实句子
+# 3. 标题本身作为兜底，不添加未经证实的内容范围
 
 # 示例：
 "Happy 安装配置教程：用手机远程控制 Claude Code，覆盖安装配对、会话管理、国内网络问题和自建中继。"
