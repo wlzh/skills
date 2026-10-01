@@ -611,7 +611,7 @@ def extract_semantic_keywords(title, description=''):
 def generate_seo_description(title, description):
     """
     Generate SEO-optimized description
-    - Max 160 characters (Google snippet length)
+    - Max 160 characters (project convention, not a Google snippet limit)
     - Include main keywords
     - Compelling call-to-action
     """
