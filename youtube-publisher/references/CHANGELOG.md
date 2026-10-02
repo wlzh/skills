@@ -1,6 +1,15 @@
 # Changelog — youtube-publisher
 
-Current version: `1.8.2`
+Current version: `1.8.3`
+
+## v1.8.3 (2026-10-01)
+
+`youtube-update-description.ts` **v1.8：YouTube 章节显示契约门禁**（上传口）。
+
+- **背景**：YouTube 章节显示有 3 条硬规则——首章 `0:00`、至少 3 章、**每章 ≥10 秒**。任一不满足 → YouTube **静默忽略整份章节列表**：描述原文照旧（肉眼查不出），播放轴却没有任何章节标记。2026-10-01 charles_schwab（FWtCu4EKcPo）实测：`0:00 开场…` 与 `0:01 背景…` 只差 1 秒 → 18 章全废；同期 capital_one（最短间隔 31s）正常显示。
+- **门禁**：`main()` 在上传前调用 `chapterContractProblems()`；有违规 → 打印违规清单 + 修复指引并 **exit 3，拒绝上传**。描述里完全没有章节块时只打 `WARN` 不拦（避免误伤历史无章节的描述）。
+- **修复入口**：`duanku-youtube-publish/scripts/split_description_chapters.py`（v2.83.0 起内置自愈：首章归位 0:00、间隔 <10s 并入上一章）；复检 `--validate`。
+- **配套门禁**：blog-pipeline v2.61.2（发布前 2/8 硬门禁）、publish v2.83.0 `verify_publish.py` 新增 `description_chapter_contract` 检查（发布后）。
 
 ## v1.8.2 (2026-09-30)
 

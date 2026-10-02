@@ -1,10 +1,10 @@
 ---
 name: youtube-publisher
 description: "Upload and fully manage YouTube videos and live events: metadata, thumbnails, captions, playlists, scheduled broadcasts, encoder streams, binding, lifecycle transitions, and cleanup."
-version: 1.8.2
+version: 1.8.3
 setup_complete: true
 setup: "./SETUP.md"
-changelog: "v1.8.2: remove automatic per-video playlist assignment; retain read-only public playlist export for blog/GitHub series pages. Full history: references/CHANGELOG.md."
+changelog: "v1.8.3: youtube-update-description.ts v1.8 章节显示契约门禁——描述章节不满足 YouTube 规则（首章 0:00 / 每章 ≥10s / ≥3 章）时拒绝上传（exit 3），防止播放轴无章节的静默失效。Full history: references/CHANGELOG.md."
 ---
 
 ## 🔴 Strict Execution Rule (Highest Priority)
@@ -245,6 +245,7 @@ On success, returns:
 
 ### v1.7.1 - Unknown-Flag Fail-Fast (2026-09-28)
 
+- `youtube-update-description.ts` v1.8（2026-10-01）**章节显示契约门禁**：上传前校验描述里的章节块必须满足 YouTube 硬规则（首章 0:00 / 每章 ≥10 秒 / ≥3 章），违规**拒绝上传并 exit 3**（列出具体违规）。原因：任一条不满足时 YouTube **静默忽略整份章节列表**——描述看着正常、播放轴却没有章节（2026-10-01 charles_schwab `0:00`/`0:01` 相邻 1 秒，18 章全废）。描述里完全没有章节块时只打 WARN 不拦。修复用 `duanku-youtube-publish/scripts/split_description_chapters.py`（内置自愈）/ 复检 `--validate`。
 - `youtube-update-description.ts` 遇到未知 `--` 参数直接报错退出（exit 2），不再静默忽略。背景：当日测试 `--dry-run`（不存在的 flag）被静默吞掉，截断的测试文件真实上传；fail-fast 杜绝同类误操作。
 
 ### v1.7.0 - Baseline-Header Upload Guard (2026-09-28)

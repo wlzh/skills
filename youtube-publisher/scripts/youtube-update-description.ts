@@ -3,6 +3,11 @@
  * post-write verification and robust token refresh.
  *
  * Changelog:
+ *  v1.8  2026-10-01  YouTube chapter-display contract gate (refuse upload on
+ *                    invalid chapters: first!=0:00 / <3 chapters / any gap<10s)
+ *  v1.7  2026-09-28  Strip duanku baseline header before upload
+ *  v1.7.1 2026-09-28 Unknown flags are fatal, not silent no-ops
+ *  v1.6  2026-08-16  Update after retry with fresh token
  *  v1.5  2026-08-02  Better error diagnostics for transient proxy failures
  *    - Catch empty/blank error messages (proxy drops with "Error: \n")
  *    - Log full error stack and HTTP status when available
@@ -230,8 +235,51 @@ Usage:
   return { videoId, description, descriptionFile };
 }
 
+// v1.8 (2026-10-01): YouTube chapter-display contract gate.
+// YouTube requires: first chapter 0:00, at least 3 chapters, every chapter
+// >=10 seconds. ANY violation makes YouTube silently drop the WHOLE chapter
+// list — the description still looks fine but the progress bar shows no
+// chapters (2026-10-01 charles_schwab FWtCu4EKcPo: "0:00"/"0:01" sat 1 second
+// apart, killing all 18 chapters). Refuse the upload instead of publishing a
+// description whose chapters cannot render; fix with
+// duanku-youtube-publish/scripts/split_description_chapters.py (self-healing)
+// then re-run --validate.
+const YOUTUBE_MIN_CHAPTER_SECONDS = 10;
+const YOUTUBE_MIN_CHAPTERS = 3;
+
+function chapterContractProblems(description: string): string[] {
+  const entries: Array<{ sec: number; line: string }> = [];
+  for (const raw of description.split("\n")) {
+    const line = raw.trim();
+    const m = line.match(/^(\d{1,3}):(\d{2})\s/);
+    if (m) entries.push({ sec: parseInt(m[1], 10) * 60 + parseInt(m[2], 10), line });
+  }
+  if (entries.length === 0) return [];  // 无章节块：下方单独 WARN，不拦上传
+  const problems: string[] = [];
+  if (entries[0].sec !== 0) problems.push(`首章不是 0:00（实际 ${entries[0].line}）`);
+  if (entries.length < YOUTUBE_MIN_CHAPTERS) problems.push(`章节数 ${entries.length} < ${YOUTUBE_MIN_CHAPTERS}`);
+  for (let i = 0; i < entries.length - 1; i++) {
+    const gap = entries[i + 1].sec - entries[i].sec;
+    if (gap < YOUTUBE_MIN_CHAPTER_SECONDS) {
+      problems.push(`间隔 ${gap}s < ${YOUTUBE_MIN_CHAPTER_SECONDS}s: «${entries[i].line}» → «${entries[i + 1].line}»`);
+    }
+  }
+  return problems;
+}
+
 async function main() {
   const { videoId, description } = parseArgs();
+  const chapterProblems = chapterContractProblems(description);
+  if (chapterProblems.length > 0) {
+    console.error("❌ 章节不符合 YouTube 显示契约（首章 0:00 / 每章 ≥10s / ≥3 章），拒绝上传：");
+    for (const p of chapterProblems) console.error(`   - ${p}`);
+    console.error("YouTube 会静默忽略整份章节列表 → 播放轴不显示章节（描述里看不出异常）。");
+    console.error("修复：python3 duanku-youtube-publish/scripts/split_description_chapters.py --timeline <t> --scene-plan <sp> --description <当前描述> --output <out>（内置自愈）；复检：同脚本 --validate。");
+    process.exit(3);
+  }
+  if (!/^\s*\d{1,3}:\d{2}\s/m.test(description)) {
+    console.warn("WARN: 描述中没有章节块——播放轴不会有章节标记（v1.8 门禁仅告警，不拦截）");
+  }
   const { youtube } = await authenticate();
   await updateDescription(youtube, videoId, description);
 }
