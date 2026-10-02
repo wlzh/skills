@@ -33,12 +33,16 @@ git checkout main
 git pull --rebase
 
 # Validate the redesigned site pipeline before triggering Pages.
+# 顺序：契约测试（robots/无WARP/nofollow 等）→ 构建 → 产物校验（catalog/sitemap/JSON-LD）
+npm test
 npm run build
 npm run validate
 
 # Keep generated build artifacts out of the source commit. GitHub Actions builds the production artifact.
 git restore docs/.vitepress/dist 2>/dev/null || true
 git restore docs/public/resource-catalog.json docs/.vitepress/generated/resourceCatalog.ts 2>/dev/null || true
+# build-resource-pages.js 生成的站内详情页 /r/*.md 也是生成物，不进源码提交
+git clean -fdq docs/r 2>/dev/null || true
 tmp_dist="/tmp/quark-mswnlz-publisher-dist-$$"
 mkdir -p "$tmp_dist"
 git ls-files -o --exclude-standard docs/.vitepress/dist | while read -r file; do

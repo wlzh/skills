@@ -5,13 +5,23 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v2.4.0
+**版本**: v2.5.0
 
 夸克网盘 / 百度网盘 / 阿里云盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
 支持三网盘混合输入、多账号轮换、多群组通知。
 
 ## 更新日志
+
+### v2.5.0 (2026-10-02)
+- 🚀 **站点 SEO/GEO 大版本改造同步**：站点从「可索引单元=月份归档页」升级为「每条资源一个独立详情页 `/r/{id}`」，同步发布端合同
+  - 站点新增 `build-resource-pages.js`：每条资源生成站内详情页，建立「分类页 → 详情页 → 网盘入口」内链
+  - 站点新增 `docs/public/llms.txt`（GEO 入口，供 AI 搜索引擎抓取站点结构）
+  - 站点网盘外链统一 `nofollow`（修复 VitePress externalLinks 覆盖 rel 的问题）
+  - 站点 thin 月份页（资源 < 3）`noindex` 且不进 sitemap（修复 `MONTH_PATH_RE` 与 sitemap `transformItems` 的路径匹配 bug）
+  - 站点新增 `scripts/test-seo-contract.js`（`npm test`）：源码契约快速门禁，把历史 SEO 事故固化为断言
+- 🧹 **`--migrate-legacy` 全量迁移**：`mswnlz_publish.py` 新增迁移模式，一次性把全部内容仓库所有历史月份文件里的旧水印/管道格式规范化为标准 `[标题](URL)`（此前只在当前批次月份生效，历史文件永不迁移）
+- 🧪 **站点重建前加 `npm test`**：`trigger_site_rebuild.sh` 在 build 前先跑契约测试，并清理 `docs/r/` 生成物
 
 ### v2.4.0 (2026-07-27)
 - 🎨 **彻底修复站点渲染换行问题**：`mswnlz_publish.py` 的 `append_items()` 和新增 `normalize_legacy_lines()` 三重保障：
@@ -255,18 +265,21 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
 
 资源站点已按 `taste-skill:design-taste-frontend` 重构为“信任优先、检索优先、归档保留”的中文资源目录：
 - 分类首页由 VitePress 构建期 catalog 生成目录，支持搜索、月份、平台和排序筛选
-- 月份页仍是 `/category/YYYYMM` 归档 URL，不删除旧路径
+- **每条资源有独立站内详情页 `/r/{id}`**：由站点 `scripts/build-resource-pages.js` 在构建期生成，标题为真实资源名（不是 URL / 水印），含资源信息、适用人群、同类推荐与网盘入口
+- 月份页仍是 `/category/YYYYMM` 归档 URL，不删除旧路径；资源 < 3 条的薄月份页 `noindex` 且不进 sitemap
+- 站点提供 `docs/public/llms.txt` 作为 GEO 入口；网盘外链统一 `nofollow`
 - 发布脚本不得写入 `docs/public/{category}/*.md`
 - 发布脚本不得生成 `<ResourceTabs :months>`、分类首页、广告容器或页面布局代码
-- 新资源只提交到对应内容仓库的 `YYYYMM.md`，站点 CI 会复制内容仓库并重新生成 catalog
+- 新资源只提交到对应内容仓库的 `YYYYMM.md`，站点 CI 会复制内容仓库并重新生成 catalog 与详情页
+- 站点校验链：`npm test`（源码契约）→ `npm run build`（含 prebuild 生成 catalog + 详情页）→ `npm run validate`（catalog/sitemap/nofollow/JSON-LD 产物校验）
 
 ### 5) 触发站点重建
 
 使用 `scripts/trigger_site_rebuild.sh`：
 1. 定位 `mswnlz.github.io` 仓库（可用 `MSWNLZ_SITE_REPO` 覆盖）
 2. 拉取 main 最新代码
-3. 执行 `npm run build` 和 `npm run validate`
-4. 不提交本地 dist/catalog 构建噪音
+3. 执行 `npm test` → `npm run build` → `npm run validate`
+4. 不提交本地 dist/catalog/`docs/r/` 构建噪音
 5. 创建空提交并 push 到 main，触发 GitHub Actions 构建
 
 ### 6) 返回结果

@@ -197,13 +197,17 @@ def normalize_legacy_lines(text: str) -> tuple[str, int]:
     处理变体:
       A: -? 标题-超过100T资料总站网站-doc.869hr.uk | URL
       C: [标题-超过100T资料总站网站xxx](URL)  → 清除水印后缀
+      D: 带 -/数字| 前缀、或 |提取码 后缀的链接行，同样清水印
     """
     converted = 0
     intermediate = []
+    # 水印后缀三种形态：-超过100T资料总站网站-doc.869hr.uk / 超过100T资料总站网站doc.869hr.uk / -doc.869hr.uk
+    watermark_re = re.compile(r'\s*-?(?:超过100T资料总站网站-?)?doc\.869hr\.uk\s*$')
+
     for line in text.splitlines():
-        # 变体A: 旧管道格式
+        # 变体A: 旧管道格式 标题-水印 | URL
         m = re.match(
-            r'^-?\s*(.+?)-超过100T资料总站网站-doc\.869hr\.uk\s*\|\s*(https?://\S+)',
+            r'^-?\s*(.+?)-超过100T资料总站网站-?doc\.869hr\.uk\s*\|\s*(https?://\S+)',
             line,
         )
         if m:
@@ -213,15 +217,19 @@ def normalize_legacy_lines(text: str) -> tuple[str, int]:
             converted += 1
             continue
 
-        # 变体C: 标准链接行但标题里嵌着水印 → 清水印
-        m = _LINK_LINE_RE.match(line)
-        if m and '超过100T资料总站网站' in m.group(1):
-            title = re.sub(
-                r'\s*-?超过100T资料总站网站-?doc\.869hr\.uk\s*',
-                '',
-                m.group(1),
-            ).strip()
-            title = re.sub(r'\s*-*\s*$', '', title).strip()  # 去残留尾 -
+        # 变体C/D: [标题-水印](URL)。先剥离 -/数字| 前缀和 |提取码 后缀，再清水印。
+        stripped = line.strip()
+        prefix_m = re.match(r'^(?:[-*]\s+|\d+[|、.]\s*)(.*)$', stripped)
+        if prefix_m:
+            stripped = prefix_m.group(1).strip()
+        suffix_m = re.match(r'^(.*?)\s*\|\s*提取码[：:].*$', stripped)
+        if suffix_m:
+            stripped = suffix_m.group(1).strip()
+
+        m = _LINK_LINE_RE.match(stripped)
+        if m and watermark_re.search(m.group(1)):
+            title = watermark_re.sub('', m.group(1)).strip()
+            title = re.sub(r'[-—–\s]+$', '', title).strip()
             url = m.group(2)
             safe = title.replace("[", "【").replace("]", "】")
             intermediate.append(f"[{safe}]({url})")
@@ -282,6 +290,47 @@ def _needs_blank_separation(text: str) -> bool:
             return True
         prev_was_link = is_link
     return False
+
+
+def migrate_legacy_all(dry_run: bool = False) -> Tuple[int, List[str]]:
+    """全量规范化所有内容仓库的所有 YYYYMM.md。
+
+    背景：normalize_legacy_lines 只在 append_items 里跑（仅当前批次月份），
+    历史月份文件里的旧水印/管道格式（`标题-超过100T资料总站网站… | URL`）永远不会被
+    触碰，导致站点 catalog 里长期残留水印标题。本函数一次性扫描全部内容仓库迁移到位。
+    """
+    if not MSWNLZ_ROOT.exists():
+        print(f"[MIGRATE] 内容根目录不存在: {MSWNLZ_ROOT}")
+        return 0, []
+
+    skip = {"mswnlz.github.io", "mswnlz", "docs", ".git"}
+    content_repos = sorted(
+        p for p in MSWNLZ_ROOT.iterdir()
+        if p.is_dir() and (p / ".git").exists() and p.name not in skip
+    )
+
+    total_converted = 0
+    touched = []
+    for repo_dir in content_repos:
+        for month_file in sorted(repo_dir.glob("*.md")):
+            if not re.fullmatch(r"\d{6}\.md", month_file.name):
+                continue
+            text = month_file.read_text(encoding="utf-8")
+            if '超过100T资料总站网站' not in text and 'doc.869hr.uk' not in text and not _needs_blank_separation(text):
+                continue
+            new_text, n = normalize_legacy_lines(text)
+            if not n:
+                continue
+            rel = f"{repo_dir.name}/{month_file.name}"
+            if dry_run:
+                print(f"[MIGRATE-dry] {rel}: 将规范化 {n} 行")
+            else:
+                month_file.write_text(new_text, encoding="utf-8")
+                print(f"[MIGRATE] {rel}: 规范化 {n} 行")
+            total_converted += n
+            touched.append(rel)
+
+    return total_converted, touched
 
 
 def make_commit_message(items: List[str]) -> str:
@@ -381,10 +430,38 @@ def generate_quark_group_message(by_repo: Dict[str, List[Tuple[str, str]]], batc
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--month", required=True)
-    ap.add_argument("--batch-json", required=True)
-    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知和GitHub推送")
+    ap.add_argument("--month", help="目标月份 YYYYMM（发布模式必填）")
+    ap.add_argument("--batch-json", help="batch_share_results.json 路径（发布模式必填）")
+    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知、GitHub推送与写盘")
+    ap.add_argument("--migrate-legacy", action="store_true", help="全量迁移所有内容仓库的旧水印/管道格式")
     args = ap.parse_args()
+
+    # ── 迁移模式：独立于发布流程，一次性规范化全部历史月份文件 ──
+    if args.migrate_legacy:
+        total, touched = migrate_legacy_all(dry_run=args.dry_run)
+        print(f"\n[MIGRATE] 共规范化 {total} 行，涉及 {len(touched)} 个文件")
+        if args.dry_run:
+            print("   （dry-run，未写盘。去掉 --dry-run 执行实际迁移）")
+            return
+        if touched:
+            repos = sorted({f.split("/", 1)[0] for f in touched})
+            print(f"\n[MIGRATE] 提交并推送 {len(repos)} 个内容仓库...")
+            for repo in repos:
+                repo_dir = MSWNLZ_ROOT / repo
+                try:
+                    sh(["git", "add", "-A", "*.md"], cwd=repo_dir)
+                    if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=str(repo_dir)).returncode == 0:
+                        print(f"[SKIP] no changes for {repo}")
+                        continue
+                    sh(["git", "commit", "-m", "chore: 规范化旧水印格式为标准链接 [标题](URL)"], cwd=repo_dir)
+                    sh(["git", "push", "origin", "main"], cwd=repo_dir)
+                    print(f"[OK] pushed {repo}")
+                except Exception as e:
+                    print(f"[WARN] {repo} 提交推送失败: {e}")
+        return
+
+    if not args.month or not args.batch_json:
+        ap.error("发布模式需要 --month 和 --batch-json（或用 --migrate-legacy 进入迁移模式）")
 
     batch = json.loads(Path(args.batch_json).read_text(encoding="utf-8"))
     share_results = batch.get("share_results") or []

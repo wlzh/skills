@@ -1,6 +1,6 @@
 # quark-mswnlz-publisher
 
-**版本**: v2.2.0
+**版本**: v2.5.0
 
 夸克网盘 / 百度网盘 / 阿里云盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
 
@@ -516,12 +516,26 @@ items.json
 | aliyun_batch_run.py | 1.0.0 | 阿里云转存+分享 |
 | copy_promo_to_folders.py | 2.1.1 | 推广文件复制（动态 fid） |
 | cleanup_junk_files.py | 1.1.0 | 垃圾文件清理（支持文件夹删除） |
-| mswnlz_publish.py | 1.1.1 | GitHub 发布 + TG 通知（路径修复） |
+| mswnlz_publish.py | 2.0.0 | GitHub 发布 + TG 通知 + `--migrate-legacy` 全量迁移 |
 | url_router.py | 1.1.0 | 网盘链接路由 |
 
 ---
 
 ## 📜 更新日志
+
+### v2.5.0 (2026-10-02)
+- 🚀 **站点 SEO/GEO 大版本改造同步**：每条资源独立详情页 `/r/{id}` + `llms.txt` + 网盘外链 nofollow + thin 月份页 noindex
+- 🧹 **`mswnlz_publish.py --migrate-legacy`**：一次性全量迁移所有内容仓库历史月份文件的旧水印/管道格式
+- 🧪 **`trigger_site_rebuild.sh` 加 `npm test`**：源码契约测试作为重建前门禁
+
+### v2.4.0 (2026-07-27)
+- 🎨 彻底修复站点渲染换行：`append_items()` + `normalize_legacy_lines()` 三重保障，旧格式自动转 `[标题](URL)`
+- 📐 Markdown 规范固化：每条资源独立一行 `[标题](URL)`，条目之间空行隔开
+- 🧪 新增单元测试验证旧格式转换、缺空行修复
+
+### v2.3.0 (2026-07-27)
+- 🔑 cleanup 多账号自动遍历 + 递归扫描 6 层
+- 📁 junk_files.json 新增推广文件夹条目
 
 ### v2.2.1 (2026-07-26)
 - 🐛 **修复 mswnlz_publish.py 路径错误**：v2.2.0-rc1 误将默认路径改为 `/Users/m/document/QNSZ/project/mswnlz-github`（少 `.` 且目录不存在），修正回 `/Users/m./Documents/QNSZ/project/mswnlz`
