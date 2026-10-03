@@ -40,9 +40,10 @@ ensure_content_source() {
   local repos=(AIknowledge auto book chinese-traditional cross-border curriculum edu-knowlege healthy movies self-media tools)
   mkdir -p content-source
   for repo in "${repos[@]}"; do
-    [ -e "content-source/$repo" ] || ln -s "$base/$repo" "content-source/$repo"
+    # -e 跟随符号链接；坏链（相对路径写错等）直接删了重建为绝对路径
+    [ -e "content-source/$repo" ] || { rm -f "content-source/$repo"; ln -s "$base/$repo" "content-source/$repo"; }
   done
-  [ -e "content-source/duanku-guides" ] || ln -s "/Users/m/document/QNSZ/project/Hexo-BLog/duanku-guides" "content-source/duanku-guides"
+  [ -e "content-source/duanku-guides" ] || { rm -f "content-source/duanku-guides"; ln -s "/Users/m/document/QNSZ/project/Hexo-BLog/duanku-guides" "content-source/duanku-guides"; }
 }
 
 # wrangler 走代理（本机小火箭 7798）；已设代理则尊重现状
