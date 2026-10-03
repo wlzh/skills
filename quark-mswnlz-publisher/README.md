@@ -201,6 +201,7 @@ npx wrangler login
             ├── copy_promo_to_folders.py    # 推广文件复制
             ├── cleanup_junk_files.py       # 垃圾文件清理
             ├── mswnlz_publish.py           # 本地提交 + 站点部署 + TG 通知
+            ├── extract_items.py            # 原始文本 → items.json
             ├── url_router.py               # 网盘链接路由
             ├── trigger_site_rebuild.sh     # 站点重建
             ├── quark_copy.py               # 旧版夸克复制（已由 copy_promo 替代）
@@ -518,6 +519,7 @@ items.json
 | cleanup_junk_files.py | 1.1.0 | 垃圾文件清理（支持文件夹删除） |
 | mswnlz_publish.py | 2.6.0 | 本地提交 + Cloudflare Pages 部署 + TG 通知 + `--migrate-legacy` 全量迁移 |
 | url_router.py | 1.1.0 | 网盘链接路由 |
+| extract_items.py | 1.0.0 | 原始文本 → items.json（支持夸克/百度/阿里云盘，可选 API 校验标题） |
 
 ---
 

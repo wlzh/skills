@@ -203,6 +203,18 @@ export CF_PAGES_PROJECT="doc869hr"
 
 需要用户提供：
 - 夸克分享 URL 列表（每条可包含标题）
+
+**原始文本 → items.json**（v2.6.0 新增）：群消息/手工整理的文本可用
+`scripts/extract_items.py` 直接转成 pipeline 输入，无需手工整理：
+
+```bash
+python3 scripts/extract_items.py --input raw.txt --out-json items.json
+# 可选：查夸克分享 API 取真实资源名，防止标注与实际内容不符
+python3 scripts/extract_items.py --input raw.txt --out-json items.json --quark-titles
+```
+
+支持 5 种写法（标题行+链接行 / 标题行+裸链接 / 管道行 / Markdown 链接 / 带 🔗 前缀），
+自动识别夸克/百度/阿里云盘，过滤无关站点，同一标题的多条链接自动合并为 `urls[]`。
 - 目标月份 `YYYYMM`（默认：当前月份）
 - 批次标签（默认：`短裤哥批次`）
 
