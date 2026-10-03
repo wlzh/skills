@@ -16,7 +16,7 @@ old_links = [
     "f8accb967ab2", "b7784b364143", "edc3b953f65f",
 ]
 
-path = "/Users/m./Documents/QNSZ/project/mswnlz/movies/202607.md"
+path = "/Users/m/document/QNSZ/project/mswnlz-github/movies/202607.md"
 with open(path, "r", encoding="utf-8") as f:
     lines = f.readlines()
 

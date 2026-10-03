@@ -46,9 +46,9 @@ def first_existing_path(paths: List[Optional[Path]], fallback: Path) -> Path:
 PROJECT_ROOT = first_existing_path(
     [
         Path(os.environ["QNSZ_PROJECT_ROOT"]) if os.environ.get("QNSZ_PROJECT_ROOT") else None,
-        Path("/Users/m./Documents/QNSZ/project"),
+        Path("/Users/m/document/QNSZ/project"),
     ],
-    Path("/Users/m./Documents/QNSZ/project"),
+    Path("/Users/m/document/QNSZ/project"),
 )
 MSWNLZ_ROOT = first_existing_path(
     [
@@ -56,7 +56,7 @@ MSWNLZ_ROOT = first_existing_path(
         PROJECT_ROOT / "mswnlz",
         PROJECT_ROOT / "mswnlz-github",
     ],
-    PROJECT_ROOT / "mswnlz",
+    PROJECT_ROOT / "mswnlz-github",
 )
 
 # Telegram 配置 - 从环境变量读取，不要硬编码！
@@ -294,7 +294,7 @@ def migrate_legacy_all(dry_run: bool = False) -> Tuple[int, List[str]]:
         print(f"[MIGRATE] 内容根目录不存在: {MSWNLZ_ROOT}")
         return 0, []
 
-    skip = {"kingcolixhs-max.github.io", "mswnlz", "docs", ".git"}
+    skip = {"mswnlz.github.io", "mswnlz", "docs", ".git"}
     content_repos = sorted(
         p for p in MSWNLZ_ROOT.iterdir()
         if p.is_dir() and (p / ".git").exists() and p.name not in skip
@@ -447,7 +447,7 @@ def main():
                     sh(["git", "commit", "-m", "chore: 规范化旧水印格式为标准链接 [标题](URL)"], cwd=repo_dir)
                     print(f"[OK] committed {repo}")
                 except Exception as e:
-                    print(f"[WARN] {repo} 提交推送失败: {e}")
+                    print(f"[WARN] {repo} 本地提交失败: {e}")
         return
 
     if not args.month or not args.batch_json:

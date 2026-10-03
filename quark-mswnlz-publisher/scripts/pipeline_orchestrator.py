@@ -320,7 +320,7 @@ def main():
     ap.add_argument("--label", default="短裤哥批次", help="批次标签")
     ap.add_argument("--month", default="", help="月份（如 202607）")
     ap.add_argument("--out-json", default="", help="合并后的输出路径（默认自动）")
-    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知和GitHub发布")
+    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知、本地提交与站点部署")
     args = ap.parse_args()
 
     # ── 1. 读取 & 标准化 ──
@@ -562,7 +562,7 @@ def main():
     # ── 7. 发布（仅非 dry-run）──
     if not args.dry_run:
         print(f"\n{'#'*60}")
-        print(f"# 发布（GitHub + TG通知 + 站点重建）")
+        print(f"# 发布（本地提交 + TG通知 + Cloudflare Pages 部署）")
         print(f"{'#'*60}")
 
         run_script(

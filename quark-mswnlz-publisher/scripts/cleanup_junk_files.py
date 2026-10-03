@@ -14,8 +14,8 @@ v2.0 更新：
   → 匹配垃圾文件名单（子串匹配）→ 删除
 
 用法：
-  cd /Users/m./Documents/QNSZ/project/QuarkPanTool
-  .venv/bin/python /Users/m./Documents/QNSZ/project/skills/quark-mswnlz-publisher/scripts/cleanup_junk_files.py \\
+  cd /Users/m/document/QNSZ/project/QuarkPanTool
+  .venv/bin/python /Users/m/document/QNSZ/project/skills/quark-mswnlz-publisher/scripts/cleanup_junk_files.py \\
       --batch-json batch_share_results.json \\
       --junk-config config/junk_files.json
 

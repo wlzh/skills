@@ -1,6 +1,6 @@
 """递归扫描批次文件夹（最多4层），找出并删除所有'更多资源收藏不迷路'"""
 import asyncio, json, sys
-sys.path.insert(0, "/Users/m./Documents/QNSZ/project/QuarkPanTool")
+sys.path.insert(0, "/Users/m/document/QNSZ/project/QuarkPanTool")
 from quark import QuarkPanFileManager
 
 async def deep_scan(mgr, fid, path="", depth=0, hits=None):
@@ -21,7 +21,7 @@ async def deep_scan(mgr, fid, path="", depth=0, hits=None):
     return hits
 
 async def main():
-    batch = json.load(open("/Users/m./Documents/QNSZ/project/skills/quark-mswnlz-publisher/batch_share_results.json"))
+    batch = json.load(open("/Users/m/document/QNSZ/project/skills/quark-mswnlz-publisher/scripts/batch_share_results.json"))
     batch_fid = batch["batch_folder_fid"]
     mgr = QuarkPanFileManager()
     

@@ -144,14 +144,13 @@ pip install aligo   # 已在 .venv 中
 - `aliyun_client.py` — aligo SDK 封装（登录、转存、分享、复制、删除）
 - `aliyun_batch_run.py` — 阿里云 A段批处理
 
-#### 4. GitHub SSH 配置
+#### 4. Cloudflare Pages 授权
 
 ```bash
-ssh -T git@github.com
-# Hi username! You've successfully authenticated...
+npx wrangler login
 ```
 
-需可访问 mswnlz 组织仓库（read/write）。
+浏览器 OAuth 授权一次即可，凭据保存在本机。站点部署项目：`doc869hr`（域名 doc.869hr.uk）。
 
 ### 目录结构（默认路径）
 
@@ -173,9 +172,9 @@ ssh -T git@github.com
 │   │   ├── cookies.txt.bak            # 切换前备份
 │   │   ├── account_state.json         # 多账号轮换状态
 │   │   ├── config.json                # 保存目录配置
-│   │   └── secrets.env                # 敏感信息（TG Token、GH Token、群组ID）
+│   │   └── secrets.env                # 敏感信息（TG Bot Token、频道/群组ID，已 gitignore）
 │   └── ...
-├── mswnlz-github/                     # mswnlz GitHub 组织仓库（本地 clone）
+├── mswnlz-github/                     # 内容仓库本地目录（远端 GitHub 已废弃）
 │   ├── book/                          # 书籍资源
 │   ├── movies/                        # 影视资源
 │   ├── AIknowledge/                   # AI 知识资源
@@ -201,7 +200,7 @@ ssh -T git@github.com
             ├── quark_account_rotator.py    # 多账号轮换器
             ├── copy_promo_to_folders.py    # 推广文件复制
             ├── cleanup_junk_files.py       # 垃圾文件清理
-            ├── mswnlz_publish.py           # GitHub 发布 + TG 通知
+            ├── mswnlz_publish.py           # 本地提交 + 站点部署 + TG 通知
             ├── url_router.py               # 网盘链接路由
             ├── trigger_site_rebuild.sh     # 站点重建
             ├── quark_copy.py               # 旧版夸克复制（已由 copy_promo 替代）
@@ -498,8 +497,8 @@ items.json
                                     │
                           ┌─────────┼─────────┐
                           ▼         ▼         ▼
-                      GitHub    Telegram   站点重建
-                      仓库推送   群组通知    (Pages)
+                      本地提交   Telegram   Cloudflare
+                      内容仓库   群组通知   Pages 部署
 ```
 
 ---
@@ -517,12 +516,20 @@ items.json
 | aliyun_batch_run.py | 1.0.0 | 阿里云转存+分享 |
 | copy_promo_to_folders.py | 2.1.1 | 推广文件复制（动态 fid） |
 | cleanup_junk_files.py | 1.1.0 | 垃圾文件清理（支持文件夹删除） |
-| mswnlz_publish.py | 2.0.0 | GitHub 发布 + TG 通知 + `--migrate-legacy` 全量迁移 |
+| mswnlz_publish.py | 2.6.0 | 本地提交 + Cloudflare Pages 部署 + TG 通知 + `--migrate-legacy` 全量迁移 |
 | url_router.py | 1.1.0 | 网盘链接路由 |
 
 ---
 
 ## 📜 更新日志
+
+### v2.6.0 (2026-10-03)
+- 🚨 **GitHub → Cloudflare Pages 大迁移**：GitHub 账号接连被封（mswnlz → kingcolixhs-max），托管链路彻底切换
+  - 内容仓库不再推 GitHub，仅本地 git commit 保留版本历史（远端已废弃）
+  - 仓库描述改读本地 `scripts/config/repo_descriptions.json`（原 GitHub API 不可用）
+  - 新增 `deploy_cloudflare_pages.sh`：本地全量构建 + `wrangler pages deploy` + 频道 TG 通知
+  - `trigger_site_rebuild.sh` 改为兼容入口，直接转发到部署脚本
+  - 修正 `/Users/m./Documents/...` 坏路径（`mswnlz_publish.py`、`remove_old_links.py`、`deep_scan_junk.py`）
 
 ### v2.5.0 (2026-10-02)
 - 🚀 **站点 SEO/GEO 大版本改造同步**：每条资源独立详情页 `/r/{id}` + `llms.txt` + 网盘外链 nofollow + thin 月份页 noindex
