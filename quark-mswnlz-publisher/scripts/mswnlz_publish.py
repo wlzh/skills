@@ -1,17 +1,18 @@
-"""Publish Quark batch share results into mswnlz GitHub content repos.
+"""Publish Quark batch share results into local mswnlz content dirs + deploy site to Cloudflare Pages.
 
 Inputs:
 - batch_share_results.json produced by quark_batch_run.py
 - target month YYYYMM
 
 Behavior:
-- Classify items into repos (book/movies default; extensible).
+- Classify items into content dirs (book/movies default; extensible).
 - Append to YYYYMM.md and update README.md month index.
-- Commit + push via SSH.
-- Send unified notification to Telegram groups (one message for all repos).
+- Commit locally (content dirs are git repos; GitHub 远端已随账号封禁废弃，仅保留本地版本历史).
+- Rebuild site and deploy to Cloudflare Pages (deploy_cloudflare_pages.sh).
+- Send unified notification to Telegram groups (one message for all dirs).
 
 Token handling:
-- GitHub API calls do not require auth for small usage; if rate-limited, set GITHUB_TOKEN env var.
+- Telegram token 只从环境变量读取（TELEGRAM_BOT_TOKEN），不硬编码。
 """
 
 import argparse
@@ -77,29 +78,19 @@ def sh(cmd: List[str], cwd: Path) -> str:
 
 
 def ensure_clone(repo: str):
+    # GitHub 远端已废弃（账号封禁），内容仓库只认本地目录
     repo_dir = MSWNLZ_ROOT / repo
     if repo_dir.exists():
         return
-    sh(["git", "clone", "--depth", "1", f"git@github.com:mswnlz/{repo}.git"], cwd=MSWNLZ_ROOT)
-
-
-def git_pull(repo_dir: Path):
-    sh(["git", "checkout", "main"], cwd=repo_dir)
-    sh(["git", "pull", "--rebase"], cwd=repo_dir)
+    raise FileNotFoundError(
+        f"本地内容目录不存在: {repo_dir}（GitHub 克隆已废弃，请在 MSWNLZ_ROOT 下准备好该目录）"
+    )
 
 
 def fetch_mswnlz_repo_descriptions() -> Dict[str, str]:
-    url = "https://api.github.com/users/mswnlz/repos?per_page=100&sort=updated"
-    token = os.environ.get("GITHUB_TOKEN")
-    # Use curl with retry to avoid IncompleteRead errors
-    cmd = ["curl", "-s", "--retry", "3", "--retry-delay", "2", "-H", "Accept: application/vnd.github+json"]
-    if token:
-        cmd += ["-H", f"Authorization: Bearer {token}"]
-    cmd += [url]
-    import subprocess as _sp
-    r = _sp.run(cmd, capture_output=True, text=True, timeout=30)
-    data = json.loads(r.stdout)
-    return {repo["name"]: (repo.get("description") or "") for repo in data}
+    # 仓库描述改为本地配置（原 GitHub API 已随账号封禁不可用）
+    desc_file = Path(__file__).parent / "config" / "repo_descriptions.json"
+    return json.loads(desc_file.read_text(encoding="utf-8"))
 
 
 def classify_item(name: str, repo_desc: Dict[str, str], original_title: str = "") -> str:
@@ -303,7 +294,7 @@ def migrate_legacy_all(dry_run: bool = False) -> Tuple[int, List[str]]:
         print(f"[MIGRATE] 内容根目录不存在: {MSWNLZ_ROOT}")
         return 0, []
 
-    skip = {"mswnlz.github.io", "mswnlz", "docs", ".git"}
+    skip = {"kingcolixhs-max.github.io", "mswnlz", "docs", ".git"}
     content_repos = sorted(
         p for p in MSWNLZ_ROOT.iterdir()
         if p.is_dir() and (p / ".git").exists() and p.name not in skip
@@ -432,7 +423,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--month", help="目标月份 YYYYMM（发布模式必填）")
     ap.add_argument("--batch-json", help="batch_share_results.json 路径（发布模式必填）")
-    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知、GitHub推送与写盘")
+    ap.add_argument("--dry-run", action="store_true", help="模拟运行：跳过TG通知、本地提交与站点部署")
     ap.add_argument("--migrate-legacy", action="store_true", help="全量迁移所有内容仓库的旧水印/管道格式")
     args = ap.parse_args()
 
@@ -445,7 +436,7 @@ def main():
             return
         if touched:
             repos = sorted({f.split("/", 1)[0] for f in touched})
-            print(f"\n[MIGRATE] 提交并推送 {len(repos)} 个内容仓库...")
+            print(f"\n[MIGRATE] 提交 {len(repos)} 个内容仓库...")
             for repo in repos:
                 repo_dir = MSWNLZ_ROOT / repo
                 try:
@@ -454,8 +445,7 @@ def main():
                         print(f"[SKIP] no changes for {repo}")
                         continue
                     sh(["git", "commit", "-m", "chore: 规范化旧水印格式为标准链接 [标题](URL)"], cwd=repo_dir)
-                    sh(["git", "push", "origin", "main"], cwd=repo_dir)
-                    print(f"[OK] pushed {repo}")
+                    print(f"[OK] committed {repo}")
                 except Exception as e:
                     print(f"[WARN] {repo} 提交推送失败: {e}")
         return
@@ -523,12 +513,12 @@ def main():
     total_items = 0
     
     if args.dry_run:
-        print("[dry-run] 跳过 GitHub 推送")
+        print("[dry-run] 跳过本地提交与站点部署")
     else:
         for repo, items in by_repo_github.items():
             ensure_clone(repo)
             repo_dir = MSWNLZ_ROOT / repo
-            git_pull(repo_dir)
+            sh(["git", "checkout", "main"], cwd=repo_dir)
 
             month_file = repo_dir / f"{args.month}.md"
             append_items(month_file, items)
@@ -543,11 +533,10 @@ def main():
                 continue
             msg = make_commit_message([t for t, _ in items])
             sh(["git", "commit", "-m", msg], cwd=repo_dir)
-            sh(["git", "push", "origin", "main"], cwd=repo_dir)
 
             updated_repos.append(repo)
             total_items += len(items)
-            print(f"[OK] pushed {repo}: {len(items)} items")
+            print(f"[OK] committed {repo}: {len(items)} items")
 
     # 获取来源
     source = batch.get("source", "quark")
@@ -584,29 +573,32 @@ def main():
 
 
 def trigger_site_rebuild():
-    """触发 mswnlz.github.io 站点重建"""
+    """本地构建并部署站点到 Cloudflare Pages（原 GitHub Actions 已废弃）"""
     script_dir = Path(__file__).parent
     trigger_script = script_dir / "trigger_site_rebuild.sh"
-    
+
     if trigger_script.exists():
         import subprocess
         try:
+            # 构建 + 部署全流程（含 VitePress 全量构建与 wrangler 上传），需要较长时间
             result = subprocess.run(
                 ["bash", str(trigger_script)],
                 cwd=str(script_dir),
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=1800
             )
             if result.returncode == 0:
-                print(f"[OK] 网站更新已触发")
-                print(result.stdout)
+                print(f"[OK] 站点已构建并部署到 Cloudflare Pages")
+                # 只打印关键尾部日志，避免刷屏
+                tail = "\n".join(result.stdout.splitlines()[-12:])
+                print(tail)
             else:
-                print(f"[WARN] 网站更新触发失败: {result.stderr}")
+                print(f"[WARN] 站点部署失败: {result.stderr[-500:]}")
         except Exception as e:
-            print(f"[WARN] 网站更新触发异常: {e}")
+            print(f"[WARN] 站点部署异常: {e}")
     else:
-        print(f"[WARN] trigger_site_rebuild.sh 不存在，跳过网站更新")
+        print(f"[WARN] trigger_site_rebuild.sh 不存在，跳过站点部署")
 
 
 if __name__ == "__main__":

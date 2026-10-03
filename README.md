@@ -166,7 +166,7 @@ YouTube 视频自动下载并发布到小宇宙播客
 - 📝 自动落盘：追加/新建 `YYYYMM.md` + 更新 README 月份索引
 - 🚀 自动提交：commit（无链接，一条一行）+ push
 - 📢 Telegram 通知：频道单条 + 群组汇总（多仓库只发一条）
-- 🌐 强制触发：`mswnlz.github.io` 站点构建（push 触发）并返回 Actions 链接/站点 URL
+- 🌐 强制触发：`kingcolixhs-max.github.io` 站点构建（push 触发）并返回 Actions 链接/站点 URL
 
 **特点**：
 - 推广文件模板机制（从模板文件夹复制到每个资源文件夹）

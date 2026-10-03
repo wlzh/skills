@@ -2,7 +2,9 @@
 
 **版本**: v2.5.0
 
-夸克网盘 / 百度网盘 / 阿里云盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+夸克网盘 / 百度网盘 / 阿里云盘 → 本地内容目录 → Cloudflare Pages 站点更新，一条龙发布。
+
+> ⚠️ 2026-10-03 起 GitHub 托管废弃（两账号接连被封），内容仅本地版本管理，站点部署 Cloudflare Pages（doc.869hr.uk）。
 
 支持三网盘混合输入、多账号轮换、多群组通知。
 
@@ -31,9 +33,9 @@
 | 自动生成分享链接 | 永久有效期 + 加密链接 + 随机提取码 |
 | 智能分类 | 三层关键词策略，自动归类到 book/movies/AIknowledge 等仓库 |
 | 自动落盘 | 追加/新建 `YYYYMM.md` + 更新 README 月份索引 |
-| 自动提交 | commit + push 到 GitHub mswnlz 仓库 |
+| 自动提交 | 本地 git commit（远端已废弃） |
 | Telegram 通知 | 频道单条 + 多群组汇总通知 |
-| 站点重建 | 构建校验通过后触发 `mswnlz.github.io` Pages 重建 |
+| 站点部署 | 构建校验通过后 `wrangler pages deploy` 到 Cloudflare Pages |
 | SEO 兼容 | 只写资源源文件，站点通过构建期 catalog 生成检索目录 |
 
 ---
@@ -78,7 +80,7 @@
 ### 系统要求
 - macOS / Linux
 - Python 3.10+
-- Git（配置 SSH 访问 GitHub mswnlz 组织仓库）
+- Git（本地版本管理）+ wrangler（`npx wrangler login` 一次）
 - Chrome/Chromium 浏览器（夸克登录用 Playwright）
 
 ### 外部依赖
@@ -185,7 +187,7 @@ ssh -T git@github.com
 │   ├── cross-border/                  # 跨境资源
 │   ├── chinese-traditional/           # 国学资源
 │   ├── auto/                          # 汽车资源
-│   └── mswnlz.github.io/              # 站点仓库（GitHub Pages）
+│   └── mswnlz.github.io/                # 站点仓库（Cloudflare Pages 部署源）
 └── skills/
     └── quark-mswnlz-publisher/        # 本 Skill
         ├── SKILL.md
@@ -230,8 +232,8 @@ TG_GROUP_3_THREAD=
 TG_GROUP_4_ID=-100zzzzzzzzzz               # 群组4 ID
 TG_GROUP_4_THREAD=235                      # 群组4 话题 ID
 
-# GitHub
-GITHUB_TOKEN=ghp_xxxxxxxxxxxx              # mswnlz 账户的 GitHub Token
+# Cloudflare Pages（wrangler login 一次即可，无需 token）
+CF_PAGES_PROJECT=doc869hr
 ```
 
 ### items.json
@@ -290,9 +292,9 @@ python /path/to/pipeline_orchestrator.py \
 3. 按资源名合并多网盘结果
 4. 清理垃圾文件
 5. 复制推广文件
-6. 分类推送到 GitHub mswnlz 仓库
+6. 分类提交到本地内容目录
 7. 发送 TG 群组通知
-8. 触发站点重建
+8. 构建并部署站点到 Cloudflare Pages
 
 ### 模拟运行
 
@@ -334,7 +336,7 @@ python aliyun_batch_run.py \
 python copy_promo_to_folders.py --batch-json quark_result.json
 ```
 
-**发布到 GitHub + TG 通知**：
+**发布（本地提交 + 站点部署 + TG 通知）**：
 ```bash
 python mswnlz_publish.py \
   --month 202607 \
@@ -430,10 +432,10 @@ python scripts/quark_account_rotator.py --config-dir ./config force 2  # 强制�
 
 ## 📢 发布 + 通知 + 站点重建
 
-### GitHub 发布
-- 自动分类到 mswnlz 仓库（12 个仓库）
+### 内容发布
+- 自动分类到本地内容目录（11 个分类目录 + 站点仓库）
 - 追加到 `YYYYMM.md`，更新 `README.md` 月份索引
-- commit + push（SSH 认证）
+- 本地 commit（远端 GitHub 已废弃）
 
 ### 分类规则（v1.4.4 三层策略）
 
@@ -452,8 +454,7 @@ python scripts/quark_account_rotator.py --config-dir ./config force 2  # 强制�
 ### Telegram 通知
 
 **频道（@dabaziyuan）**：
-- 每条资源单独发送
-- 由 GitHub Workflow 自动触发
+- 部署脚本在 Cloudflare Pages 上线成功后发送站点更新通知
 
 **群组（最多4组，可配 topic）**：
 - 批量更新只发一条汇总消息
@@ -468,11 +469,11 @@ python scripts/quark_account_rotator.py --config-dir ./config force 2  # 强制�
 - 新资源行使用 Markdown 链接格式：`[标题](分享链接)`
 - `docs/public/{category}/*.md` 是旧重复页面来源，发布链路不得重新生成
 
-### 站点重建
-- 触发脚本会先定位 `mswnlz.github.io` 仓库，可用 `MSWNLZ_SITE_REPO` 覆盖
-- 执行 `npm run build` 和 `npm run validate`
-- 校验通过后创建空 commit + push，GitHub Pages 自动重建
-- 本地 `dist` 和 catalog 构建噪音不会被提交
+### 站点部署（Cloudflare Pages）
+- `deploy_cloudflare_pages.sh` 定位站点仓库（可用 `MSWNLZ_SITE_REPO` 覆盖），幂等建立 content-source 软链
+- 完整链路：copy_content → sync-tabs → build:guides → `npm run build` → `npm run validate`
+- 校验通过后 `wrangler pages deploy docs/.vitepress/dist --project-name=doc869hr --branch=main`
+- 部署成功后发频道通知（`SKIP_NOTIFY=1` 跳过）
 
 ---
 
@@ -594,7 +595,7 @@ items.json
 - **QuarkPanTool**：https://github.com/ihmily/QuarkPanTool
 - **BaiduPCS-Go**：https://github.com/qjfoidnh/BaiduPCS-Go
 - **aligo**：https://github.com/foyoux/aligo
-- **mswnlz 组织**：https://github.com/mswnlz
+- **资源总站**：https://doc.869hr.uk（Cloudflare Pages）
 - **站点地址**：https://doc.869hr.uk
 - **Skills 仓库**：https://github.com/wlzh/skills
 - **Telegram 频道**：https://t.me/dabaziyuan

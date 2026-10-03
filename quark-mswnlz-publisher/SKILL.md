@@ -1,17 +1,27 @@
 ---
 name: quark-mswnlz-publisher
-description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Supports Quark / Baidu / Aliyun drives with multi-account rotation. Use when the user provides share URLs and wants: (1) auto-detect drive type and route to correct handler, (2) save resources with automatic account rotation, (3) clean junk files from shared folders, (4) copy promotional files into each folder, (5) generate permanent encrypted share links, (6) auto-classify items into mswnlz repos (book/movies/AIknowledge/tools/etc.), (7) append/update YYYYMM.md and README index, (8) git commit+push, (9) send unified Telegram notifications to multiple groups, (10) trigger site rebuild."
+description: "Automate the full QuarkPanTool → mswnlz GitHub content publishing pipeline. Supports Quark / Baidu / Aliyun drives with multi-account rotation. Use when the user provides share URLs and wants: (1) auto-detect drive type and route to correct handler, (2) save resources with automatic account rotation, (3) clean junk files from shared folders, (4) copy promotional files into each folder, (5) generate permanent encrypted share links, (6) auto-classify items into local content dirs (book/movies/AIknowledge/tools/etc.), (7) append/update YYYYMM.md and README index, (8) local git commit, (9) send unified Telegram notifications to multiple groups, (10) rebuild site and deploy to Cloudflare Pages."
 ---
 
 # quark-mswnlz-publisher
 
-**版本**: v2.5.0
+**版本**: v2.6.0
 
-夸克网盘 / 百度网盘 / 阿里云盘 → mswnlz GitHub 资源仓库 → 站点自动更新，一条龙发布。
+夸克网盘 / 百度网盘 / 阿里云盘 → 本地内容目录 → Cloudflare Pages 站点更新，一条龙发布。
+
+> ⚠️ 2026-10-03 起 GitHub 托管已废弃（mswnlz、kingcolixhs-max 两账号接连被封），内容仓库仅存本地，站点部署到 Cloudflare Pages（项目 `doc869hr`，域名 doc.869hr.uk）。
 
 支持三网盘混合输入、多账号轮换、多群组通知。
 
 ## 更新日志
+
+### v2.6.0 (2026-10-03)
+- 🚨 **GitHub → Cloudflare Pages 大迁移**：GitHub 账号接连被封（mswnlz → kingcolixhs-max），托管链路彻底切换
+  - 内容仓库不再推 GitHub，仅本地 git commit 保留版本历史（远端已废弃）
+  - 仓库描述改读本地 `scripts/config/repo_descriptions.json`（原 GitHub API 不可用）
+  - 新增 `deploy_cloudflare_pages.sh`：本地全量构建（copy_content → sync-tabs → build:guides → build → validate）+ `wrangler pages deploy` + 频道 TG 通知
+  - `trigger_site_rebuild.sh` 改为兼容入口，直接转发到部署脚本
+  - 频道通知从 GitHub Actions Secrets 移回本地（token 从环境变量/既有默认值读取，不硬编码）
 
 ### v2.5.0 (2026-10-02)
 - 🚀 **站点 SEO/GEO 大版本改造同步**：站点从「可索引单元=月份归档页」升级为「每条资源一个独立详情页 `/r/{id}`」，同步发布端合同
@@ -140,7 +150,7 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 当用户提供夸克分享链接并需要执行以下任一操作时：
 - 批量转存夸克资源
 - 生成永久加密分享链接
-- 发布到 mswnlz GitHub 仓库
+- 发布到本地内容目录（mswnlz-github/ 下 11 个内容仓库）
 - 更新站点内容
 
 ## 工作区约定
@@ -155,8 +165,8 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 ## 安全要求
 
 - **不要**在聊天中粘贴或回显 Token
-- **优先**使用 GitHub SSH 方式（`git@github.com:...`）
-- 如需 GitHub API，通过环境变量 `GITHUB_TOKEN` 传入，**不要写入文件**
+- Cloudflare 凭据用 `wrangler login` 保存在本机，**不要**把 API token 写入脚本或仓库
+- 部署需要时代理：脚本会自动检测 127.0.0.1:7798 并使用
 - **Telegram Token 必须通过环境变量配置**（见下方）
 
 ## 环境变量配置
@@ -178,8 +188,9 @@ export TG_GROUP_4_THREAD=""                # 群组 4 话题 ID
 # Telegram 频道 ID（可选）
 export TELEGRAM_CHANNEL_ID="@your_channel"
 
-# GitHub Token（可选，用于 API 调用）
-export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
+# Cloudflare（部署用，wrangler login 一次即可，无需环境变量）
+# 可选覆盖 Pages 项目名（默认 doc869hr）
+export CF_PAGES_PROJECT="doc869hr"
 ```
 
 ⚠️ **安全提示**：
@@ -247,18 +258,18 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
 ### 4) 自动归类到 mswnlz 仓库
 
 使用 `scripts/mswnlz_publish.py`：
-1. 调用 GitHub API 获取 mswnlz 组织仓库列表
+1. 读取本地 `scripts/config/repo_descriptions.json` 获取各内容目录描述
 2. 根据标题关键词分层归类（v1.4.4）：
    - **第一关 视频/影视类**：命中分辨率（4K/超清/蓝光/1080P）、影视短语（电影/纪录片/电视剧）、集数标识（全X集/第X集）、视频后缀 → `movies`
    - **第二关 书籍类**：书/书单/新书/电子书/杂志、X册/X本 → `book`（不再用"合集"归书）
    - **第三关 回退匹配**：前两关未命中时，根据仓库 description 关键词模糊评分
-3. 克隆/更新本地仓库（SSH 方式）
+3. 使用本地内容目录（`MSWNLZ_ROOT` 下，GitHub 克隆已废弃）
 4. 追加到 `<YYYYMM>.md`，只写资源源数据，不生成网站页面结构：
    ```
    [{标题}]({分享链接})
    ```
 5. 更新 `README.md` 月份索引（保持倒序）
-6. Git commit + push
+6. 本地 Git commit（保留版本历史，不推远端）
 7. **发送统一的 Telegram 群组通知**（多仓库更新只发一条汇总消息）
 
 ### 4.5) 站点设计与 SEO 合同
@@ -270,25 +281,25 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
 - 站点提供 `docs/public/llms.txt` 作为 GEO 入口；网盘外链统一 `nofollow`
 - 发布脚本不得写入 `docs/public/{category}/*.md`
 - 发布脚本不得生成 `<ResourceTabs :months>`、分类首页、广告容器或页面布局代码
-- 新资源只提交到对应内容仓库的 `YYYYMM.md`，站点 CI 会复制内容仓库并重新生成 catalog 与详情页
+- 新资源只提交到对应内容目录的 `YYYYMM.md`，部署脚本会复制内容目录并重新生成 catalog 与详情页
 - 站点校验链：`npm test`（源码契约）→ `npm run build`（含 prebuild 生成 catalog + 详情页）→ `npm run validate`（catalog/sitemap/nofollow/JSON-LD 产物校验）
 
-### 5) 触发站点重建
+### 5) 构建并部署站点（Cloudflare Pages）
 
-使用 `scripts/trigger_site_rebuild.sh`：
-1. 定位 `mswnlz.github.io` 仓库（可用 `MSWNLZ_SITE_REPO` 覆盖）
-2. 拉取 main 最新代码
-3. 执行 `npm test` → `npm run build` → `npm run validate`
-4. 不提交本地 dist/catalog/`docs/r/` 构建噪音
-5. 创建空提交并 push 到 main，触发 GitHub Actions 构建
+使用 `scripts/deploy_cloudflare_pages.sh`（`trigger_site_rebuild.sh` 为兼容入口）：
+1. 定位站点仓库（可用 `MSWNLZ_SITE_REPO` 覆盖）
+2. 幂等建立 `content-source/` 软链（本地 11 个内容目录 + duanku-guides）
+3. 执行 copy_content → sync-tabs → build:guides → `npm run build` → `npm run validate`
+4. `wrangler pages deploy docs/.vitepress/dist --project-name=doc869hr --branch=main`（首次需 `wrangler login`）
+5. 部署成功后向频道 @dabaziyuan 发送上线通知（`SKIP_NOTIFY=1` 跳过）
 
 ### 6) 返回结果
 
 返回给用户：
 - 批次文件夹名称
 - 所有分享链接（含提取码）
-- 每个项目的目标仓库 + 文件路径
-- Actions 运行 URL
+- 每个项目的目标内容目录 + 文件路径
+- 部署 URL（https://doc869hr.pages.dev）
 - 站点 URL（https://doc.869hr.uk）
 
 ### 7) 生成夸克群组消息 🆕
@@ -321,9 +332,8 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
 ## Telegram 通知机制
 
 ### 频道通知（@dabaziyuan）
-- **每条资源单独发送**
-- 包含：资源名称 + GitHub 链接
-- 由 GitHub Workflow 自动触发
+- 部署脚本在 Cloudflare Pages 上线成功后发送站点更新通知
+- token 从 `TELEGRAM_BOT_TOKEN` 环境变量读取，未设置时复用既有 notify_telegram.py 默认值
 
 ### 群组通知（tgmShare 话题5、tgmShareAI 话题2、群组4）
 - **批量更新只发一条汇总消息**
@@ -413,7 +423,7 @@ python scripts/cleanup_junk_files.py \
 
 ### scripts/mswnlz_publish.py
 
-发布到 GitHub 仓库 + 发送 Telegram 群组通知。
+发布到本地内容目录 + 构建/部署 Cloudflare Pages + 发送 Telegram 群组通知。
 
 ```bash
 python scripts/mswnlz_publish.py \
@@ -431,8 +441,8 @@ python scripts/mswnlz_publish.py \
 ```
 
 **依赖**：
-- Git SSH 配置
-- 可选：`GITHUB_TOKEN` 环境变量
+- 本地内容目录（`MSWNLZ_ROOT`，默认 `mswnlz-github/`）
+- 站点部署依赖 wrangler 已登录（`npx wrangler login`）
 
 ### scripts/pipeline_orchestrator.py 🆕
 
