@@ -759,6 +759,12 @@ def generate_post_content(video_info, config, category, tags, body_md=""):
     body_md = remove_redundant_browser_notice_lines(body_md)
 
     video_id = video_info['id']
+    if not re.fullmatch(r'[A-Za-z0-9_-]{11}', str(video_id)):
+        raise ValueError('A valid 11-character YouTube video ID is required')
+    if type(video_info.get('duration')) not in (int, float) or not (0 < video_info['duration'] < float('inf')):
+        raise ValueError('Verified positive video duration is required')
+    if not video_info.get('upload_date'):
+        raise ValueError('Verified video upload date is required; do not substitute the blog creation date')
     title = video_info['title']
     description = video_info.get('description', '')
     thumbnail = video_info.get('thumbnail', '')
@@ -770,7 +776,7 @@ def generate_post_content(video_info, config, category, tags, body_md=""):
     # Use current time as post date (not video upload time)
     date_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     upload_date = normalize_video_upload_date(
-        video_info.get('upload_date') or datetime.now().astimezone().isoformat(timespec='seconds')
+        video_info['upload_date']
     )
 
     # Generate tags list - normalize to standard tags
@@ -1340,7 +1346,7 @@ def main():
             'title': sanitize_text_for_yaml(args.prefill_title),
             'description': args.prefill_description or '',
             'uploader': args.prefill_uploader or '',
-            'upload_date': args.prefill_upload_date or datetime.now().astimezone().isoformat(),
+            'upload_date': args.prefill_upload_date or '',
             'duration': args.prefill_duration or 0,
             'thumbnail': '',
             'tags': args.tags if isinstance(args.tags, list) else [args.tags],

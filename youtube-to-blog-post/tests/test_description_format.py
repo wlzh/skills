@@ -13,6 +13,13 @@ SPEC.loader.exec_module(blog)
 
 
 class DescriptionFormatTests(unittest.TestCase):
+    def test_generation_rejects_unverified_video_metadata(self):
+        valid = {'id': 'abc123XYZ12', 'duration': 60, 'upload_date': '2026-10-01T00:00:00Z'}
+        for field, value in [('id', 'short'), ('duration', 0), ('duration', True),
+                             ('duration', float('nan')), ('duration', float('inf')), ('upload_date', '')]:
+            with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                blog.generate_post_content({**valid, field: value}, {}, 'tech', [])
+
     def test_video_upload_date_normalizes_yt_dlp_compact_date(self):
         self.assertEqual(
             blog.normalize_video_upload_date("20250726"),
@@ -103,7 +110,7 @@ echo "安装完成"
 """
         content = blog.generate_post_content(
             {
-                "id": "abc123XYZ",
+                "id": "abc123XYZ12",
                 "title": "命令行工具安装教程",
                 "description": "介绍命令行工具的安装、配置、验证方法与常见问题。",
                 "uploader": "频道",
@@ -130,7 +137,7 @@ echo "安装完成"
         )
         content = blog.generate_post_content(
             {
-                "id": "abc123XYZ",
+                "id": "abc123XYZ12",
                 "title": "测试教程",
                 "description": description,
                 "uploader": "频道",
@@ -149,7 +156,7 @@ echo "安装完成"
     def test_video_front_matter_and_tag_limit(self):
         content = blog.generate_post_content(
             {
-                "id": "abc123XYZ",
+                "id": "abc123XYZ12",
                 "title": "Oracle Cloud 免费 VPS 完整教程",
                 "description": "介绍 Oracle Cloud 免费 VPS 的注册、配置、验证方法与常见问题。",
                 "uploader": "频道",
@@ -161,7 +168,7 @@ echo "安装完成"
             "网络与 VPS",
             ["VPS", "Oracle", "云服务器", "教程", "免费资源", "多余标签"],
         )
-        self.assertIn("video_id: abc123XYZ", content)
+        self.assertIn("video_id: abc123XYZ12", content)
         self.assertIn("video_duration: 252", content)
         self.assertIn('video_upload_date: "2026-07-22T12:00:00+08:00"', content)
         self.assertIn("excerpt:", content)

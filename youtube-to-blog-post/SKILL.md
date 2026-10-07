@@ -1,8 +1,8 @@
 ---
 name: youtube-to-blog-post
 description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and canonical 5-8 keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
-version: 4.8.7
-changelog: "v4.8.7: Factual body-derived summaries, duplicate URL protection and scoped audited publication. See references/SEARCH-PUBLISH.md."
+version: 4.9.0
+changelog: "v4.9.0: Require verified video metadata; inherit full-site search publication gates. See references/SEARCH-PUBLISH.md."
 ---
 
 ## 搜索发布契约

@@ -1,4 +1,8 @@
-# Search publication (4.8.7, 2026-10-01)
+# Search publication (4.9.0, 2026-10-07)
+
+New video articles require an actual 11-character video ID, positive duration and verified upload date. Missing prefilled upload dates must fail, never fall back to the current date. The blog's 2.8.0 release gate inventories all rendered routes and fields; hidden/password/private/noindex content is excluded from discovery feeds and watch pages. FAQ schema is explicit opt-in for visible factual FAQ only.
+
+Use the canonical `npm run publish` contract, including post-deploy live checks and downstream knowledge/resource synchronization. IndexNow runs only after deployment and matching public content; acceptance does not establish indexing. Refer to the blog's `docs/site-search-governance.md` for the field matrix, source/build snapshot gate and bounded retry procedure. Do not generate unrelated old-post rewrites or new media as part of an SEO-only maintenance run.
 
 Prefer actual blog body sentences for descriptions. Do not invent steps, FAQ or deployment coverage from the title. Short factual descriptions are acceptable and receive an advisory, not padding. The 160-character limit is a project convention, not a fixed Google snippet rule.
 
