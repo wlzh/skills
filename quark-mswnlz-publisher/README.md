@@ -1,10 +1,10 @@
 # quark-mswnlz-publisher
 
-**版本**: v2.5.0
+**版本**: v2.7.0
 
 夸克网盘 / 百度网盘 / 阿里云盘 → 本地内容目录 → Cloudflare Pages 站点更新，一条龙发布。
 
-> ⚠️ 2026-10-03 起 GitHub 托管废弃（两账号接连被封），内容仅本地版本管理，站点部署 Cloudflare Pages（doc.869hr.uk）。
+> 2026-10-07 起，已校验资源站源码备份到 Gitee 私有仓库，站点部署 Cloudflare Pages（doc.869hr.uk）；旧 GitHub 历史不复制，避免带入已删除凭据与缓存。
 
 支持三网盘混合输入、多账号轮换、多群组通知。
 
@@ -33,9 +33,9 @@
 | 自动生成分享链接 | 永久有效期 + 加密链接 + 随机提取码 |
 | 智能分类 | 三层关键词策略，自动归类到 book/movies/AIknowledge 等仓库 |
 | 自动落盘 | 追加/新建 `YYYYMM.md` + 更新 README 月份索引 |
-| 自动提交 | 本地 git commit（远端已废弃） |
+| 自动提交 | 本地 git commit + Gitee 私有源码快照 |
 | Telegram 通知 | 频道单条 + 多群组汇总通知 |
-| 站点部署 | 构建校验通过后 `wrangler pages deploy` 到 Cloudflare Pages |
+| 站点部署 | 构建校验通过后先备份 Gitee 私有仓库，再 `wrangler pages deploy` 到 Cloudflare Pages |
 | SEO 兼容 | 只写资源源文件，站点通过构建期 catalog 生成检索目录 |
 
 ---
@@ -80,7 +80,7 @@
 ### 系统要求
 - macOS / Linux
 - Python 3.10+
-- Git（本地版本管理）+ wrangler（`npx wrangler login` 一次）
+- Git（本地版本管理 + Gitee 私有备份）+ wrangler（`npx wrangler login` 一次）
 - Chrome/Chromium 浏览器（夸克登录用 Playwright）
 
 ### 外部依赖
@@ -435,7 +435,7 @@ python scripts/quark_account_rotator.py --config-dir ./config force 2  # 强制�
 ### 内容发布
 - 自动分类到本地内容目录（11 个分类目录 + 站点仓库）
 - 追加到 `YYYYMM.md`，更新 `README.md` 月份索引
-- 本地 commit（远端 GitHub 已废弃）
+- 本地 commit + Gitee 私有快照备份（远端 GitHub 已废弃）
 
 ### 分类规则（v1.4.4 三层策略）
 
@@ -524,6 +524,11 @@ items.json
 ---
 
 ## 📜 更新日志
+
+### v2.7.0 (2026-10-07)
+- 构建和校验成功后，将清理后的源码树备份到 Gitee 私有仓库，再部署 Cloudflare Pages。
+- 资源站发布前必须是干净工作区；只提交本次生成的 `docs/` 变化并执行敏感模式检查。
+- Gitee 使用独立快照历史，避免复制旧 GitHub 历史中已删除的凭据与缓存。
 
 ### v2.6.0 (2026-10-03)
 - 🚨 **GitHub → Cloudflare Pages 大迁移**：GitHub 账号接连被封（mswnlz → kingcolixhs-max），托管链路彻底切换

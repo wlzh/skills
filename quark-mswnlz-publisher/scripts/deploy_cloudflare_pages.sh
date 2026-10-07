@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # Cloudflare Pages 部署脚本（取代 GitHub Actions deploy.yml）
-# 背景：GitHub 账号两次被封（mswnlz / kingcolixhs-max），站点永久迁移 Cloudflare Pages。
-# 流程：本地全量构建 VitePress → wrangler pages deploy → 频道 Telegram 通知。
+# 流程：本地全量构建 VitePress → 校验 → Gitee 私有快照 → Cloudflare Pages → Telegram 通知。
 # 依赖：content-source/ 软链到本地 11 个内容仓库 + duanku-guides；wrangler 已登录。
 
 CF_PROJECT_NAME="${CF_PAGES_PROJECT:-doc869hr}"
@@ -94,27 +93,36 @@ cd "$REPO_DIR"
 
 ensure_content_source
 
+if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+  echo "资源站源码仓库存在发布前变更；请先独立审查提交，避免自动备份混入人工改动。" >&2
+  git status --short >&2
+  exit 1
+fi
+
 export SOURCE_BASE_DIR=./content-source TARGET_DOCS_DIR=./docs CONTENT_SOURCE_DIR=./content-source
 export DUANKU_GUIDES_DIR=./content-source/duanku-guides ENABLE_ADSENSE=false
 
-echo "=== [1/5] 同步内容 copy_content.sh"
+echo "=== [1/7] 同步内容 copy_content.sh"
 bash ./copy_content.sh
 
-echo "=== [2/5] 同步目录页签 sync-tabs.sh"
+echo "=== [2/7] 同步目录页签 sync-tabs.sh"
 bash ./scripts/sync-tabs.sh --auto
 
 # fetch-commits 依赖 GitHub API（仓库已随账号封禁不可用），沿用仓库内现有 commits.json
-echo "=== [3/5] 构建教程枢纽 build:guides"
+echo "=== [3/7] 构建教程枢纽 build:guides"
 npm run build:guides
 
-echo "=== [4/5] 构建 VitePress"
+echo "=== [4/7] 构建 VitePress"
 npm run build
 
-echo "=== [5/5] 校验产物"
+echo "=== [5/7] 校验产物"
 npm run validate
 
+echo "=== [6/7] 备份已校验源码到 Gitee 私有仓库"
+bash ./scripts/push-gitee-backup.sh
+
 ensure_proxy
-echo "=== 部署 Cloudflare Pages（项目：${CF_PROJECT_NAME}）"
+echo "=== [7/7] 部署 Cloudflare Pages（项目：${CF_PROJECT_NAME}）"
 wrangler pages deploy docs/.vitepress/dist \
   --project-name="${CF_PROJECT_NAME}" \
   --branch=main \

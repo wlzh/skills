@@ -5,13 +5,18 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
-**版本**: v2.6.0
+**版本**: v2.7.0
 
 夸克网盘 / 百度网盘 / 阿里云盘 → 本地内容目录 → Cloudflare Pages 站点更新，一条龙发布。
 
-> ⚠️ 2026-10-03 起 GitHub 托管已废弃（mswnlz、kingcolixhs-max 两账号接连被封），内容仓库仅存本地，站点部署到 Cloudflare Pages（项目 `doc869hr`，域名 doc.869hr.uk）。
+> 2026-10-07 起，站点部署到 Cloudflare Pages（项目 `doc869hr`，域名 doc.869hr.uk），已校验源码同步到 Gitee 私有仓库；旧 GitHub 历史不复制，避免带入已删除凭据与缓存。
 
 支持三网盘混合输入、多账号轮换、多群组通知。
+
+### v2.7.0 (2026-10-07)
+- 资源站构建校验后先备份到 Gitee 私有仓库，再部署 Cloudflare Pages。
+- 发布入口要求资源站源码工作区预先干净；仅提交本次生成的 `docs/` 变化，防止混入人工修改。
+- Gitee 使用当前清理树开始的独立快照历史，旧 GitHub 凭据和缓存历史不得镜像。
 
 ## 更新日志
 
@@ -281,7 +286,7 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
    [{标题}]({分享链接})
    ```
 5. 更新 `README.md` 月份索引（保持倒序）
-6. 本地 Git commit（保留版本历史，不推远端）
+6. 本地 Git commit，并将已校验源码树备份到 Gitee 私有仓库（不镜像旧 GitHub 历史）
 7. **发送统一的 Telegram 群组通知**（多仓库更新只发一条汇总消息）
 
 ### 4.5) 站点设计与 SEO 合同
