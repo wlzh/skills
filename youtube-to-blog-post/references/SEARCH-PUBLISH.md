@@ -1,4 +1,4 @@
-# Search publication (4.9.0, 2026-10-07)
+# Search publication (4.10.0, 2026-10-08)
 
 New video articles require an actual 11-character video ID, positive duration and verified upload date. Missing prefilled upload dates must fail, never fall back to the current date. The blog's 2.8.0 release gate inventories all rendered routes and fields; hidden/password/private/noindex content is excluded from discovery feeds and watch pages. FAQ schema is explicit opt-in for visible factual FAQ only.
 
@@ -9,6 +9,8 @@ Prefer actual blog body sentences for descriptions. Do not invent steps, FAQ or 
 Before publishing, provide two relevant root-relative article links and verify their destinations. Run strict single-post SEO and full build audits. Standalone auto-deploy commits only the generated post and its local cover, refuses existing staging or unrelated changes, and uses the blog's `npm run publish` (including downstream synchronization). `--no-deploy` always suppresses auto-deploy. Failures return nonzero.
 
 Existing filenames are rejected without writing timestamp duplicates. Resume upstream with `--blog-post`; preserve date, category and permalink. Hidden content stays noindex until explicitly released, then must pass checks again.
+
+YouTube playlists are author-managed. This Skill records the exact `video_id` and uses the blog's shared publisher, but must not add/remove playlist items or infer a permanent topic from title keywords. After the author maintains playlists and requests notification, the notification pipeline performs a new strict playlist export, topic build, deployment and public-fingerprint verification. Failures block notification and are retried without regenerating the article or uploading another video.
 
 ## Earlier front-matter history
 

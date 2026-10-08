@@ -1,10 +1,10 @@
 ---
 name: youtube-publisher
 description: "Upload and fully manage YouTube videos and live events: metadata, thumbnails, captions, playlists, scheduled broadcasts, encoder streams, binding, lifecycle transitions, and cleanup."
-version: 1.8.3
+version: 1.9.0
 setup_complete: true
 setup: "./SETUP.md"
-changelog: "v1.8.3: youtube-update-description.ts v1.8 章节显示契约门禁——描述章节不满足 YouTube 规则（首章 0:00 / 每章 ≥10s / ≥3 章）时拒绝上传（exit 3），防止播放轴无章节的静默失效。Full history: references/CHANGELOG.md."
+changelog: "v1.9.0: Document read-only playlist export for author-managed blog topics; exporters never mutate playlists. Full history: references/CHANGELOG.md."
 ---
 
 ## 🔴 Strict Execution Rule (Highest Priority)
@@ -100,6 +100,8 @@ npx ts-node youtube-upload.ts \
 ## Playlist catalog export
 
 Export every public playlist owned by the authenticated channel, including ordered video IDs and thumbnails. The blog synchronizer consumes this deterministic JSON to build `/series/`, GitHub series pages, and the resource-site guide hub.
+
+This command is read-only. The author manually maintains playlist membership before requesting the final notification; `export-playlists.ts` must never add, remove, reorder or infer playlist membership. The notification pipeline performs a fresh export, deploys the blog topic pages and verifies their public fingerprint before sending.
 
 ```bash
 cd ~/.codex/skills/youtube-publisher/scripts
