@@ -53,7 +53,7 @@ ensure_proxy() {
   fi
 }
 
-# 频道通知：token 只从环境变量读；未设置时从既有 notify_telegram.py 的默认值兜底（不新增硬编码副本）
+# 频道通知：优先读取环境变量；未设置时复用统一的本机 Secret 加载器（不新增硬编码副本）
 send_channel_notify() {
   [ "$SKIP_NOTIFY" = "1" ] && { echo "[notify] SKIP_NOTIFY=1 跳过"; return 0; }
   local bot_token="${TELEGRAM_BOT_TOKEN:-}"
@@ -62,8 +62,8 @@ send_channel_notify() {
 import sys
 sys.path.insert(0, "/Users/m/document/QNSZ/project/skills_wlzh_pri/duanku-youtube-publish/scripts")
 try:
-    from notify_telegram import DEFAULT_BOT_TOKEN
-    print(DEFAULT_BOT_TOKEN)
+    from notify_telegram import _default_bot_token
+    print(_default_bot_token())
 except Exception:
     pass
 PY

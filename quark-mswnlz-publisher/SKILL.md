@@ -350,7 +350,7 @@ items.json ── 百度 ─→ baidu_batch_run.py  ──→ batch_share_result
 
 ### 频道通知（@dabaziyuan）
 - 部署脚本在 Cloudflare Pages 上线成功后发送站点更新通知
-- token 从 `TELEGRAM_BOT_TOKEN` 环境变量读取，未设置时复用既有 notify_telegram.py 默认值
+- token 优先从 `TELEGRAM_BOT_TOKEN` 环境变量读取；未设置时由 `notify_telegram.py` 从 `~/.config/wlzh/telegram.env` 读取本机共享 Secret，不在 Git 跟踪文件中保存 Token
 
 ### 群组通知（tgmShare 话题5、tgmShareAI 话题2、群组4）
 - **批量更新只发一条汇总消息**
