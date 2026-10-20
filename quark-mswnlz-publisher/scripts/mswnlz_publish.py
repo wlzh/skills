@@ -551,6 +551,11 @@ def main():
     print(group_msg)
     print("-" * 40)
 
+    # Publish and verify the production site before sending resource links.
+    if updated_repos and not args.dry_run:
+        print(f"\n[网站] 触发站点重建并验证正式域名...")
+        trigger_site_rebuild()
+
     # 统一发送群组通知（dry-run 跳过）
     if updated_repos and not args.dry_run:
         print(f"\n[TG] 发送群组汇总通知...")
@@ -558,11 +563,7 @@ def main():
     elif args.dry_run:
         print(f"\n[dry-run] 跳过 TG 通知")
 
-    # 触发网站更新（dry-run 跳过）
-    if updated_repos and not args.dry_run:
-        print(f"\n[网站] 触发站点重建...")
-        trigger_site_rebuild()
-    elif args.dry_run:
+    if args.dry_run:
         print(f"[dry-run] 跳过站点重建")
 
     print("")
@@ -594,11 +595,11 @@ def trigger_site_rebuild():
                 tail = "\n".join(result.stdout.splitlines()[-12:])
                 print(tail)
             else:
-                print(f"[WARN] 站点部署失败: {result.stderr[-500:]}")
+                raise RuntimeError(f"站点部署失败: {result.stderr[-500:]}")
         except Exception as e:
-            print(f"[WARN] 站点部署异常: {e}")
+            raise RuntimeError(f"站点部署异常: {e}") from e
     else:
-        print(f"[WARN] trigger_site_rebuild.sh 不存在，跳过站点部署")
+        raise RuntimeError("trigger_site_rebuild.sh 不存在，停止发布")
 
 
 if __name__ == "__main__":

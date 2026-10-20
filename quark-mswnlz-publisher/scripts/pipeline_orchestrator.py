@@ -565,7 +565,7 @@ def main():
         print(f"# 发布（本地提交 + TG通知 + Cloudflare Pages 部署）")
         print(f"{'#'*60}")
 
-        run_script(
+        publish_result = run_script(
             [
                 PYTHON,
                 str(SCRIPTS_DIR / "mswnlz_publish.py"),
@@ -575,6 +575,8 @@ def main():
             cwd=str(QUARKPANTOOL_DIR),
             label="发布",
         )
+        if not publish_result["success"]:
+            raise SystemExit("站点发布失败；保留批次结果，仅重试部署，不要重复转存资源。")
     else:
         print(f"\n{'#'*60}")
         print(f"# [dry-run] 跳过发布")

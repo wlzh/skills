@@ -5,6 +5,19 @@ description: "Automate the full QuarkPanTool → mswnlz GitHub content publishin
 
 # quark-mswnlz-publisher
 
+## Cloudflare deployment credentials (2026-10-20)
+
+The resource site now targets `kingcolixhs@gmail.com`, account
+`ff9ae38b2050743cef380268109348c6`, project `doc869hr`.
+Its assigned hostname is `doc869hr-6r4.pages.dev`; do not infer it from the
+project name. The public hostname remains `doc.869hr.uk`.
+Load the dedicated `~/.config/doc869hr/cloudflare.env`; never change the
+shared Wrangler login. The deployment script uses an isolated working directory,
+runs source tests, and verifies the release marker on the production hostname
+before notifications. See `CLOUDFLARE_MIGRATION.md` for cutover and rollback.
+Historical instructions below that suggest `wrangler login` or the old
+`doc869hr.pages.dev` target are superseded by this section.
+
 **版本**: v2.7.0
 
 夸克网盘 / 百度网盘 / 阿里云盘 → 本地内容目录 → Cloudflare Pages 站点更新，一条龙发布。

@@ -5,13 +5,27 @@ set -euo pipefail
 # 流程：本地全量构建 VitePress → 校验 → Gitee 私有快照 → Cloudflare Pages → Telegram 通知。
 # 依赖：content-source/ 软链到本地 11 个内容仓库 + duanku-guides；wrangler 已登录。
 
-CF_PROJECT_NAME="${CF_PAGES_PROJECT:-doc869hr}"
-
 # 自动加载 secrets.env（与 mswnlz_publish.py 的 SECRETS_ENV 约定一致；已 gitignore）
 SECRETS_ENV="/Users/m/document/QNSZ/project/QuarkPanTool/config/secrets.env"
 if [ -f "$SECRETS_ENV" ]; then
   set -a; . "$SECRETS_ENV"; set +a
 fi
+# Project credentials must not replace the shared Wrangler login.
+CF_ENV="${DOC869HR_CF_ENV:-$HOME/.config/doc869hr/cloudflare.env}"
+if [ ! -f "$CF_ENV" ]; then
+  echo "Missing project credentials: $CF_ENV" >&2
+  exit 1
+fi
+set -a
+. "$CF_ENV"
+set +a
+CF_PROJECT_NAME="${CF_PAGES_PROJECT:-doc869hr}"
+if [ "${CLOUDFLARE_ACCOUNT_ID:-}" != "ff9ae38b2050743cef380268109348c6" ] || [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+  echo "Expected kingcolixhs account and a dedicated Pages API token." >&2
+  exit 1
+fi
+export CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKIP_NOTIFY="${SKIP_NOTIFY:-0}"
 SITE_REPO="${MSWNLZ_SITE_REPO:-}"
 
@@ -91,6 +105,8 @@ REPO_DIR="$(find_site_repo)" || {
 }
 cd "$REPO_DIR"
 
+ensure_proxy
+python3 "$SCRIPT_DIR/verify_pages_release.py" --preflight
 ensure_content_source
 
 if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
@@ -113,6 +129,7 @@ echo "=== [3/7] 构建教程枢纽 build:guides"
 npm run build:guides
 
 echo "=== [4/7] 构建 VitePress"
+npm test
 npm run build
 
 echo "=== [5/7] 校验产物"
@@ -122,11 +139,20 @@ echo "=== [6/7] 备份已校验源码到 Gitee 私有仓库"
 bash ./scripts/push-gitee-backup.sh
 
 ensure_proxy
+python3 "$SCRIPT_DIR/verify_pages_release.py" --stamp docs/.vitepress/dist
 echo "=== [7/7] 部署 Cloudflare Pages（项目：${CF_PROJECT_NAME}）"
-wrangler pages deploy docs/.vitepress/dist \
+# Wrangler 3 may prefer a cached Pages account over the environment.
+# An isolated working directory prevents old project cache from selecting it.
+DEPLOY_WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$DEPLOY_WORK_DIR"' EXIT
+(
+cd "$DEPLOY_WORK_DIR"
+wrangler pages deploy "$REPO_DIR/docs/.vitepress/dist" \
   --project-name="${CF_PROJECT_NAME}" \
   --branch=main \
   --commit-dirty=true
+)
 
-echo "=== 部署完成：https://${CF_PROJECT_NAME}.pages.dev （自定义域名 doc.869hr.uk）"
+python3 "$SCRIPT_DIR/verify_pages_release.py" --verify docs/.vitepress/dist
+echo "=== 正式域名已验证：https://doc.869hr.uk"
 send_channel_notify
