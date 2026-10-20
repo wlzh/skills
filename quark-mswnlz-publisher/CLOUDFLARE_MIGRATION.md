@@ -49,6 +49,11 @@ and the observation window has passed. DNS remains in the old account.
   now uses curl without weakening zone security; API tokens are passed on stdin.
 - This is automatic deployment from the existing publishing pipeline, not a
   new filesystem watcher or GitHub push-triggered build.
+- Final full publishing run exited 0 with `SKIP_NOTIFY=1`: deployment
+  `4e8f972f-c647-47a7-b190-eaa08c1000b6`, production domain `active`, both release
+  markers and public routes verified. No test notifications were sent.
+- Validation covered 1,073 resources, 11 categories, 1,142 sitemap URLs and
+  1,161 generated pages; 10 new release/failure unit tests passed.
 
 ## Rollback
 
