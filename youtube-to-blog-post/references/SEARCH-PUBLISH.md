@@ -4,6 +4,8 @@
 
 Keywords prefer body_md when supplied. Both keywords and descriptions exclude fenced code and the fixed resource appendix beginning at the established channel/resource markers. Published body and appended YouTube description are preserved, including intentional fixed sections; upstream intentional image removal is unchanged. Explicit user tags still require relevance review. Do not claim SEO ranking or ad eligibility from these checks.
 
+Product-name recognition must not expand into undocumented features: a Happy/Claude Code title does not prove encryption or remote-development coverage, and Cloudflare/email does not imply D1, KV, Workers or a free plan. Keywords can remain shorter than the nominal target when evidence is sparse.
+
 Blog 2.9.1 blocks empty Q/A placeholders and invalid ads flags. Strict per-post checks and full build/live/downstream checks remain mandatory with IMAGE_OPTIMIZE=off. Official-source fact review cannot be replaced by heuristic checks. SEO maintenance does not upload another video or turn on resource-site ads.
 
 New video articles require an actual 11-character video ID, positive duration and verified upload date. Missing prefilled upload dates must fail, never fall back to the current date. The blog's 2.8.0 release gate inventories all rendered routes and fields; hidden/password/private/noindex content is excluded from discovery feeds and watch pages. FAQ schema is explicit opt-in for visible factual FAQ only.

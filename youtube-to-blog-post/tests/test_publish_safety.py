@@ -42,6 +42,14 @@ class PublishSafetyTests(unittest.TestCase):
         summary = blog.generate_seo_description('Happy Claude Code', '')
         self.assertNotIn('自建中继', summary)
 
+    def test_keywords_do_not_invent_product_features(self):
+        happy = blog.extract_semantic_keywords('Happy Claude Code', '产品介绍。')
+        self.assertNotIn('E2EE加密', happy)
+        self.assertNotIn('远程开发', happy)
+        mail = blog.extract_semantic_keywords('Cloudflare 邮箱', '邮箱设置介绍。')
+        for keyword in ['D1数据库', 'KV缓存', '免费邮箱', 'Workers']:
+            self.assertNotIn(keyword, mail)
+
     def test_publisher_requires_scoped_post(self):
         with self.assertRaises(ValueError):
             blog.deploy_to_git('/tmp')

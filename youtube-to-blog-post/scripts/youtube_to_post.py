@@ -580,33 +580,13 @@ def extract_semantic_keywords(title, description=''):
         if keyword not in keywords:
             keywords.append(keyword)
 
-    # Topic-specific bundles prevent Chinese titles from turning into noisy fragments.
+    # Recognize actual product names, without inventing covered features.
     if 'claude code' in text_lower and 'happy' in text_lower:
-        for keyword in [
-            'Claude Code',
-            'Happy',
-            '手机远程控制',
-            'Happy安装配置',
-            'Claude Code远程控制',
-            '手机控制Claude Code',
-            'E2EE加密',
-            '远程开发',
-            '小白教程',
-        ]:
+        for keyword in ['Claude Code', 'Happy']:
             add(keyword)
 
     if 'cloudflare' in text_lower and '邮箱' in text:
-        for keyword in [
-            'Cloudflare',
-            'Cloudflare临时邮箱',
-            '域名邮箱',
-            '免费邮箱',
-            'Workers',
-            'D1数据库',
-            'KV缓存',
-            '小白教程',
-        ]:
-            add(keyword)
+        add('Cloudflare')
 
     phrase_keywords = [
         ('临时邮箱', '临时邮箱'),
