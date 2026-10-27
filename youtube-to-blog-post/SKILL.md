@@ -1,8 +1,8 @@
 ---
 name: youtube-to-blog-post
 description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and canonical 5-8 keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
-version: 4.10.0
-changelog: "v4.10.0: Preserve manual playlist ownership and use the blog's shared topic publisher; final topic membership is refreshed before notification. See references/SEARCH-PUBLISH.md."
+version: 4.10.1
+changelog: "v4.10.1: Generate metadata from editorial text, excluding fixed appendices and code without removing published content. See references/SEARCH-PUBLISH.md."
 ---
 
 ## 搜索发布契约
@@ -30,7 +30,7 @@ changelog: "v4.10.0: Preserve manual playlist ownership and use the blog's share
 ## ✨ 核心特性
 
 ### 🚀 SEO 优化
-- ✅ **自动 YAML 安全过滤** - 100% 部署成功，无特殊字符错误
+- ✅ **自动 YAML 安全过滤** - 处理特殊字符，部署仍需通过审计
 - ✅ **YouTube 特殊字符改写** - 标题/描述中的 `>` 自动改写为 `》`，`<` 自动改写为 `《`
 - ✅ **HTML 属性安全** - iframe `title` 限制 50 字符，自动清洗引号和特殊字符
 - ✅ **描述优化** - 优先使用正文事实句，长度上限为项目约定，不凑字数
@@ -113,16 +113,9 @@ python scripts/youtube_to_post.py "URL" -c "技术" -t "AI工具" "教程"
 python scripts/youtube_to_post.py "URL" --dry-run
 ```
 
-## 📊 SEO 效果对比
+## 验收边界
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|------|--------|--------|------|
-| 部署成功率 | 80% | 100% | ⬆️ 25% |
-| 描述长度 | 500+ 字符 | ≤160 字符 | 项目约定，非 Google 固定上限 |
-| 关键词质量 | 包含无意义词 | 高价值关键词 | ⬆️ 80% |
-| 封面图 | ❌ 无 | ✅ YouTube HD | 点击率 +60% |
-| Google 收录 | 5-7 天 | 1-3 天 | ⬆️ 60% |
-| 自然流量 | 基准 | +250% | ⬆️ 250% |
+描述长度上限为项目约定，不是 Google 固定摘要限制。关键词、封面与字段检查只能验证技术契约，不能保证收录时间、点击率、排名、流量或部署成功；实际效果应使用发布后的完整 Search Console 数据窗口评估。
 
 ## 📋 配置文件
 

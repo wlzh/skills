@@ -10,6 +10,25 @@ spec.loader.exec_module(blog)
 
 
 class PublishSafetyTests(unittest.TestCase):
+    def test_fixed_appendix_is_excluded_from_metadata_not_body(self):
+        body = 'Telegram 登录排查，先检查已有设备上的官方验证码与当前账号的验证方式。'
+        appendix = '\n## 短信及语音接码平台\nVPS Codex OpenAI 推荐\n' + '固定资源内容。' * 40
+        self.assertEqual(blog.editorial_text(body + appendix), body)
+        keywords = blog.generate_seo_keywords('Telegram 登录', body + appendix, ['Telegram'])
+        self.assertNotIn('VPS', keywords)
+        self.assertNotIn('Codex', keywords)
+        self.assertEqual(blog.generate_seo_description('Telegram 登录', body + appendix),
+                         blog.generate_seo_description('Telegram 登录', body))
+        result = blog.generate_article_content_with_body(
+            {'description': body + appendix, 'duration': 60, 'uploader': 'test'},
+            'abcdefghijk', body)
+        self.assertIn('短信及语音接码平台', result)
+        self.assertIn(body, result)
+
+    def test_editorial_code_is_not_metadata_and_real_vps_topic_survives(self):
+        self.assertEqual(blog.editorial_text('正文\n```text\n## 关注与资源\n```\n结束'), '正文\n结束')
+        self.assertIn('VPS', blog.generate_seo_keywords('VPS 配置', 'VPS 部署步骤。', ['VPS']))
+
     def test_existing_slug_is_not_duplicated_or_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'same.md'

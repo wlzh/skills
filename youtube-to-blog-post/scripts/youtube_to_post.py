@@ -479,11 +479,34 @@ def trim_filename(filename, max_length):
     return result or filename[:max_length].rstrip('-')
 
 
+def editorial_text(text):
+    """Exclude the fixed resource appendix from metadata, not from the article."""
+    lines = []
+    fence = None
+    for line in (text or '').splitlines():
+        marker = re.match(r'^\s*(`{3,}|~{3,})', line)
+        if marker:
+            token = marker.group(1)
+            if fence is None:
+                fence = token
+            elif token[0] == fence[0] and len(token) >= len(fence):
+                fence = None
+            continue
+        if fence:
+            continue
+        heading = re.sub(r'^\s*#{1,6}\s*', '', line).strip()
+        if heading in {'短信及语音接码平台', '关注与资源', 'YouTube 播放列表'} or heading.startswith('注意，相关视频中的内容'):
+            break
+        lines.append(line)
+    return '\n'.join(lines).strip()
+
+
 def generate_seo_keywords(title, description, tags):
     """
     Generate SEO-optimized keywords
     Focus on long-tail keywords and search intent
     """
+    description = editorial_text(description)
     keywords = []
 
     def add_keyword(keyword):
@@ -615,6 +638,7 @@ def generate_seo_description(title, description):
     - Include main keywords
     - Compelling call-to-action
     """
+    description = editorial_text(description)
     title_terms = extract_seo_terms(title)
 
     # Clean up description
@@ -770,7 +794,7 @@ def generate_post_content(video_info, config, category, tags, body_md=""):
     thumbnail = video_info.get('thumbnail', '')
 
     # Generate SEO-optimized metadata
-    keywords = generate_seo_keywords(title, description, tags)
+    keywords = generate_seo_keywords(title, body_md or description, tags)
     post_description = generate_seo_description(title, body_md or description)
 
     # Use current time as post date (not video upload time)
