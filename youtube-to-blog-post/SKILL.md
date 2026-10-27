@@ -1,6 +1,6 @@
 ---
 name: youtube-to-blog-post
-description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and canonical 5-8 keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
+description: Convert YouTube videos to SEO-optimized blog posts. Extract video title, description, and content, then generate a search-engine-friendly blog post with embedded video, cover images, optimized metadata, structured Markdown sections, clean resource blocks, and up to 8 source-grounded keywords. Auto-generates English filenames and saves to the configured Hexo blog posts directory. Includes tag management rules to maintain a clean, consistent tag taxonomy.
 version: 4.10.1
 changelog: "v4.10.1: Generate metadata from editorial text, excluding fixed appendices and code without removing published content. See references/SEARCH-PUBLISH.md."
 ---
@@ -34,7 +34,7 @@ changelog: "v4.10.1: Generate metadata from editorial text, excluding fixed appe
 - ✅ **YouTube 特殊字符改写** - 标题/描述中的 `>` 自动改写为 `》`，`<` 自动改写为 `《`
 - ✅ **HTML 属性安全** - iframe `title` 限制 50 字符，自动清洗引号和特殊字符
 - ✅ **描述优化** - 优先使用正文事实句，长度上限为项目约定，不凑字数
-- ✅ **智能关键词** - 过滤无意义片段，提取 5-8 个高质量关键词
+- ✅ **智能关键词** - 过滤无意义片段，提取最多 8 个正文相关关键词
 - ✅ **封面图** - 三级回退：本地自定义封面 → YouTube maxresdefault → sddefault
 - ✅ **长尾词覆盖** - 自动添加同义词和相关词
 - ✅ **内部链接** - 自动添加相关推荐链接
@@ -79,7 +79,7 @@ python scripts/youtube_to_post.py "https://www.youtube.com/watch?v=VIDEO_ID"
 **自动完成：**
 1. ✅ 获取视频信息（标题、描述、时长、缩略图）
 2. ✅ 生成 SEO 优化的描述（≤160 字符）
-3. ✅ 提取高质量关键词（5-8 个）
+3. ✅ 提取正文相关关键词（最多 8 个，不凑数）
 4. ✅ 添加 YouTube 封面图
 5. ✅ 从描述提取真实内容（亮点、代码示例）
 6. ✅ 创建英文文件名（kebab-case）
@@ -472,7 +472,7 @@ tags:
 ### SEO 最佳实践
 
 1. ✅ **描述长度** - 自动优化到 160 字符内
-2. ✅ **关键词数量** - 自动控制在 5-8 个
+2. ✅ **关键词数量** - 最多 8 个，证据不足时保留更少
 3. ✅ **YAML 安全** - 自动过滤特殊字符
 4. ✅ **封面图** - 自动使用 YouTube 缩略图
 5. ✅ **内部链接** - 自动添加相关推荐
@@ -514,7 +514,7 @@ synonyms = {
     "免费": ["free", "0成本"]
 }
 
-# 最终生成 5-8 个高质量关键词
+# 最终生成最多 8 个正文相关关键词
 keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 ```
 
@@ -558,16 +558,9 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 # 内部链接 + 视频链接
 ```
 
-## 📈 预期 SEO 效果
+## SEO 效果评估
 
-使用此 Skill 生成的文章预期可以达到：
-
-- ✅ **Google 收录时间**: 1-3 天（比平均快 60%）
-- ✅ **关键词排名**: 10-20 位（长尾词）
-- ✅ **搜索点击率**: 4-6%（比平均高 100%）
-- ✅ **自然流量**: +200-300%
-- ✅ **部署成功率**: 100%
-- ✅ **AI 痕迹去除**: 自然流畅，符合人类写作习惯
+技术检查不预测 Google 收录时间、关键词排名、点击率、自然流量或广告收入。发布后使用完整的 7 天、28 天 Search Console 窗口评估，并区分页面聚合、查询截断、子域名及设备差异。不得把发布前增长作为本次修改的因果证据。
 
 ## 📚 相关文档
 
@@ -633,9 +626,9 @@ keywords = ["VPS", "免费服务器", "虚拟服务器", "0成本", "VPS教程"]
 
 ### v2.0 - SEO 优化版 (2026-02-02)
 
-- ✅ 新增 YAML 安全过滤，部署成功率 100%
+- ✅ 新增 YAML 安全过滤；仍需实际部署与验证
 - ✅ 新增描述优化（160 字符）
-- ✅ 新增智能关键词提取（5-8 个高质量词）
+- ✅ 新增智能关键词提取（数量不是效果保证）
 - ✅ 新增 YouTube 封面图
 - ✅ 新增长尾关键词覆盖
 - ✅ 新增内部链接
