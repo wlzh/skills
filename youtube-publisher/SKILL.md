@@ -1,13 +1,15 @@
 ---
 name: youtube-publisher
 description: "Upload and fully manage YouTube videos and live events: metadata, thumbnails, captions, playlists, scheduled broadcasts, encoder streams, binding, lifecycle transitions, and cleanup."
-version: 1.9.0
+version: 1.9.1
 setup_complete: true
 setup: "./SETUP.md"
-changelog: "v1.9.0: Document read-only playlist export for author-managed blog topics; exporters never mutate playlists. Full history: references/CHANGELOG.md."
+changelog: "v1.9.1: Add owner-verified, single-attempt resource-comment transport for Duanku recovery. Full history: references/CHANGELOG.md."
 ---
 
 ## 🔴 Strict Execution Rule (Highest Priority)
+
+Resource comments: `scripts/youtube-resource-comments.ts` is a JSON-stdin transport for owner-verified inspection and a SINGLE non-retried top-level comment POST. Invoke it through Duanku's `duanku-youtube-publish-blog-pipeline/scripts/resource_comments.py` durable state machine, not as an untracked standalone POST. Pinning is browser-only; follow that skill's `references/RESOURCE-COMMENTS.md`, automatically pin and refresh-verify, and never claim that the Data API pins comments. No media upload or visibility change is part of comment recovery.
 
 Every instruction, step, and check in this SKILL.md must be **followed exactly as written** — no deviations allowed.
 

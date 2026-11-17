@@ -1,6 +1,10 @@
 # Changelog — youtube-publisher
 
-Current version: `1.9.0`
+Current version: `1.9.1`
+
+## v1.9.1 (2026-11-17)
+
+- Added owner-verified resource-comment inspection and single-attempt comment insertion transport. POST retries are explicitly disabled; Duanku's durable video-keyed state machine owns retries and reconciliation. Pinning remains browser-only and requires a verified post-refresh receipt.
 
 ## v1.9.0 (2026-10-08)
 
